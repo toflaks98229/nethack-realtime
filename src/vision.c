@@ -2,6 +2,47 @@
 /* Copyright (c) Dean Luick, with acknowledgements to Dave Cohrs, 1990. */
 /* NetHack may be freely redistributed.  See license for details.       */
 
+/**
+ * @file vision.c
+ * @brief What the hero can see, and what they merely remember.
+ *
+ * Two different things are tracked and must not be confused. What is *visible*
+ * is recomputed as the hero moves and the light changes; what is *remembered*
+ * is what was seen once and is still drawn even though nobody is looking at it.
+ * That distinction is why a corridor stays on the map after you leave it, and
+ * why a monster that walks into it does not appear.
+ *
+ * Visibility is computed by casting lines from the hero outward, and the result
+ * is kept so the rest of the game can ask whether a square is seen without
+ * repeating the work.
+ *
+ * @note Recomputed only when something could have changed it -- movement, a
+ *       light source, a door opening -- because doing it every turn regardless
+ *       would be the expensive part of a turn.
+ * @warning Blindness, telepathy, warning and detection each grant knowledge
+ *          without sight, so "the hero knows about it" is a broader question
+ *          than "the hero can see it" and is answered elsewhere.
+ */
+
+/**
+ * @file vision.c
+ * @brief 영웅이 볼 수 있는 것과, 그저 기억하고 있는 것.
+ *
+ * 서로 다른 두 가지를 추적하며 혼동해서는 안 된다. *보이는* 것은 영웅이 움직이고
+ * 빛이 달라질 때마다 다시 계산되고, *기억된* 것은 한 번 본 뒤 아무도 보고 있지
+ * 않아도 계속 그려지는 것이다. 이 구분 때문에 떠나온 복도가 지도에 남고, 그 복도로
+ * 걸어 들어간 몬스터는 나타나지 않는다.
+ *
+ * 가시성은 영웅에게서 바깥으로 선을 쏘아 계산하며, 결과를 보관해 두어 게임의 나머지
+ * 부분이 같은 계산을 되풀이하지 않고 어떤 칸이 보이는지 물을 수 있게 한다.
+ *
+ * @note 그것을 바꿀 수 있는 일이 있었을 때만 -- 이동, 광원, 문 열림 -- 다시 계산한다.
+ *       무조건 매 턴 계산하는 것이 턴에서 가장 비싼 부분이 되기 때문이다.
+ * @warning 실명, 텔레파시, 경고, 탐지는 각각 보지 않고도 앎을 준다. 따라서 "영웅이
+ *          그것을 안다"는 "영웅이 그것을 볼 수 있다"보다 넓은 질문이며, 다른 곳에서
+ *          답한다.
+ */
+
 #include "hack.h"
 
 /* Circles

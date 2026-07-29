@@ -3,6 +3,45 @@
 /*-Copyright (c) Pasi Kallinen, 2018. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file mkmaze.c
+ * @brief Mazes, and the levels that are not built from rooms.
+ *
+ * Where mklev.c places rooms and joins them, this carves passages out of solid
+ * rock, so the result has no rooms at all -- which is why the parts of the game
+ * that reason about rooms have to cope with levels that have none.
+ *
+ * It also builds the levels that follow neither pattern: Sokoban's fixed
+ * puzzles, the wizard's tower walled inside a maze, and the endgame planes,
+ * where the very idea of terrain is different -- water and air levels are made
+ * of drifting bubbles rather than a map.
+ *
+ * @note A maze is dug on a coarser grid than the map and then expanded, which
+ *       is what makes its corridors uniformly one square wide.
+ * @warning Special levels loaded from data files arrive here already laid out;
+ *          what remains is fitting them to the dungeon -- stairs, boundaries
+ *          and regions -- not generating them.
+ */
+
+/**
+ * @file mkmaze.c
+ * @brief 미로, 그리고 방으로 짓지 않는 레벨들.
+ *
+ * mklev.c 가 방을 놓고 잇는 것과 달리, 여기서는 단단한 암반을 파내 통로를 만든다.
+ * 그래서 결과물에는 방이 아예 없으며, 방을 전제로 사고하는 게임의 다른 부분들이
+ * 방 없는 레벨을 감당해야 하는 이유가 그것이다.
+ *
+ * 어느 쪽 방식도 아닌 레벨들도 여기서 짓는다. 소코반의 정해진 퍼즐, 미로 안에 벽으로
+ * 둘러싸인 마법사의 탑, 그리고 지형이라는 개념 자체가 다른 엔드게임의 세계들이다.
+ * 물과 공기 레벨은 지도가 아니라 떠다니는 거품으로 이루어져 있다.
+ *
+ * @note 미로는 지도보다 성긴 격자 위에서 판 뒤 확장한다. 통로 폭이 한결같이 한 칸인
+ *       이유가 그것이다.
+ * @warning 데이터 파일에서 불러온 특수 레벨은 이미 배치가 끝난 상태로 도착한다. 남은
+ *          일은 그것을 던전에 맞추는 것 -- 계단, 경계, 영역 -- 이지 생성하는 것이
+ *          아니다.
+ */
+
 #include "hack.h"
 #include "sp_lev.h"
 

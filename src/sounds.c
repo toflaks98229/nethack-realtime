@@ -2,6 +2,44 @@
 /*      Copyright (c) 1989 Janet Walz, Mike Threepoint */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file sounds.c
+ * @brief What the hero hears, from the level and from the creatures in it.
+ *
+ * Sound is the game's way of telling the player about things they cannot see.
+ * A fountain gurgles, a vault's guards are heard counting, a zoo is noisy --
+ * so ambient noises betray what a level contains before it has been explored.
+ *
+ * Creatures make their own sounds, and what a monster says depends on what it
+ * is and how it feels: a shopkeeper greets or threatens, a priest sermonizes,
+ * a tame animal makes a contented noise rather than a hostile one.
+ *
+ * @note Nothing here is heard while the hero is deaf, which is checked in one
+ *       place rather than at every message.
+ * @warning Some noises reveal information -- a vault's location, a shop's
+ *          presence -- so a sound produced regardless of distance or hearing
+ *          would hand the player knowledge they should have had to find.
+ */
+
+/**
+ * @file sounds.c
+ * @brief 영웅이 듣는 것. 레벨에서 나는 소리와 그 안의 생물이 내는 소리.
+ *
+ * 소리는 볼 수 없는 것을 플레이어에게 알리는 게임의 수단이다. 분수는 콸콸거리고,
+ * 금고의 경비병이 세는 소리가 들리고, 동물원은 시끄럽다. 그래서 주변 소음이 아직
+ * 탐험하지 않은 레벨에 무엇이 있는지 흘린다.
+ *
+ * 생물도 저마다 소리를 낸다. 몬스터가 무슨 말을 하는지는 그것이 무엇이며 어떤
+ * 기분인지에 달려 있다. 상점 주인은 인사하거나 위협하고, 사제는 설교하며, 길들여진
+ * 동물은 적대적인 소리가 아니라 만족스러운 소리를 낸다.
+ *
+ * @note 영웅이 귀가 먹은 동안에는 여기의 어떤 것도 들리지 않는다. 이 검사는 메시지마다가
+ *       아니라 한 곳에서 이루어진다.
+ * @warning 일부 소음은 정보를 드러낸다. 금고의 위치나 상점의 존재 같은 것이다. 거리나
+ *          청력과 무관하게 나는 소리는 플레이어가 직접 찾아냈어야 할 지식을 건네주는
+ *          셈이 된다.
+ */
+
 #include "hack.h"
 
 staticfn boolean throne_mon_sound(struct monst *);

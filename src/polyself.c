@@ -19,6 +19,46 @@
  *    polymon (called directly)             usually golem petrification
  */
 
+/**
+ * @file polyself.c
+ * @brief The hero becoming something else, and coming back.
+ *
+ * Polymorph does not replace the hero -- it layers a monster form over them.
+ * The hero keeps their own attributes, inventory and identity underneath, while
+ * gaining the form's shape, attacks, resistances and hit points, so returning
+ * is a matter of removing the layer rather than restoring a copy.
+ *
+ * That layering is what makes the awkward cases: equipment that no longer fits
+ * the new body, a form with no hands to hold anything, a size that cannot pass
+ * where the hero could, and a separate pool of hit points that can run out
+ * without killing the hero.
+ *
+ * @note Breaking out of a form early -- rehumanizing -- can happen at any time,
+ *       so nothing may assume the form lasts as long as its timer says.
+ * @warning A form's death is not the hero's; when its hit points are gone the
+ *          hero reverts. But dying *while* reverting, or in a form that cannot
+ *          survive where the hero stands, is fatal.
+ */
+
+/**
+ * @file polyself.c
+ * @brief 영웅이 다른 무언가가 되는 일, 그리고 돌아오는 일.
+ *
+ * 변신은 영웅을 대체하지 않는다. 영웅 위에 몬스터 형태를 한 겹 덮는다. 영웅은 아래에
+ * 자신의 능력치와 소지품, 정체성을 그대로 지닌 채 그 형태의 몸과 공격, 저항, 체력을
+ * 얻는다. 그래서 돌아오는 일은 사본을 복원하는 것이 아니라 겹을 걷어내는 것이다.
+ *
+ * 이 겹치기가 까다로운 경우들을 만든다. 새 몸에 더 이상 맞지 않는 장비, 무언가를 쥘
+ * 손이 없는 형태, 영웅이라면 지날 수 있었던 곳을 지나지 못하는 크기, 그리고 영웅을
+ * 죽이지 않은 채 바닥날 수 있는 별도의 체력이다.
+ *
+ * @note 형태에서 일찍 벗어나는 일 -- 되돌아오기 -- 은 언제든 일어날 수 있다. 형태가
+ *       타이머가 말하는 만큼 지속된다고 가정해서는 안 된다.
+ * @warning 형태의 죽음은 영웅의 죽음이 아니다. 그 체력이 다하면 영웅은 되돌아온다.
+ *          다만 되돌아오는 *도중에* 죽거나, 영웅이 서 있는 곳에서 살아남을 수 없는
+ *          형태라면 치명적이다.
+ */
+
 #include "hack.h"
 
 staticfn void check_strangling(boolean);

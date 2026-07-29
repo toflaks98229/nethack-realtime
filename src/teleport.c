@@ -3,6 +3,46 @@
 /*-Copyright (c) Robert Patrick Rankin, 2011. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file teleport.c
+ * @brief Moving without traversing: teleports, level ports and displacement.
+ *
+ * Ordinary movement steps between adjacent squares and everything downstream
+ * relies on that. Teleporting does not, so it has to do explicitly what a step
+ * does implicitly: pick a destination that is actually habitable, take the
+ * traveller off the map and put them back, and bring along whatever was
+ * attached -- a steed, a swallowed hero, a worm's tail.
+ *
+ * Finding somewhere to land is most of the work. A destination must suit the
+ * creature going there, not merely be empty, and when nowhere suitable exists
+ * the game has to widen its search rather than fail.
+ *
+ * @note Some levels refuse teleportation, and some places refuse arrivals; both
+ *       are checked here rather than by callers, so no caller can forget.
+ * @warning Nothing observed before a teleport is valid after it. Positions,
+ *          adjacency and line of sight all change at once, which is why this is
+ *          not simply an assignment to the coordinates.
+ */
+
+/**
+ * @file teleport.c
+ * @brief 지나가지 않고 이동하기. 순간이동, 레벨 이동, 밀려남.
+ *
+ * 평범한 이동은 인접한 칸 사이를 걷고, 그 뒤의 모든 처리가 그 사실에 기댄다.
+ * 순간이동은 그렇지 않으므로, 걸음이 암묵적으로 하던 일을 명시적으로 해야 한다.
+ * 실제로 머물 수 있는 목적지를 고르고, 이동 대상을 지도에서 떼었다가 다시 놓고,
+ * 딸린 것들 -- 탈것, 삼켜진 영웅, 지렁이의 꼬리 -- 을 함께 데려가는 일이다.
+ *
+ * 내려앉을 곳을 찾는 것이 작업의 대부분이다. 목적지는 그저 비어 있는 곳이 아니라
+ * 그리로 가는 생물에게 맞는 곳이어야 하고, 적당한 곳이 없으면 실패하는 대신 탐색
+ * 범위를 넓혀야 한다.
+ *
+ * @note 어떤 레벨은 순간이동을 거부하고 어떤 장소는 도착을 거부한다. 둘 다 호출자가
+ *       아니라 여기서 검사하므로, 호출자가 잊을 수 없다.
+ * @warning 순간이동 전에 관찰한 것은 그 뒤에 아무것도 유효하지 않다. 위치와 인접성,
+ *          시야가 한꺼번에 바뀐다. 이것이 좌표에 대한 단순한 대입이 아닌 이유다.
+ */
+
 #include "hack.h"
 #define NEW_ENEXTO
 
