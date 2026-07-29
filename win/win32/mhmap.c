@@ -91,6 +91,15 @@ typedef struct mswin_nethack_map_window {
     int camLastXPos, camLastYPos; /* scroll pos observed at last pan seed */
     boolean camInit;            /* camLast{X,Y}Pos have been initialized */
     boolean camAnimating;       /* pan timer is currently running */
+
+    /* hero sprite slide (stage 3): when the view does NOT scroll, the hero
+       tile itself glides between cells.  We keep a decaying overlay offset
+       and, while it is active, redraw the terrain over the hero's cell and
+       draw the hero as a moving overlay in onPaint. */
+    int heroDX, heroDY;         /* hero overlay offset, front-buffer pixels */
+    int heroLastX, heroLastY;   /* hero cell observed at last slide seed */
+    boolean heroInit;           /* heroLast{X,Y} initialized */
+    boolean heroSlideActive;    /* hero is mid-glide */
 #endif
 } NHMapWindow, *PNHMapWindow;
 
@@ -668,7 +677,7 @@ MapWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_TIMER:
 #ifdef REALTIME_PROTO
         if (wParam == RT_CAM_TIMER_ID) {
-            /* decay the smooth-pan offset toward zero, ~RT_TURN_MS total */
+            /* decay the pan and hero-slide offsets toward zero, ~RT_TURN_MS */
             int stepx = data->xFrontTile * RT_CAM_FRAME_MS / RT_TURN_MS;
             int stepy = data->yFrontTile * RT_CAM_FRAME_MS / RT_TURN_MS;
 
@@ -680,8 +689,15 @@ MapWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                                             : min(0, data->camDX + stepx);
             data->camDY = (data->camDY > 0) ? max(0, data->camDY - stepy)
                                             : min(0, data->camDY + stepy);
-            InvalidateRect(hWnd, NULL, FALSE); /* repaint at new offset */
-            if (data->camDX == 0 && data->camDY == 0) {
+            data->heroDX = (data->heroDX > 0) ? max(0, data->heroDX - stepx)
+                                              : min(0, data->heroDX + stepx);
+            data->heroDY = (data->heroDY > 0) ? max(0, data->heroDY - stepy)
+                                              : min(0, data->heroDY + stepy);
+            if (data->heroDX == 0 && data->heroDY == 0)
+                data->heroSlideActive = FALSE;
+            InvalidateRect(hWnd, NULL, FALSE); /* repaint at new offsets */
+            if (data->camDX == 0 && data->camDY == 0
+                && data->heroDX == 0 && data->heroDY == 0) {
                 KillTimer(hWnd, RT_CAM_TIMER_ID);
                 data->camAnimating = FALSE;
             }
@@ -1171,6 +1187,16 @@ paint(PNHMapWindow data, int i, int j)
    decays camD{X,Y} back to zero over ~RT_TURN_MS.  Contained to this window;
    if the offset is zero the render is pixel-identical to stock. */
 static void
+rt_anim_start_timer(PNHMapWindow data)
+{
+    if (!data->camAnimating) {
+        SetTimer(data->hWnd, RT_CAM_TIMER_ID, RT_CAM_FRAME_MS, NULL);
+        data->camAnimating = TRUE;
+    }
+}
+
+/* returns TRUE if the scroll origin jumped this frame (camera is panning) */
+static boolean
 rt_cam_seed(PNHMapWindow data)
 {
     int maxdx, maxdy;
@@ -1179,25 +1205,63 @@ rt_cam_seed(PNHMapWindow data)
         data->camLastXPos = data->xPos;
         data->camLastYPos = data->yPos;
         data->camInit = TRUE;
+        return FALSE;
+    }
+    if (data->xPos == data->camLastXPos && data->yPos == data->camLastYPos)
+        return FALSE;
+
+    data->camDX += (data->camLastXPos - data->xPos) * data->xFrontTile;
+    data->camDY += (data->camLastYPos - data->yPos) * data->yFrontTile;
+    data->camLastXPos = data->xPos;
+    data->camLastYPos = data->yPos;
+
+    /* clamp lag so a burst of fast moves can't fling the view far */
+    maxdx = RT_CAM_MAX_TILES * data->xFrontTile;
+    maxdy = RT_CAM_MAX_TILES * data->yFrontTile;
+    data->camDX = max(-maxdx, min(maxdx, data->camDX));
+    data->camDY = max(-maxdy, min(maxdy, data->camDY));
+
+    rt_anim_start_timer(data);
+    return TRUE;
+}
+
+/* When the view is NOT scrolling (camJumped == FALSE), glide the hero tile
+   itself between cells: seed a decaying overlay offset on a single-step move.
+   Only when we know the terrain under the hero (bkglyph) so onPaint can erase
+   the static hero cleanly. */
+static void
+rt_hero_seed(PNHMapWindow data, boolean camJumped)
+{
+    int hx = (int) u.ux, hy = (int) u.uy;
+    int dx, dy, maxdx, maxdy;
+
+    if (!data->heroInit) {
+        data->heroLastX = hx;
+        data->heroLastY = hy;
+        data->heroInit = TRUE;
         return;
     }
-    if (data->xPos != data->camLastXPos || data->yPos != data->camLastYPos) {
-        data->camDX += (data->camLastXPos - data->xPos) * data->xFrontTile;
-        data->camDY += (data->camLastYPos - data->yPos) * data->yFrontTile;
-        data->camLastXPos = data->xPos;
-        data->camLastYPos = data->yPos;
+    dx = hx - data->heroLastX;
+    dy = hy - data->heroLastY;
+    if (dx == 0 && dy == 0)
+        return; /* hero didn't move */
 
-        /* clamp lag so a burst of fast moves can't fling the view far */
+    if (!camJumped && dx >= -1 && dx <= 1 && dy >= -1 && dy <= 1
+        && data->bkmap[hx][hy].glyph != NO_GLYPH) {
+        /* start the overlay back at the old cell and let it decay to zero */
+        data->heroDX += -dx * data->xFrontTile;
+        data->heroDY += -dy * data->yFrontTile;
         maxdx = RT_CAM_MAX_TILES * data->xFrontTile;
         maxdy = RT_CAM_MAX_TILES * data->yFrontTile;
-        data->camDX = max(-maxdx, min(maxdx, data->camDX));
-        data->camDY = max(-maxdy, min(maxdy, data->camDY));
-
-        if (!data->camAnimating) {
-            SetTimer(data->hWnd, RT_CAM_TIMER_ID, RT_CAM_FRAME_MS, NULL);
-            data->camAnimating = TRUE;
+        data->heroDX = max(-maxdx, min(maxdx, data->heroDX));
+        data->heroDY = max(-maxdy, min(maxdy, data->heroDY));
+        if (data->heroDX != 0 || data->heroDY != 0) {
+            data->heroSlideActive = TRUE;
+            rt_anim_start_timer(data);
         }
     }
+    data->heroLastX = hx;
+    data->heroLastY = hy;
 }
 #endif /* REALTIME_PROTO */
 
@@ -1217,13 +1281,48 @@ onPaint(HWND hWnd)
     int originY = data->map_orig.y - (data->yPos * data->yFrontTile);
 
 #ifdef REALTIME_PROTO
-    rt_cam_seed(data);      /* seed a pan if the scroll origin just jumped */
+    boolean camJumped = rt_cam_seed(data); /* pan if scroll origin jumped */
+    rt_hero_seed(data, camJumped);         /* else glide the hero tile */
     originX += data->camDX; /* apply the smooth-pan offset (0 when idle) */
     originY += data->camDY;
 #endif
 
     StretchBlt(hFrontBufferDC, originX, originY, frontWidth, frontHeight,
                 data->backBufferDC, 0, 0, data->backWidth, data->backHeight, SRCCOPY);
+
+#ifdef REALTIME_PROTO
+    if (data->heroSlideActive) {
+        /* The back-buffer blit above drew the hero statically at its cell.
+           Redraw the terrain over that cell, then draw the hero transparently
+           at the interpolated position so it appears to glide.  Nothing in the
+           back buffer is touched, so when the slide ends the static hero simply
+           reappears with no gap. */
+        RECT hr;
+        short ntile;
+        int bx, by;
+        HBITMAP savedTile = SelectObject(data->tileDC, GetNHApp()->bmpMapTiles);
+
+        nhcoord2display(data, (int) u.ux, (int) u.uy, &hr);
+        bx = hr.left + data->camDX; /* align with the (possibly) panned world */
+        by = hr.top + data->camDY;
+
+        /* (a) erase the static hero by repainting the terrain (bkglyph) */
+        ntile = data->bkmap[u.ux][u.uy].gm.tileidx;
+        StretchBlt(hFrontBufferDC, bx, by, data->xFrontTile, data->yFrontTile,
+                   data->tileDC, TILEBMP_X(ntile), TILEBMP_Y(ntile),
+                   GetNHApp()->mapTile_X, GetNHApp()->mapTile_Y, SRCCOPY);
+
+        /* (b) draw the hero at the interpolated position, transparently */
+        ntile = data->map[u.ux][u.uy].gm.tileidx;
+        (*GetNHApp()->lpfnTransparentBlt)(
+            hFrontBufferDC, bx + data->heroDX, by + data->heroDY,
+            data->xFrontTile, data->yFrontTile, data->tileDC,
+            TILEBMP_X(ntile), TILEBMP_Y(ntile), GetNHApp()->mapTile_X,
+            GetNHApp()->mapTile_Y, TILE_BK_COLOR);
+
+        SelectObject(data->tileDC, savedTile);
+    }
+#endif
 
     EndPaint(hWnd, &ps);
 }

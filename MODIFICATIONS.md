@@ -51,22 +51,32 @@ turn-based NetHack back.**
 | `win/win32/mswproc.c` | tile/GUI command input paces to the world clock |
 | `win/win32/mhmap.c` | smooth-camera pan interpolation (see below) |
 
-### Smooth-camera pan (win32 tile/GUI)
-NetHack's tile map re-centers on the hero, so walking jumps the scroll origin
-by a whole tile. Under `REALTIME_PROTO` the map window instead renders at a
-fractional pixel offset that decays to zero over ~`RT_TURN_MS`, so the whole
-view **pans smoothly** when you walk rather than snapping. It is entirely
-contained in the map window (a WM_TIMER-driven offset applied at blit time); at
-rest the render is pixel-identical to stock. Independent monster motion is not
-yet interpolated (monsters still step cell-to-cell); per-entity sprite
-interpolation is possible future work.
+### Smooth motion (win32 tile/GUI)
+Two complementary interpolations, both contained in the map window
+(`win/win32/mhmap.c`), driven by one WM_TIMER and applied at blit time; when
+nothing is moving the render is pixel-identical to stock:
+
+- **Camera pan.** When the map is larger than the window it re-centers on the
+  hero, jumping the scroll origin a whole tile per step. We instead render at a
+  fractional pixel offset that decays to zero over ~`RT_TURN_MS`, so the view
+  pans smoothly.
+- **Hero glide.** When the map fits in the window (no scroll), the camera can't
+  pan, so the hero *tile itself* glides between cells: onPaint repaints the
+  terrain over the hero's cell and draws the hero transparently at the
+  interpolated position. Keyed on a single-step move that the camera isn't
+  already handling. The back buffer is never modified, so when the glide ends
+  the static hero simply reappears with no gap.
+
+Independent monster motion is not yet interpolated (monsters still step
+cell-to-cell); per-entity monster sprite interpolation, which needs a
+core-side motion source, is possible future work.
 
 ### Known limitations (prototype)
 - Commands that need follow-up input (e.g. `z` then a direction) still block on
   the follow-up keystroke.
 - During occupations/running, pacing falls back toward stock behavior.
-- Smoothing covers the camera/hero pan; individual monster sprites still step
-  grid-to-grid rather than sliding.
+- Smoothing covers the camera pan and the hero's own movement; other monster
+  sprites still step grid-to-grid rather than sliding.
 
 ---
 
