@@ -96,16 +96,33 @@ nothing is moving the render is pixel-identical to stock:
   The trade-off is deliberate: rapid multi-key sequences entered mid-animation
   are not all honored.
 
-### Future direction: vector positions (recorded)
-The buffered-input problem above and the grid-stepped monster motion both stem
-from the same root: positions are **tile/grid quantized** and time is sliced
-into discrete turns. The intended long-term fix is to move entities to
-**continuous vector positions** (real-valued x/y with velocity), sampling input
-continuously and integrating motion per frame, with the grid retained only for
-collision/pathfinding/game rules. That removes per-turn input buffering and
-makes true sub-tile motion (all entities) natural rather than a rendering
-overlay. This is a large engine change and is noted here as the target
-architecture, not yet implemented.
+### Vector positions
+Entities now carry a **continuous position** in the core (`src/rtvector.c`,
+`include/nh_rtvector.h`): a real-valued point that chases the grid square the
+entity occupies, advanced by elapsed real time each frame. Motion therefore has
+a position *between* squares even though the game does not.
+
+**The grid stays authoritative for rules.** Adjacency decides melee, sight is
+traced square to square, pathfinding steps between them. NetHack's rules assume
+entities occupy whole squares simultaneously, so making continuous position
+authoritative would not be a refactor — it would be a different game. Nothing
+in this layer feeds back into gameplay.
+
+What it buys over the earlier renderer-side records:
+
+- **Correct where the old scheme was lucky.** Motion used to be keyed by
+  *destination square*, so two monsters exchanging places happened to work, and
+  a monster crossing several squares restarted its glide at each one. Per-entity
+  positions are correct by construction in both cases.
+- **Owned by the core, not one window port**, and expressed in grid units, so a
+  port scales them itself; the layer knows nothing about tiles or screens.
+- **The foundation** for eventually letting continuous position drive motion,
+  which is what would remove per-turn input buffering at the root.
+
+Entities are tracked in a side table keyed by `m_id` rather than in fields on
+`struct monst`, so the saved game is unaffected. Teleports and level arrivals
+snap rather than slide, since only adjacent steps are motion, and changing
+level clears the table so nothing glides in from a square it held elsewhere.
 
 ---
 
