@@ -3,6 +3,44 @@
 /*-Copyright (c) Derek S. Ray, 2015. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file invent.c
+ * @brief The hero's possessions: holding them, listing them, choosing among
+ *        them.
+ *
+ * Inventory is a chain of objects with a letter each, and the letters are the
+ * awkward part: they must stay stable so the player's muscle memory keeps
+ * working, be reassigned when something is dropped, and cope with there being
+ * more objects than letters.
+ *
+ * Most of the file is about asking the player which object they mean --
+ * filtered by what makes sense for the command, sorted the way they asked, and
+ * described only as far as the hero knows.
+ *
+ * @note Merging is what keeps the list short: identical objects become one
+ *       stack, which is why picking something up may not add an entry.
+ * @warning Something worn or wielded is still in inventory, so removing an
+ *          object from the chain without checking those leaves the hero
+ *          equipped with something that no longer exists.
+ */
+
+/**
+ * @file invent.c
+ * @brief 영웅의 소지품. 지니는 일, 나열하는 일, 그중에서 고르는 일.
+ *
+ * 소지품은 각각 문자가 붙은 객체의 사슬이며, 까다로운 부분은 그 문자다. 플레이어의
+ * 손에 밴 기억이 계속 통하도록 안정적으로 유지되어야 하고, 무언가를 버리면 다시
+ * 배정되어야 하며, 문자보다 물건이 많은 경우도 감당해야 한다.
+ *
+ * 이 파일의 대부분은 플레이어가 어떤 물건을 뜻하는지 묻는 일이다. 그 명령에 말이 되는
+ * 것만 걸러서, 요청한 방식으로 정렬해서, 영웅이 아는 만큼만 설명해서다.
+ *
+ * @note 목록을 짧게 유지하는 것은 병합이다. 같은 물건은 하나의 더미가 되며, 그래서
+ *       무언가를 주워도 항목이 늘지 않을 수 있다.
+ * @warning 착용 중이거나 손에 든 물건도 여전히 소지품 안에 있다. 그것을 확인하지 않고
+ *          사슬에서 객체를 빼면, 더 이상 존재하지 않는 것을 장비한 영웅이 남는다.
+ */
+
 #include "hack.h"
 
 staticfn void inuse_classify(Loot *, struct obj *);

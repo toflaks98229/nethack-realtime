@@ -3,6 +3,44 @@
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file apply.c
+ * @brief Using a tool -- which is nearly everything that is not eaten, worn,
+ *        read or zapped.
+ *
+ * "Apply" is the verb for whatever an object does that has no verb of its own,
+ * so this file is a collection rather than a subject: lighting a lamp, blowing
+ * a whistle, playing an instrument, digging with a pick, leashing a pet, using
+ * a mirror, a camera, a can opener, a polearm.
+ *
+ * What unites them is only the command; each has its own rules, and several are
+ * substantial enough that they behave like their own subsystem.
+ *
+ * @note Some tools consume charges, some consume themselves, and some are
+ *       merely used up in time -- a lamp burns, which is a timer rather than a
+ *       count.
+ * @warning Several applications ask for a direction or a target after the
+ *          command has begun, so the hero's situation can change between
+ *          choosing the tool and its effect landing.
+ */
+
+/**
+ * @file apply.c
+ * @brief 도구를 쓰는 일 -- 먹거나 입거나 읽거나 쏘는 것이 아닌 거의 모든 것.
+ *
+ * "적용"은 자기만의 동사가 없는 물건이 하는 일에 붙는 동사다. 그래서 이 파일은 하나의
+ * 주제가 아니라 모음이다. 등불 켜기, 호루라기 불기, 악기 연주, 곡괭이로 파기, 애완동물에
+ * 목줄 매기, 거울과 사진기와 깡통따개와 장병기 사용하기다.
+ *
+ * 이것들을 묶는 것은 명령뿐이다. 각각 자기 규칙을 가지며, 그중 몇몇은 사실상 하나의
+ * 서브시스템처럼 동작할 만큼 덩치가 크다.
+ *
+ * @note 어떤 도구는 충전을 소모하고, 어떤 것은 자기 자신을 소모하며, 어떤 것은 그저
+ *       시간이 지나며 닳는다. 등불이 타는 것은 횟수가 아니라 타이머다.
+ * @warning 여러 적용이 명령이 시작된 뒤에 방향이나 대상을 묻는다. 그래서 도구를 고르는
+ *          시점과 효과가 도달하는 시점 사이에 영웅의 상황이 달라질 수 있다.
+ */
+
 #include "hack.h"
 
 staticfn int use_camera(struct obj *);

@@ -3,6 +3,46 @@
 /*-Copyright (c) Robert Patrick Rankin, 2011. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file objnam.c
+ * @brief Turning an object into the words for it, and words back into an object.
+ *
+ * Naming an object is an exercise in saying exactly as much as the hero knows.
+ * An unidentified potion is "a pink potion"; once known it is "a potion of
+ * speed"; a stack, a blessing, an enchantment, a name the player gave it and
+ * whether it is being worn all change the phrase -- and none of them may appear
+ * before the hero has learned them.
+ *
+ * The reverse direction exists for wishing: free text has to be matched back to
+ * an object, which means recognizing plurals, spelling variants, descriptions
+ * the player has invented, and the many ways of asking for the same thing.
+ *
+ * @note Hallucination replaces the name outright, which is why callers ask for
+ *       a name rather than assembling one from fields.
+ * @warning The name must never be more informative than the hero's knowledge.
+ *          This is the file where an information leak would be least visible
+ *          and most damaging.
+ */
+
+/**
+ * @file objnam.c
+ * @brief 객체를 그것을 가리키는 말로, 그리고 말을 다시 객체로 바꾸기.
+ *
+ * 물건에 이름을 붙이는 일은 영웅이 아는 만큼만 정확히 말하는 연습이다. 감정되지 않은
+ * 물약은 "분홍색 물약"이고, 알고 나면 "속도의 물약"이 된다. 개수, 축복 여부, 마법
+ * 강화, 플레이어가 붙인 이름, 착용 중인지 여부가 모두 표현을 바꾸며, 그중 어느 것도
+ * 영웅이 알기 전에 나타나서는 안 된다.
+ *
+ * 반대 방향은 소원을 위해 존재한다. 자유롭게 쓴 글을 다시 객체에 대응시켜야 하며,
+ * 이는 복수형과 철자 변형, 플레이어가 지어낸 설명, 같은 것을 요청하는 수많은 방식을
+ * 알아본다는 뜻이다.
+ *
+ * @note 환각은 이름을 통째로 바꿔치운다. 호출자가 필드를 조합하는 대신 이름을 요청하는
+ *       이유가 그것이다.
+ * @warning 이름이 영웅의 지식보다 많은 것을 알려 주어서는 결코 안 된다. 정보 누출이
+ *          가장 눈에 띄지 않으면서 가장 해로울 곳이 바로 이 파일이다.
+ */
+
 #include "hack.h"
 
 /* "an uncursed greased partly eaten guardian naga hatchling [corpse]" */

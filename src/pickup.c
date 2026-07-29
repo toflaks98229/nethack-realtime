@@ -7,6 +7,44 @@
  *      Contains code for picking objects up, and container use.
  */
 
+/**
+ * @file pickup.c
+ * @brief Picking things up, and reaching into containers.
+ *
+ * Taking an object is not simply moving it: weight may forbid it, a shop
+ * charges for it, a cockatrice corpse is dangerous to touch, and a stack may be
+ * taken in part. Autopickup adds the further question of whether the hero even
+ * wanted it.
+ *
+ * Containers are the larger half. Looting is a two-way transfer, containers
+ * nest, and a bag of holding changes what things weigh -- so moving an object
+ * in or out has to reconsider the weight of everything above it.
+ *
+ * @note Some containers are traps, and some -- a bag of tricks, a cursed bag of
+ *       holding -- react to being opened rather than yielding contents.
+ * @warning A container's weight depends on its contents, so an object moved
+ *          into or out of one invalidates the weight of every container it sits
+ *          inside.
+ */
+
+/**
+ * @file pickup.c
+ * @brief 물건을 줍는 일과, 용기 안으로 손을 넣는 일.
+ *
+ * 물건을 집는 것은 단순한 이동이 아니다. 무게가 그것을 막을 수 있고, 상점은 값을
+ * 매기며, 코카트리스 시체는 만지기에 위험하고, 더미는 일부만 집을 수도 있다. 자동
+ * 줍기는 여기에 "영웅이 그것을 원하기는 했는가"라는 질문을 더한다.
+ *
+ * 더 큰 절반은 용기다. 뒤지기는 양방향 이동이고, 용기는 서로 중첩되며, 담는 가방은
+ * 물건의 무게를 바꾼다. 그래서 물건을 넣거나 빼는 일은 그 위에 있는 모든 것의 무게를
+ * 다시 따져야 한다.
+ *
+ * @note 어떤 용기는 함정이고, 어떤 것은 -- 요술 가방, 저주받은 담는 가방 -- 내용물을
+ *       내주는 대신 열리는 것에 반응한다.
+ * @warning 용기의 무게는 내용물에 달려 있다. 그래서 물건을 하나 넣거나 빼면 그것이
+ *          들어 있는 모든 상위 용기의 무게가 무효가 된다.
+ */
+
 #include "hack.h"
 
 #define CONTAINED_SYM '>' /* from invent.c */

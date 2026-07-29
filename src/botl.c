@@ -3,6 +3,44 @@
 /*-Copyright (c) Michael Allison, 2006. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file botl.c
+ * @brief The status lines, and noticing when they need to change.
+ *
+ * The status display is not redrawn each turn. Every field is kept alongside
+ * what was last shown, so the game can tell which values actually changed and
+ * hand the interface only those -- otherwise the lines would flicker constantly
+ * on a slow terminal.
+ *
+ * That comparison is also what drives highlighting: a field can be coloured
+ * because it crossed a threshold, or because it moved at all, and both need the
+ * previous value as much as the current one.
+ *
+ * @note Which fields exist and in what order is configurable, and an interface
+ *       may render them itself, so this supplies values and conditions rather
+ *       than a formatted line.
+ * @warning Runs while the hero may be in an inconsistent state -- mid-death,
+ *          mid-polymorph -- so it reports what it finds rather than asserting
+ *          about it.
+ */
+
+/**
+ * @file botl.c
+ * @brief 상태 줄, 그리고 그것이 바뀌어야 할 때를 알아채는 일.
+ *
+ * 상태 표시는 매 턴 다시 그리지 않는다. 모든 항목을 마지막으로 보여 준 값과 함께
+ * 보관해 두어, 실제로 달라진 값이 무엇인지 가려내고 인터페이스에는 그것만 넘긴다.
+ * 그러지 않으면 느린 터미널에서 줄이 끊임없이 깜빡일 것이다.
+ *
+ * 그 비교는 강조 표시도 이끈다. 어떤 항목은 임계값을 넘어서 색이 바뀌고 어떤 것은
+ * 그저 변했다는 이유로 바뀌는데, 둘 다 현재 값만큼이나 이전 값을 필요로 한다.
+ *
+ * @note 어떤 항목이 어떤 순서로 존재하는지는 설정할 수 있고, 인터페이스가 직접 그릴
+ *       수도 있다. 그래서 여기서는 완성된 줄이 아니라 값과 조건을 제공한다.
+ * @warning 영웅이 일관되지 않은 상태일 때도 실행된다. 죽는 도중이거나 변신 도중일 수
+ *          있다. 그래서 단언하는 대신 발견한 것을 그대로 보고한다.
+ */
+
 #include "hack.h"
 
 extern const char *const hu_stat[]; /* defined in eat.c */
