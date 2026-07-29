@@ -743,21 +743,8 @@ struct xlock_s {
 /* NHFILE handle plus the mode bits shared by the serializers */
 #include "nh_savefile.h"
 
-/* Monster name articles */
-#define ARTICLE_NONE 0
-#define ARTICLE_THE 1
-#define ARTICLE_A 2
-#define ARTICLE_YOUR 3
-
-/* x_monnam() monster name suppress masks */
-#define SUPPRESS_IT            0x01
-#define SUPPRESS_INVISIBLE     0x02
-#define SUPPRESS_HALLUCINATION 0x04
-#define SUPPRESS_SADDLE        0x08
-#define SUPPRESS_MAPPEARANCE   0x10
-#define EXACT_NAME             0x1F
-#define SUPPRESS_NAME 0x20
-#define AUGMENT_IT    0x40 /* use "someone" or "something" instead of "it" */
+/* articles and suppress masks used when naming a monster */
+#include "nh_monnam.h"
 
 /* pline (et al) for a single string argument (suppress compiler warning) */
 #define pline1(cstr) pline("%s", cstr)
@@ -768,33 +755,8 @@ struct xlock_s {
 #define Sprintf1(buf, cstr) Sprintf(buf, "%s", cstr)
 #define panic1(cstr) panic("%s", cstr)
 
-/* Some systems want to use full pathnames for some subsets of file names,
- * rather than assuming that they're all in the current directory.  This
- * provides all the subclasses that seem reasonable, and sets up for all
- * prefixes being null.  Port code can set those that it wants.
- */
-#define HACKPREFIX      0  /* shared, RO */
-#define LEVELPREFIX     1  /* per-user, RW */
-#define SAVEPREFIX      2  /* per-user, RW */
-#define BONESPREFIX     3  /* shared, RW */
-#define DATAPREFIX      4  /* dungeon/dlb; must match value in dlb.c */
-#define SCOREPREFIX     5  /* shared, RW */
-#define LOCKPREFIX      6  /* shared, RW */
-#define SYSCONFPREFIX   7  /* shared, RO */
-#define CONFIGPREFIX    8
-#define TROUBLEPREFIX   9  /* shared or per-user, RW (append-only) */
-#define PREFIX_COUNT   10
-/* used in files.c; xxconf.h can override if needed */
-#ifndef FQN_MAX_FILENAME
-#define FQN_MAX_FILENAME 512
-#endif
-
-#if defined(NOCWD_ASSUMPTIONS) || defined(VAR_PLAYGROUND)
-/* the bare-bones stuff is unconditional above to simplify coding; for
- * ports that actually use prefixes, add some more localized things
- */
-#define PREFIXES_IN_USE
-#endif
+/* directory classes used to locate data and state files */
+#include "nh_fileprefix.h"
 
 /* from options.c */
 #define MAX_MENU_MAPPED_CMDS 32 /* some number */
@@ -889,19 +851,8 @@ struct xlock_s {
 #define MIM_REVEAL    1 /* seemimic() */
 #define MIM_OMIT_WAIT 2 /* strip beginning from "Wait!  That is a <foo>" */
 
-/* flags for make_corpse() and mkcorpstat(); 0..7 are recorded in obj->spe */
-#define CORPSTAT_NONE     0x00
-#define CORPSTAT_GENDER   0x03 /* 0x01 | 0x02 */
-#define CORPSTAT_HISTORIC 0x04 /* historic statue; not used for corpse */
-#define CORPSTAT_SPE_VAL  0x07 /* 0x03 | 0x04 */
-#define CORPSTAT_INIT     0x08 /* pass init flag to mkcorpstat */
-#define CORPSTAT_BURIED   0x10 /* bury the corpse or statue */
-/* note: gender flags have different values from those used for monsters
-   so that 0 can be unspecified/random instead of male */
-#define CORPSTAT_RANDOM 0
-#define CORPSTAT_FEMALE 1
-#define CORPSTAT_MALE   2
-#define CORPSTAT_NEUTER 3
+/* corpse/statue creation flags, low bits stored in obj->spe */
+#include "nh_corpstat.h"
 
 /* flag bits for collect_coords(); combining ring_pairs with unshuffled
    makes no sense--if both are specified unshuffled takes precedence */
