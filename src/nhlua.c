@@ -2,6 +2,44 @@
 /*      Copyright (c) 2018 by Pasi Kallinen */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file nhlua.c
+ * @brief The boundary between NetHack and the Lua it runs.
+ *
+ * Level definitions, quest text and configuration are Lua, so the game embeds
+ * an interpreter and exposes a controlled set of functions to it. This file is
+ * that boundary: it starts interpreters, loads scripts from the data files, and
+ * publishes what scripts are allowed to touch.
+ *
+ * The exposure is deliberately narrow. A script may ask the game to do things
+ * it already knows how to do, but it does not get the internals -- which is why
+ * objects, monsters and map selections each arrive through their own wrapper.
+ *
+ * @note Scripts are loaded through the same data-file mechanism as everything
+ *       else, so they work identically whether or not the build uses an archive.
+ * @warning A script is untrusted input in the sense that matters here: it may be
+ *          malformed or fail partway, so an error must unwind cleanly rather
+ *          than leave a half-built level behind.
+ */
+
+/**
+ * @file nhlua.c
+ * @brief NetHack 과 그것이 실행하는 Lua 사이의 경계.
+ *
+ * 레벨 정의와 퀘스트 문구, 설정이 Lua 이므로 게임은 인터프리터를 품고 통제된 함수
+ * 집합만 그쪽에 노출한다. 이 파일이 그 경계다. 인터프리터를 시작하고, 데이터 파일에서
+ * 스크립트를 불러오며, 스크립트가 건드려도 되는 것을 공개한다.
+ *
+ * 노출은 의도적으로 좁다. 스크립트는 게임이 이미 할 줄 아는 일을 요청할 수 있을 뿐
+ * 내부를 얻지는 못한다. 객체와 몬스터와 맵 선택이 각자의 래퍼를 거쳐 도착하는 이유다.
+ *
+ * @note 스크립트도 다른 모든 것과 같은 데이터 파일 방식으로 불러온다. 그래서 빌드가
+ *       아카이브를 쓰든 안 쓰든 동일하게 동작한다.
+ * @warning 스크립트는 여기서 중요한 의미로 신뢰할 수 없는 입력이다. 형식이 잘못되었거나
+ *          도중에 실패할 수 있으므로, 오류는 절반쯤 지어진 레벨을 남기지 말고 깨끗이
+ *          되감겨야 한다.
+ */
+
 #include "hack.h"
 #include "dlb.h"
 

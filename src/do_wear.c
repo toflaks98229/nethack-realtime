@@ -3,6 +3,42 @@
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file do_wear.c
+ * @brief Putting things on and taking them off.
+ *
+ * Equipment is layered, so order is forced: a cloak covers the body armour, and
+ * a shirt is under both. Wearing or removing something in the middle means
+ * dealing with what is on top of it, which is why these are multi-turn
+ * occupations rather than instant actions.
+ *
+ * What is worn also grants and withdraws properties, and those must be applied
+ * and removed exactly once -- so the moment a piece becomes worn is more
+ * significant than it looks.
+ *
+ * @note A cursed item welds itself on: removal is refused rather than merely
+ *       delayed, and discovering that is how the curse is usually noticed.
+ * @warning A polymorphed hero may not fit their own equipment, so wearing is
+ *          checked against the current form rather than the hero's own body.
+ */
+
+/**
+ * @file do_wear.c
+ * @brief 입고 벗는 일.
+ *
+ * 장비는 겹쳐 입으므로 순서가 강제된다. 망토는 갑옷을 덮고, 셔츠는 그 둘 아래에 있다.
+ * 중간에 있는 것을 입거나 벗는다는 것은 그 위에 있는 것들을 함께 처리한다는 뜻이며,
+ * 그래서 이 일들은 즉각적인 행동이 아니라 여러 턴에 걸친 occupation 이다.
+ *
+ * 착용은 성질을 부여하고 거두어들이기도 하며, 그것은 정확히 한 번씩 적용되고 해제되어야
+ * 한다. 어떤 장비가 "착용 상태가 되는" 그 순간이 보기보다 중요한 이유다.
+ *
+ * @note 저주받은 물건은 몸에 들러붙는다. 벗기가 미뤄지는 것이 아니라 거부되며, 대개
+ *       그 사실을 알게 되는 것이 저주를 알아채는 방식이다.
+ * @warning 변신한 영웅은 자기 장비가 맞지 않을 수 있다. 그래서 착용 가능 여부는 영웅
+ *          자신의 몸이 아니라 현재 형태를 기준으로 검사한다.
+ */
+
 #include "hack.h"
 
 static NEARDATA const char see_yourself[] = "see yourself";

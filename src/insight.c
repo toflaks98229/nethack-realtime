@@ -12,6 +12,43 @@
  * And some came from priest.c that had once been in pline.c.
  */
 
+/**
+ * @file insight.c
+ * @brief Telling the player what their character has become.
+ *
+ * Enlightenment, conduct, attributes, vanquished creatures, genocides -- the
+ * accumulated facts of a game, gathered into readable lists. The same
+ * machinery serves both a request during play and the disclosure at the end.
+ *
+ * How much may be shown differs between those two. During play the hero can
+ * only be told what they could know; once the game is over there is nothing
+ * left to protect, so the full account is given.
+ *
+ * @note Conduct is tracked by the game noticing violations rather than by the
+ *       player declaring an intent, so a conduct is "still unbroken" rather
+ *       than "chosen".
+ * @warning Runs at the end of a game as well, when parts of the state are
+ *          already being torn down, so it must read defensively.
+ */
+
+/**
+ * @file insight.c
+ * @brief 플레이어의 인물이 무엇이 되었는지 알려 주기.
+ *
+ * 깨달음, 행동 규율, 능력치, 물리친 생물, 절멸시킨 종 -- 한 게임에 쌓인 사실들을
+ * 읽을 수 있는 목록으로 모은다. 같은 장치가 플레이 도중의 요청과 게임 종료 시의
+ * 공개 내역을 모두 담당한다.
+ *
+ * 얼마나 보여 줄 수 있는지는 그 둘이 다르다. 플레이 중에는 영웅이 알 수 있는 것만
+ * 말할 수 있고, 게임이 끝난 뒤에는 지킬 것이 없으므로 전부 밝힌다.
+ *
+ * @note 행동 규율은 플레이어가 의도를 선언해서가 아니라 게임이 위반을 알아채는
+ *       방식으로 추적된다. 그래서 어떤 규율은 "선택된" 것이 아니라 "아직 깨지지
+ *       않은" 것이다.
+ * @warning 게임이 끝날 때도 실행되며, 그때는 상태의 일부가 이미 해체되는 중이다.
+ *          따라서 방어적으로 읽어야 한다.
+ */
+
 #include "hack.h"
 
 staticfn void enlght_out(const char *);

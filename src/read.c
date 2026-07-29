@@ -3,6 +3,45 @@
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file read.c
+ * @brief Reading scrolls and spellbooks, and what the words do.
+ *
+ * Reading requires being able to see and being able to understand, so
+ * blindness, confusion and illiteracy all interfere -- and confusion does not
+ * prevent reading, it changes what the scroll does, which is a mechanic rather
+ * than a failure.
+ *
+ * Blessed and cursed scrolls frequently do different things rather than more or
+ * less of the same thing, so each effect is written as three cases rather than
+ * one scaled by state.
+ *
+ * @note Spellbooks are read to learn rather than to invoke, and take many turns,
+ *       so they are an occupation; the effect of a book that is too difficult
+ *       happens at the end of the attempt, not the start.
+ * @warning Several scrolls act on inventory as a whole -- identify, remove
+ *          curse, enchant -- so they can alter or destroy objects other code
+ *          holds references to.
+ */
+
+/**
+ * @file read.c
+ * @brief 두루마리와 주문서를 읽는 일, 그리고 그 글이 하는 일.
+ *
+ * 읽으려면 볼 수 있어야 하고 이해할 수 있어야 한다. 그래서 실명과 혼란, 문맹이 모두
+ * 방해가 된다. 다만 혼란은 읽기를 막는 것이 아니라 두루마리가 하는 일을 바꾼다.
+ * 실패가 아니라 하나의 장치인 셈이다.
+ *
+ * 축복받은 두루마리와 저주받은 두루마리는 같은 일을 더 하거나 덜 하는 것이 아니라
+ * 대개 다른 일을 한다. 그래서 각 효과는 상태에 따라 배율이 곱해지는 하나가 아니라
+ * 세 가지 경우로 쓰여 있다.
+ *
+ * @note 주문서는 발동이 아니라 배우기 위해 읽으며 여러 턴이 걸리므로 occupation 이다.
+ *       너무 어려운 책의 효과는 시도가 시작될 때가 아니라 끝날 때 일어난다.
+ * @warning 감정, 저주 해제, 강화처럼 소지품 전체에 작용하는 두루마리가 여럿이다.
+ *          그래서 다른 코드가 참조를 쥐고 있는 객체를 바꾸거나 없앨 수 있다.
+ */
+
 #include "hack.h"
 
 #define Your_Own_Role(mndx)  ((mndx) == gu.urole.mnum)

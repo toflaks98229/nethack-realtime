@@ -6,6 +6,46 @@
  * Monster item usage routines.
  */
 
+/**
+ * @file muse.c
+ * @brief Monsters using what they carry.
+ *
+ * A monster with a wand of digging will escape through a wall; one with a
+ * healing potion drinks it when hurt; one with a scroll of teleportation
+ * flees with it. What makes this hard is not the effects -- those already exist
+ * -- but deciding *when* an item is worth spending.
+ *
+ * So each turn a monster's inventory is assessed in three separate lights: is
+ * there something defensive worth using now, something offensive worth using on
+ * the hero, or something else useful. Each answers only its own question, and
+ * the best of them is acted on.
+ *
+ * @note A monster does not know what its items are any more than the hero does;
+ *       what it will use is decided by the game, but the appearance of it
+ *       trying and failing is part of the design.
+ * @warning Using an item can kill the user, teleport it away, or transform it,
+ *          so the monster must not be assumed to be present or unchanged after
+ *          the attempt.
+ */
+
+/**
+ * @file muse.c
+ * @brief 몬스터가 지닌 것을 사용하는 일.
+ *
+ * 굴착 지팡이를 든 몬스터는 벽을 뚫고 달아나고, 치유 물약을 지닌 몬스터는 다쳤을 때
+ * 그것을 마시며, 순간이동 두루마리를 가진 몬스터는 그것으로 도망친다. 어려운 것은
+ * 효과가 아니라 -- 그것들은 이미 있다 -- 어떤 물건을 *언제* 쓸 만한지 판단하는 일이다.
+ *
+ * 그래서 매 턴 몬스터의 소지품을 세 가지 관점에서 따로 평가한다. 지금 쓸 만한 방어
+ * 수단이 있는지, 영웅에게 쓸 만한 공격 수단이 있는지, 그 밖에 쓸모 있는 것이 있는지다.
+ * 각각은 자기 질문에만 답하고, 그중 가장 나은 것이 실행된다.
+ *
+ * @note 몬스터도 영웅과 마찬가지로 자기 물건이 무엇인지 알지 못한다. 무엇을 쓸지는
+ *       게임이 정하지만, 시도했다가 실패하는 것처럼 보이는 것 자체가 설계의 일부다.
+ * @warning 물건을 쓰는 일이 사용자를 죽이거나, 멀리 보내거나, 변형시킬 수 있다.
+ *          시도 이후에 그 몬스터가 그대로 그 자리에 있다고 가정해서는 안 된다.
+ */
+
 #include "hack.h"
 
 /* Let monsters use magic items.  Arbitrary assumptions: Monsters only use
