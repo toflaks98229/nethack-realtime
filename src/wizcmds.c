@@ -2,6 +2,45 @@
 /*-Copyright (c) Robert Patrick Rankin, 2024. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file wizcmds.c
+ * @brief Commands that exist for developing and debugging the game.
+ *
+ * Wizard mode lets a session do what play cannot: create any object or monster,
+ * see the whole level, teleport at will, inspect internal state, and exercise
+ * code paths that are otherwise hard to reach.
+ *
+ * These are deliberately not ordinary commands. A game that has used them is
+ * marked as such and does not enter the score file, so the record stays a
+ * record of play.
+ *
+ * @note Several commands here exist to make bugs reproducible -- dumping
+ *       internal tables, forcing a level layout, checking the map's
+ *       consistency -- rather than to give an advantage.
+ * @warning These bypass the rules rather than bending them, so they can put the
+ *          game in states normal play cannot produce; a crash that follows one
+ *          may say nothing about the game as played.
+ */
+
+/**
+ * @file wizcmds.c
+ * @brief 게임을 개발하고 디버깅하기 위해 존재하는 명령들.
+ *
+ * 마법사 모드는 플레이로는 할 수 없는 일을 허용한다. 아무 물건이나 몬스터를 만들고,
+ * 레벨 전체를 보고, 마음대로 순간이동하고, 내부 상태를 들여다보고, 평소에는 닿기
+ * 어려운 코드 경로를 실행하는 것이다.
+ *
+ * 이것들은 의도적으로 평범한 명령이 아니다. 이를 사용한 게임은 그렇게 표시되어 점수
+ * 파일에 오르지 않는다. 기록이 플레이의 기록으로 남게 하기 위함이다.
+ *
+ * @note 여기 명령 중 여럿은 이점을 주기 위해서가 아니라 버그를 재현 가능하게 만들기
+ *       위해 존재한다. 내부 표를 덤프하거나, 레벨 배치를 강제하거나, 지도의 정합성을
+ *       검사하는 것들이다.
+ * @warning 이 명령들은 규칙을 굽히는 것이 아니라 우회한다. 그래서 정상적인 플레이로는
+ *          만들 수 없는 상태에 게임을 놓을 수 있으며, 그 뒤에 일어난 크래시는 실제
+ *          플레이에 대해 아무것도 말해 주지 않을 수 있다.
+ */
+
 #include "hack.h"
 #include "func_tab.h"
 

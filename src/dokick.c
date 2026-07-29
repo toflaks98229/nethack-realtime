@@ -2,6 +2,41 @@
 /* Copyright (c) Izchak Miller, Mike Stephenson, Steve Linhart, 1989. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file dokick.c
+ * @brief Kicking, and the surprising number of things that can be kicked.
+ *
+ * A kick is aimed at a square, not an object, so what happens depends on what
+ * is there: a monster takes damage, a door may break open, a chest may spill,
+ * a fountain or altar reacts in its own way, and a loose object is launched
+ * across the room.
+ *
+ * Kicking something immovable hurts, and kicking in a shop is expensive, which
+ * is why this file talks to the shopkeeper as much as to the target.
+ *
+ * @note An object kicked becomes a projectile with real flight -- it travels,
+ *       may hit something on the way, and lands where it stops.
+ * @warning Kicking can destroy the target, so nothing may be examined after the
+ *          effect has been applied without checking it still exists.
+ */
+
+/**
+ * @file dokick.c
+ * @brief 발로 차는 일과, 놀랄 만큼 다양한 찰 수 있는 것들.
+ *
+ * 발차기는 물건이 아니라 칸을 겨눈다. 그래서 무슨 일이 일어날지는 거기 무엇이 있느냐에
+ * 달려 있다. 몬스터는 피해를 입고, 문은 부서져 열릴 수 있으며, 상자는 쏟아지고, 분수나
+ * 제단은 저마다의 방식으로 반응하고, 굴러다니는 물건은 방 저편으로 날아간다.
+ *
+ * 꿈쩍 않는 것을 차면 아프고, 상점에서 차면 비싸다. 이 파일이 대상만큼이나 상점 주인과
+ * 대화하는 이유가 그것이다.
+ *
+ * @note 걷어차인 물건은 실제로 날아가는 발사체가 된다. 이동하고, 도중에 무언가에 맞을
+ *       수 있으며, 멈춘 자리에 떨어진다.
+ * @warning 발차기는 대상을 파괴할 수 있다. 효과를 적용한 뒤에는 대상이 여전히 존재하는지
+ *          확인하지 않고 들여다봐서는 안 된다.
+ */
+
 #include "hack.h"
 
 #define is_bigfoot(x) ((x) == &mons[PM_SASQUATCH])

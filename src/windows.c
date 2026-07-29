@@ -2,6 +2,44 @@
 /* Copyright (c) D. Cohrs, 1993. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file windows.c
+ * @brief Choosing an interface, and standing in for one that cannot do
+ *        something.
+ *
+ * A build may contain several window ports. This holds the list, picks the one
+ * asked for, and installs its table of routines as @c windowprocs -- after
+ * which the game calls the interface without knowing which it is talking to.
+ *
+ * Not every port implements everything, so this also supplies fallbacks: a
+ * routine that does nothing, or one built from simpler calls the port does
+ * provide. That is what lets a minimal interface remain usable rather than
+ * having to implement the whole table.
+ *
+ * @note Also handles switching ports mid-game where that is supported, which
+ *       means the table is not necessarily set only once.
+ * @warning Errors before an interface exists cannot be reported through one;
+ *          the routines used during startup deliberately do not depend on it.
+ */
+
+/**
+ * @file windows.c
+ * @brief 인터페이스를 고르는 일과, 무언가를 못 하는 인터페이스를 대신해 주는 일.
+ *
+ * 한 빌드에 여러 윈도우 포팅이 들어 있을 수 있다. 여기가 그 목록을 쥐고, 요청된
+ * 것을 골라, 그 루틴 표를 @c windowprocs 로 설치한다. 그 뒤로 게임은 자신이 어느
+ * 쪽과 이야기하는지 모른 채 인터페이스를 호출한다.
+ *
+ * 모든 포팅이 모든 것을 구현하지는 않으므로, 대체 구현도 여기서 제공한다. 아무것도
+ * 하지 않는 루틴이거나, 포팅이 제공하는 더 단순한 호출들로 조립한 루틴이다. 최소한의
+ * 인터페이스가 표 전체를 구현하지 않고도 쓸 만하게 남을 수 있는 이유다.
+ *
+ * @note 지원되는 경우 게임 도중 포팅을 바꾸는 일도 처리한다. 즉 이 표가 반드시 한
+ *       번만 설정되는 것은 아니다.
+ * @warning 인터페이스가 존재하기 전의 오류는 인터페이스를 통해 알릴 수 없다. 시작
+ *          과정에서 쓰이는 루틴들은 의도적으로 그것에 의존하지 않는다.
+ */
+
 #include "hack.h"
 #include "dlb.h"
 #ifdef TTY_GRAPHICS

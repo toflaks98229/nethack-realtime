@@ -8,6 +8,44 @@
  *      bonuses for any given weapon used, as well as weapons selection
  *      code for monsters.
  */
+/**
+ * @file weapon.c
+ * @brief What a weapon does, and how well its wielder handles it.
+ *
+ * Damage is not a property of the weapon alone. It depends on what is being
+ * hit -- a weapon effective against large creatures may be poor against small
+ * ones -- on enchantment, on materials the target resists, and on how skilled
+ * the wielder is with that class of weapon.
+ *
+ * Skill is the part that changes over time: using a weapon advances it toward a
+ * cap set by the hero's role, and that advancement is what turns a technically
+ * better weapon into an actually better one.
+ *
+ * @note Monsters are also given weapons here, choosing what suits them from
+ *       what they carry rather than always the strongest thing.
+ * @warning Skill applies to the weapon *class*, not the object, so exchanging
+ *          one sword for another does not lose progress -- but changing to an
+ *          unfamiliar class silently costs accuracy.
+ */
+
+/**
+ * @file weapon.c
+ * @brief 무기가 무엇을 하는가, 그리고 든 자가 그것을 얼마나 잘 다루는가.
+ *
+ * 피해는 무기만의 속성이 아니다. 무엇을 때리는지에 달려 있고 -- 큰 생물에게 효과적인
+ * 무기가 작은 것에는 시원찮을 수 있다 -- 마법 강화, 대상이 저항하는 재질, 그리고
+ * 든 자가 그 무기 계열에 얼마나 숙련되었는지에 달려 있다.
+ *
+ * 시간에 따라 달라지는 부분은 숙련이다. 무기를 쓰면 영웅의 직업이 정한 상한을 향해
+ * 숙련이 오르고, 그 상승이 이론적으로 나은 무기를 실제로 나은 무기로 만든다.
+ *
+ * @note 몬스터에게 무기를 쥐여 주는 일도 여기서 한다. 늘 가장 강한 것이 아니라 지닌
+ *       것 중 자신에게 맞는 것을 고른다.
+ * @warning 숙련은 개별 물건이 아니라 무기 *계열* 에 붙는다. 그래서 검을 다른 검으로
+ *          바꿔도 쌓인 것을 잃지 않지만, 익숙하지 않은 계열로 바꾸면 명중이 조용히
+ *          나빠진다.
+ */
+
 #include "hack.h"
 
 staticfn void give_may_advance_msg(int);

@@ -5,6 +5,44 @@
 
 #define NEED_VARARGS /* comment line for pre-compiled headers */
 
+/**
+ * @file end.c
+ * @brief How a game ends, however it ends.
+ *
+ * Death, escape, ascension, quitting and panicking all arrive here, and all
+ * have to produce the same things: the disclosure the player asked for, the
+ * score entry, the bones file if one is warranted, and an orderly exit.
+ *
+ * Much of the care is in doing that while the world is being dismantled. The
+ * hero may already be dead, the level may be half freed, and the very fault
+ * that ended the game may make parts of the state untrustworthy -- so this runs
+ * defensively rather than assuming what it reads is intact.
+ *
+ * @note Life-saving is resolved here as well, which is why dying is a decision
+ *       taken in this file rather than at the point damage was dealt.
+ * @warning Reachable from a panic, so it must not depend on invariants the
+ *          panic may have broken, and must not itself panic.
+ */
+
+/**
+ * @file end.c
+ * @brief 게임이 끝나는 방식. 어떻게 끝나든.
+ *
+ * 죽음, 탈출, 승천, 그만두기, 패닉이 모두 여기로 도착하고, 모두 같은 것들을 만들어
+ * 내야 한다. 플레이어가 요청한 공개 내역, 점수 항목, 조건이 맞으면 본즈 파일, 그리고
+ * 질서 있는 종료다.
+ *
+ * 주의가 필요한 부분 대부분은 세계가 해체되는 와중에 그 일을 해내는 데 있다. 영웅은
+ * 이미 죽어 있을 수 있고, 레벨은 절반쯤 해제되었을 수 있으며, 게임을 끝낸 바로 그
+ * 결함 때문에 상태의 일부를 믿을 수 없을 수도 있다. 그래서 읽는 것이 온전하다고
+ * 가정하지 않고 방어적으로 동작한다.
+ *
+ * @note 생명 구원도 여기서 해석된다. 죽음이 피해를 입힌 지점이 아니라 이 파일에서
+ *       내려지는 결정인 이유다.
+ * @warning 패닉에서도 도달할 수 있다. 따라서 그 패닉이 이미 깨뜨렸을지 모를 불변식에
+ *          의존해서는 안 되며, 스스로 패닉을 일으켜서도 안 된다.
+ */
+
 #include "hack.h"
 #ifndef NO_SIGNAL
 #include <signal.h>
