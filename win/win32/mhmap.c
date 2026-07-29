@@ -122,6 +122,9 @@ static void dirty(PNHMapWindow data, int i, int j);
 static void setGlyph(PNHMapWindow data, int i, int j,
                      const glyph_info *fg, const glyph_info *bg);
 static void clearAll(PNHMapWindow data);
+#ifdef REALTIME_PROTO
+static void rt_drive_hero(HWND hWnd);
+#endif
 
 #if (VERSION_MAJOR < 4) && (VERSION_MINOR < 4) && (PATCHLEVEL < 2)
 static void nhglyph2charcolor(short glyph, uchar *ch, int *color);
@@ -172,6 +175,14 @@ mswin_init_map_window(void)
 
     /* set cursor blink timer */
     SetTimer(hWnd, 0, CURSOR_BLINK_INTERVAL, NULL);
+#ifdef REALTIME_PROTO
+    /* In real-time play the map has a frame rate, not just occasional redraws:
+       held input has to be sampled and continuous positions advanced whether or
+       not anything happened to dirty the map.  So the frame timer runs for the
+       lifetime of the window rather than being started and stopped around
+       individual animations. */
+    SetTimer(hWnd, RT_CAM_TIMER_ID, RT_CAM_FRAME_MS, NULL);
+#endif
 
     return hWnd;
 }
@@ -699,16 +710,15 @@ MapWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                                               : min(0, data->heroDY + stepy);
             if (data->heroDX == 0 && data->heroDY == 0)
                 data->heroSlideActive = FALSE;
-            InvalidateRect(hWnd, NULL, FALSE); /* repaint at new offsets */
-            /* monSliding is set by the paint below; monsters are animated from
-               the core's motion records rather than an offset kept here, so
-               without it the timer would stop while they are still moving */
-            if (data->camDX == 0 && data->camDY == 0
-                && data->heroDX == 0 && data->heroDY == 0
-                && !data->monSliding) {
-                KillTimer(hWnd, RT_CAM_TIMER_ID);
-                data->camAnimating = FALSE;
-            }
+            /* The frame timer is not stopped when the offsets reach zero: it
+               is what samples held input, so it has to keep running even with
+               nothing on screen moving.  Repaint only when there is something
+               to show, so an idle map does not redraw sixty times a second. */
+            if (data->camDX || data->camDY || data->heroDX || data->heroDY
+                || data->monSliding)
+                InvalidateRect(hWnd, NULL, FALSE);
+            else
+                rt_drive_hero(hWnd); /* still needs sampling while idle */
             break;
         }
 #endif
@@ -1194,12 +1204,62 @@ paint(PNHMapWindow data, int i, int j)
    starts at the OLD position and slides to the new one.  The WM_TIMER handler
    decays camD{X,Y} back to zero over ~RT_TURN_MS.  Contained to this window;
    if the offset is zero the render is pixel-identical to stock. */
+/* The frame timer runs for the window's lifetime (see onCreate), so this only
+   records that something is moving; it no longer has to start anything. */
 static void
 rt_anim_start_timer(PNHMapWindow data)
 {
-    if (!data->camAnimating) {
-        SetTimer(data->hWnd, RT_CAM_TIMER_ID, RT_CAM_FRAME_MS, NULL);
-        data->camAnimating = TRUE;
+    data->camAnimating = TRUE;
+}
+
+/*
+ * Sample the arrow keys and let the hero's continuous intent decide when to
+ * step, rather than turning each key event into a queued command.  This is the
+ * half of the interpolation layer that leads the grid instead of following it;
+ * see rtv_hero_drive().
+ *
+ * Held keys are read as *state* rather than as events, because a sustained
+ * direction is a continuous quantity and the message queue only reports edges.
+ * A step is handed to the game as an ordinary movement key, so it goes through
+ * exactly the same command path as one the player typed.
+ */
+static void
+rt_drive_hero(HWND hWnd)
+{
+    int dx = 0, dy = 0, i;
+    coordxy sx = 0, sy = 0;
+
+    /* only while the game is waiting for a command, and only when this window
+       has the keyboard; otherwise a held key belongs to a menu or a prompt */
+    if (program_state.input_state != commandInp || GetFocus() != hWnd) {
+        (void) rtv_hero_drive(0, 0, &sx, &sy); /* drop partial progress */
+        return;
+    }
+
+#define RT_HELD(vk) ((GetAsyncKeyState(vk) & 0x8000) != 0)
+    if (RT_HELD(VK_LEFT))
+        dx = -1;
+    else if (RT_HELD(VK_RIGHT))
+        dx = 1;
+    if (RT_HELD(VK_UP))
+        dy = -1;
+    else if (RT_HELD(VK_DOWN))
+        dy = 1;
+#undef RT_HELD
+
+    if (!rtv_hero_drive(dx, dy, &sx, &sy))
+        return;
+
+    /* turn the step back into the movement key that means it, so the command
+       path cannot tell it from one the player pressed */
+    for (i = 0; i < 8; i++) {
+        if (xdir[i] == sx && ydir[i] == sy) {
+            const char *dc = gc.Cmd.dirchars;
+
+            if (dc && dc[i])
+                cmdq_add_key(CQ_CANNED, dc[i]);
+            break;
+        }
     }
 }
 
@@ -1294,6 +1354,8 @@ onPaint(HWND hWnd)
     /* move the continuous positions on by however much real time has passed
        since the previous frame, before anything reads them below */
     rtv_advance();
+    /* and let a held direction decide whether it is time to step */
+    rt_drive_hero(hWnd);
 
     camJumped = rt_cam_seed(data);  /* pan if scroll origin jumped */
     rt_hero_seed(data, camJumped);  /* else glide the hero tile */

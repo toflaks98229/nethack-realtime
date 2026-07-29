@@ -182,6 +182,57 @@ extern boolean rtv_offset_at(coordxy x, coordxy y, double *ox, double *oy);
 extern boolean rtv_hero_offset(double *ox, double *oy);
 
 /**
+ * @brief Drive the hero from a sustained direction, emitting steps as squares
+ *        are crossed.
+ *
+ * This inverts the relationship the rest of this layer has with the grid.
+ * Elsewhere a position trails the square an entity was moved to; here the
+ * hero's intent advances under real time and *decides* when the next discrete
+ * step happens. Input can therefore be sampled every frame instead of once per
+ * turn, which is what stops keystrokes from queueing up during an animation.
+ *
+ * The grid is still what the game acts on: each crossing produces one ordinary
+ * step, executed atomically as always. Only the timing moves to the continuous
+ * side.
+ *
+ * @param[in]  dx  Horizontal component of the held direction, -1, 0, or 1.
+ * @param[in]  dy  Vertical component of the held direction, -1, 0, or 1.
+ * @param[out] sx  Receives the horizontal component of the step to take.
+ * @param[out] sy  Receives the vertical component of the step to take.
+ * @retval TRUE  A square boundary was crossed; take the step in @p sx, @p sy.
+ * @retval FALSE Not far enough yet, or no direction is being held.
+ * @note Releasing the direction discards the partial intent, so letting go
+ *       never produces a step the player did not ask for.
+ * @warning Emits at the same rate the world advances, so a caller must not
+ *          additionally throttle the result or the hero will fall behind the
+ *          input.
+ */
+/**
+ * @brief 지속되는 방향으로 영웅을 구동하며, 칸을 넘을 때마다 걸음을 방출한다.
+ *
+ * 이 계층이 격자와 맺는 관계를 여기서만 뒤집는다. 다른 곳에서는 위치가 엔티티가
+ * 옮겨진 칸을 뒤따르지만, 여기서는 영웅의 의도가 실제 시간에 따라 전진하며 다음
+ * 이산 걸음이 *언제* 일어날지를 결정한다. 그 덕분에 입력을 턴마다가 아니라
+ * 프레임마다 샘플링할 수 있고, 애니메이션 중에 키 입력이 쌓이는 일이 사라진다.
+ *
+ * 게임이 실제로 작용하는 대상은 여전히 격자다. 경계를 넘을 때마다 평범한 걸음
+ * 하나가 생기고, 언제나처럼 원자적으로 실행된다. 연속 쪽으로 옮겨 가는 것은
+ * 시점뿐이다.
+ *
+ * @param[in]  dx  눌린 방향의 수평 성분. -1, 0, 1 중 하나.
+ * @param[in]  dy  눌린 방향의 수직 성분. -1, 0, 1 중 하나.
+ * @param[out] sx  내디딜 걸음의 수평 성분을 받는다.
+ * @param[out] sy  내디딜 걸음의 수직 성분을 받는다.
+ * @retval TRUE  칸 경계를 넘었다. @p sx, @p sy 방향으로 걸음을 내디딜 것.
+ * @retval FALSE 아직 충분히 나아가지 않았거나, 눌린 방향이 없다.
+ * @note 방향을 놓으면 남아 있던 의도는 버려진다. 따라서 손을 뗐다고 해서
+ *       요청하지 않은 걸음이 생기는 일은 없다.
+ * @warning 세계가 진행하는 속도와 같은 속도로 방출하므로, 호출자가 결과를 추가로
+ *          제한해서는 안 된다. 그러면 영웅이 입력보다 뒤처진다.
+ */
+extern boolean rtv_hero_drive(int dx, int dy, coordxy *sx, coordxy *sy);
+
+/**
  * @brief Forget every tracked position.
  * @note Call when the map the positions referred to is no longer the map being
  *       drawn -- changing level, restoring a game -- so that nothing glides

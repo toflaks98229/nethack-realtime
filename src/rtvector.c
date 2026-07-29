@@ -254,6 +254,66 @@ rtv_hero_offset(double *ox, double *oy)
     return (*ox != 0.0 || *oy != 0.0);
 }
 
+/*
+ * Hero drive.
+ *
+ * Everything above lets a position trail the square its entity was moved to.
+ * This does the opposite: intent accumulates under real time and decides when
+ * the next step happens, so the grid follows the continuous side rather than
+ * leading it.  Kept separate from the slot table because it is about a step
+ * not yet taken, whereas the slots describe positions already occupied.
+ */
+static double rtv_intent = 0.0;      /* progress toward the next square */
+static int rtv_dirx = 0, rtv_diry = 0; /* direction that progress is for */
+static unsigned long rtv_intent_tick = 0;
+
+/* interface documented in nh_rtvector.h */
+boolean
+rtv_hero_drive(int dx, int dy, coordxy *sx, coordxy *sy)
+{
+    unsigned long now = nt_ticks(), elapsed;
+
+    if (dx == 0 && dy == 0) {
+        /* nothing held: discard partial progress so releasing a key can never
+           produce a step the player did not ask for */
+        rtv_intent = 0.0;
+        rtv_dirx = rtv_diry = 0;
+        rtv_intent_tick = 0;
+        return FALSE;
+    }
+    if (dx != rtv_dirx || dy != rtv_diry) {
+        /* a new direction starts fresh rather than inheriting progress made
+           toward a different square */
+        rtv_dirx = dx;
+        rtv_diry = dy;
+        rtv_intent = 0.0;
+        rtv_intent_tick = now ? now : 1;
+        return FALSE;
+    }
+    if (rtv_intent_tick == 0) {
+        rtv_intent_tick = now ? now : 1;
+        return FALSE;
+    }
+
+    elapsed = now - rtv_intent_tick;
+    rtv_intent_tick = now;
+    /* a stall means the window was not being drawn; do not bank it up into a
+       burst of steps once drawing resumes */
+    if (elapsed > (unsigned long) RT_TURN_MS)
+        elapsed = (unsigned long) RT_TURN_MS;
+    rtv_intent += (double) elapsed / (double) RT_TURN_MS;
+
+    if (rtv_intent < 1.0)
+        return FALSE;
+
+    rtv_intent -= 1.0;
+    if (rtv_intent > 1.0)
+        rtv_intent = 1.0; /* never owe more than one step */
+    *sx = (coordxy) dx;
+    *sy = (coordxy) dy;
+    return TRUE;
+}
+
 /* interface documented in nh_rtvector.h */
 void
 rtv_reset(void)
@@ -263,6 +323,9 @@ rtv_reset(void)
     for (i = 0; i < RTV_SLOTS; i++)
         rtv_slots[i].id = 0;
     rtv_last_advance = 0;
+    rtv_intent = 0.0;
+    rtv_dirx = rtv_diry = 0;
+    rtv_intent_tick = 0;
 }
 
 #endif /* REALTIME_PROTO */
