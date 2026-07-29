@@ -3,6 +3,45 @@
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file dungeon.c
+ * @brief The shape of the dungeon as a whole, and where the hero is in it.
+ *
+ * Levels are not a single stack. The dungeon is a set of branches -- the Mines,
+ * Sokoban, the Quest, the Planes -- each with its own depth, joined at points
+ * decided when the game begins. So "one level down" is a question about the
+ * branch as much as the number.
+ *
+ * The layout is generated once and then answered from: which branch a level
+ * belongs to, whether one level is above another, how deep a place is in
+ * absolute terms, and what the player should be told a place is called.
+ *
+ * @note @c u_on_newpos() is here -- the single place the hero's position
+ *       changes -- so anything that must happen when the hero moves has one
+ *       place to attach to.
+ * @warning Depth within a branch and depth in the dungeon are different
+ *          numbers, and confusing them is how a level ends up compared against
+ *          one in an unrelated branch.
+ */
+
+/**
+ * @file dungeon.c
+ * @brief 던전 전체의 형태와, 그 안에서 영웅이 있는 곳.
+ *
+ * 레벨은 하나의 층층이 쌓인 더미가 아니다. 던전은 여러 분기의 집합이며 -- 광산,
+ * 소코반, 퀘스트, 엔드게임의 세계들 -- 각각 자기 깊이를 갖고 게임 시작 시 정해진
+ * 지점에서 이어진다. 그래서 "한 층 아래"는 숫자만큼이나 분기에 대한 질문이다.
+ *
+ * 이 배치는 한 번 생성된 뒤 계속 조회된다. 어떤 레벨이 어느 분기에 속하는지, 어떤
+ * 레벨이 다른 레벨보다 위인지, 어떤 곳이 절대적으로 얼마나 깊은지, 그리고 그곳을
+ * 플레이어에게 뭐라고 불러 줄지다.
+ *
+ * @note @c u_on_newpos() 가 여기에 있다. 영웅의 위치가 바뀌는 유일한 곳이며, 영웅이
+ *       움직일 때 반드시 일어나야 하는 일들이 붙을 자리가 하나로 정해진다.
+ * @warning 분기 안에서의 깊이와 던전 전체에서의 깊이는 서로 다른 숫자다. 이 둘을
+ *          혼동하면 무관한 분기의 레벨과 비교하는 일이 생긴다.
+ */
+
 #include "hack.h"
 #include "dgn_file.h"
 #include "dlb.h"

@@ -3,6 +3,44 @@
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file eat.c
+ * @brief Hunger, eating, and what a corpse does to whoever eats it.
+ *
+ * Eating takes time proportional to the food, so it is an occupation the hero
+ * resumes each turn -- and being interrupted partway leaves a partly eaten item
+ * rather than undoing the meal.
+ *
+ * Corpses are the interesting part. What a creature was decides what eating it
+ * does: intrinsics gained, poison suffered, petrification, or nothing at all --
+ * and how long it has lain there decides whether it is safe.
+ *
+ * @note Hunger is driven from the turn loop rather than from eating, so a hero
+ *       who never eats still starves; this file supplies the states and the
+ *       thresholds between them.
+ * @warning A meal can change the eater mid-bite -- polymorph, death, a species
+ *          gained -- so the object being eaten and the hero eating it may both
+ *          be different by the time the occupation resumes.
+ */
+
+/**
+ * @file eat.c
+ * @brief 허기와 먹는 일, 그리고 시체가 그것을 먹은 자에게 하는 일.
+ *
+ * 먹는 데는 음식에 비례하는 시간이 걸리므로, 영웅이 매 턴 이어가는 occupation 이다.
+ * 도중에 방해받으면 식사가 취소되는 것이 아니라 절반쯤 먹은 물건이 남는다.
+ *
+ * 흥미로운 부분은 시체다. 그 생물이 무엇이었는지가 그것을 먹는 일이 무엇을 하는지
+ * 정한다. 고유 능력을 얻거나, 중독되거나, 석화되거나, 아무 일도 없거나다. 그리고
+ * 얼마나 오래 놓여 있었는지가 그것이 안전한지를 정한다.
+ *
+ * @note 허기는 먹는 일이 아니라 턴 루프에서 진행된다. 그래서 한 번도 먹지 않은 영웅도
+ *       굶어 죽는다. 이 파일은 그 상태들과 사이의 경계를 제공한다.
+ * @warning 한 끼가 먹는 도중에 먹는 자를 바꿀 수 있다. 변신, 죽음, 새로 얻은 종 같은
+ *          것들이다. 그래서 occupation 이 재개될 때쯤이면 먹히는 물건도 먹는 영웅도
+ *          달라져 있을 수 있다.
+ */
+
 #include "hack.h"
 
 staticfn int eatmdone(void);

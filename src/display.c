@@ -121,6 +121,44 @@
  *      horizontal - Indicates whether the wall or door is horizontal or
  *                vertical.
  */
+/**
+ * @file display.c
+ * @brief Deciding what the player sees on the map.
+ *
+ * The map shown is not the level. It is what the hero knows: squares currently
+ * seen, squares remembered from before, and things known by other means
+ * entirely -- telepathy, detection, warning. Each square is resolved into a
+ * single glyph representing the most significant thing there.
+ *
+ * Which is most significant is a judgement, not a stack: a monster hides an
+ * object, an object hides the floor, but a remembered monster must not hide one
+ * that is actually visible now.
+ *
+ * @note What is remembered is stored separately from what is there, which is
+ *       what lets the map keep showing a corridor nobody is looking at, and
+ *       keep showing a monster where it was last seen rather than where it is.
+ * @warning A square must never be drawn from the truth when the hero has no way
+ *          of knowing it. Nearly every rule here exists to prevent exactly that.
+ */
+
+/**
+ * @file display.c
+ * @brief 플레이어가 지도에서 무엇을 볼지 결정하기.
+ *
+ * 보여지는 지도는 레벨이 아니다. 영웅이 아는 것이다. 지금 보이는 칸, 이전에 보아
+ * 기억하는 칸, 그리고 아예 다른 방식으로 아는 것들 -- 텔레파시, 탐지, 경고 -- 이다.
+ * 각 칸은 거기 있는 것 중 가장 중요한 하나를 나타내는 단일 glyph 로 정리된다.
+ *
+ * 무엇이 가장 중요한지는 단순한 쌓기가 아니라 판단이다. 몬스터가 물건을 가리고 물건이
+ * 바닥을 가리지만, 기억 속의 몬스터가 지금 실제로 보이는 몬스터를 가려서는 안 된다.
+ *
+ * @note 기억하는 것은 실제로 있는 것과 따로 저장된다. 덕분에 아무도 보고 있지 않은
+ *       복도를 지도가 계속 보여 주고, 몬스터를 지금 있는 곳이 아니라 마지막으로 본
+ *       곳에 계속 그릴 수 있다.
+ * @warning 영웅이 알 길이 없는 것을 진실로부터 그려서는 결코 안 된다. 여기 있는 거의
+ *          모든 규칙이 바로 그것을 막기 위해 존재한다.
+ */
+
 #include "hack.h"
 
 staticfn void show_mon_or_warn(coordxy, coordxy, int);

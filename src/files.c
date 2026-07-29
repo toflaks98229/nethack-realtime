@@ -9,6 +9,45 @@
 #include "win32api.h"
 #endif
 
+/**
+ * @file files.c
+ * @brief Every file the game touches, and the rules about touching them.
+ *
+ * Saves, level files, bones, scores, locks, the configuration and the data
+ * archive all pass through here. What differs between them is not how bytes are
+ * written but where they live and who may write them: some are private to a
+ * player, some shared between all of them, and some read-only.
+ *
+ * On a multi-user installation that sharing is the whole difficulty. Files are
+ * locked before use, created with deliberate permissions, and written by way of
+ * a temporary that is renamed, so an interrupted write cannot leave a file that
+ * looks complete.
+ *
+ * @note Names are assembled from the prefix classes rather than hard-coded, so
+ *       a port can put each kind of file where it belongs; see nh_fileprefix.h.
+ * @warning The game may be running with privileges a player does not have, so
+ *          nothing here may assume that being able to open a file means the
+ *          player was entitled to it.
+ */
+
+/**
+ * @file files.c
+ * @brief 게임이 건드리는 모든 파일과, 그것을 건드리는 규칙.
+ *
+ * 저장 파일, 레벨 파일, 본즈, 점수, 잠금, 설정, 데이터 아카이브가 모두 여기를 지난다.
+ * 그것들 사이의 차이는 바이트를 어떻게 쓰느냐가 아니라 어디에 있고 누가 쓸 수 있느냐다.
+ * 어떤 것은 한 플레이어의 전용이고, 어떤 것은 모두가 공유하며, 어떤 것은 읽기 전용이다.
+ *
+ * 다중 사용자 환경에서는 그 공유가 어려움의 전부다. 파일은 쓰기 전에 잠기고, 의도한
+ * 권한으로 생성되며, 임시 파일에 쓴 뒤 이름을 바꾸는 방식으로 기록된다. 중단된 쓰기가
+ * 완결된 것처럼 보이는 파일을 남길 수 없게 하기 위함이다.
+ *
+ * @note 이름은 하드코딩되지 않고 접두사 분류에서 조립된다. 그래야 포팅이 파일 종류마다
+ *       제자리에 둘 수 있다. nh_fileprefix.h 참고.
+ * @warning 게임이 플레이어에게는 없는 권한으로 실행되고 있을 수 있다. 따라서 파일을 열
+ *          수 있다는 것이 플레이어에게 그럴 자격이 있다는 뜻이라고 가정해서는 안 된다.
+ */
+
 #include "hack.h"
 #include "dlb.h"
 

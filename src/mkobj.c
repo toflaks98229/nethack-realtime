@@ -3,6 +3,45 @@
 /*-Copyright (c) Derek S. Ray, 2015. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file mkobj.c
+ * @brief Creating objects, and the arithmetic of stacks.
+ *
+ * A random object is drawn according to class probabilities and then given the
+ * properties its kind implies -- charges, enchantment, blessing, contents, a
+ * corpse's species -- so creation decides much more than what the thing is.
+ *
+ * The other half is stacking. Identical objects merge and a stack splits when
+ * part of it is used, which is delicate because a split must produce two
+ * objects that are each complete, and a merge must not lose what distinguished
+ * them.
+ *
+ * @note Weight is computed rather than stored per item, since a container's
+ *       weight depends on its contents and those can change without it.
+ * @warning Splitting produces a new object that may need to inherit timers,
+ *          ownership and light sources; an incomplete split leaves an object
+ *          the game later treats as if it never had them.
+ */
+
+/**
+ * @file mkobj.c
+ * @brief 객체를 만드는 일과, 더미의 산술.
+ *
+ * 무작위 객체는 분류 확률에 따라 뽑힌 뒤 그 종류가 함축하는 성질을 부여받는다.
+ * 충전 횟수, 마법 강화, 축복 여부, 내용물, 시체라면 어떤 종의 것인지다. 그래서
+ * 생성은 그것이 무엇인가보다 훨씬 많은 것을 결정한다.
+ *
+ * 나머지 절반은 쌓기다. 같은 물건은 합쳐지고, 일부를 쓰면 더미가 나뉜다. 이 일이
+ * 까다로운 이유는 분할이 각각 완전한 두 객체를 만들어야 하고, 병합이 그것들을
+ * 구분 짓던 것을 잃어서는 안 되기 때문이다.
+ *
+ * @note 무게는 물건마다 저장하지 않고 계산한다. 용기의 무게는 내용물에 달려 있고,
+ *       내용물은 용기와 무관하게 바뀔 수 있기 때문이다.
+ * @warning 분할은 타이머와 소유권, 광원을 물려받아야 할 수 있는 새 객체를 만든다.
+ *          불완전한 분할은 게임이 나중에 그런 것을 애초에 갖지 않았던 것처럼 다루는
+ *          객체를 남긴다.
+ */
+
 #include "hack.h"
 
 staticfn boolean may_generate_eroded(struct obj *);
