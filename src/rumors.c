@@ -3,6 +3,41 @@
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file rumors.c
+ * @brief Rumors, oracles, and the epitaphs and engravings the dungeon is
+ *        littered with.
+ *
+ * Rumors come in two kinds -- true and false -- and which the hero gets is a
+ * matter of luck and of who is speaking. A fortune cookie may lie; the Oracle,
+ * paid properly, does not.
+ *
+ * The text lives in data files rather than in the program, so this reads it at
+ * the moment it is needed. Rather than load a whole file to pick one line, it
+ * seeks to a random offset and takes the line it lands in, which is why the
+ * files record where the true entries end and the false ones begin.
+ *
+ * @note The same mechanism serves epitaphs, engravings and hallucinatory
+ *       bogus monster names; they are different files read the same way.
+ */
+
+/**
+ * @file rumors.c
+ * @brief 소문과 신탁, 그리고 던전 곳곳에 흩어진 묘비명과 각인.
+ *
+ * 소문에는 참과 거짓 두 종류가 있고, 영웅이 어느 쪽을 듣는지는 운과 말하는 이에
+ * 달려 있다. 포춘 쿠키는 거짓말을 할 수 있지만, 값을 제대로 치른 신탁은 그러지
+ * 않는다.
+ *
+ * 문구는 프로그램이 아니라 데이터 파일에 있으므로 필요한 순간에 읽어 온다. 한
+ * 줄을 고르자고 파일 전체를 불러오는 대신 무작위 위치로 건너뛰어 거기 걸린 줄을
+ * 취한다. 파일이 참 항목이 끝나고 거짓 항목이 시작되는 지점을 기록해 두는 이유가
+ * 그것이다.
+ *
+ * @note 같은 방식이 묘비명, 각인, 환각 상태의 가짜 몬스터 이름에도 쓰인다.
+ *       파일만 다를 뿐 읽는 방법은 같다.
+ */
+
 #include "hack.h"
 #include "dlb.h"
 

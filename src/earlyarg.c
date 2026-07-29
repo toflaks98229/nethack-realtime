@@ -2,6 +2,36 @@
 /* Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file earlyarg.c
+ * @brief Command-line arguments that must be handled before anything exists.
+ *
+ * A few arguments cannot wait for normal option processing: asking for the
+ * version or the file paths must work without a game, and choosing a window
+ * system has to happen before there is a window to report errors through.
+ *
+ * So these are recognized in a first pass over the command line, acted on, and
+ * removed from what the ordinary parser will later see.
+ *
+ * @warning Runs before the window system, so nothing here may report through
+ *          it; output goes to the terminal and errors end the process.
+ */
+
+/**
+ * @file earlyarg.c
+ * @brief 아직 아무것도 존재하지 않는 시점에 처리해야 하는 명령행 인자들.
+ *
+ * 일부 인자는 일반적인 옵션 처리를 기다릴 수 없다. 버전이나 파일 경로를 묻는 일은
+ * 게임 없이도 동작해야 하고, 윈도우 시스템을 고르는 일은 오류를 알릴 창이 생기기
+ * 전에 이루어져야 한다.
+ *
+ * 그래서 이 인자들은 명령행에 대한 첫 번째 훑기에서 인식되어 처리되고, 나중에
+ * 일반 파서가 보게 될 목록에서 제거된다.
+ *
+ * @warning 윈도우 시스템보다 먼저 실행되므로 여기의 어떤 것도 그것을 통해 알릴 수
+ *          없다. 출력은 터미널로 가고, 오류는 프로세스를 끝낸다.
+ */
+
 #include "hack.h"
 #include "dlb.h"
 

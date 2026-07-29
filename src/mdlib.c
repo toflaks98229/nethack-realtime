@@ -11,6 +11,38 @@
  * into util/makedefs.c to provide it there.
  */
 
+/**
+ * @file mdlib.c
+ * @brief Build-time facts about this NetHack, shared with the tools that
+ *        generate its data.
+ *
+ * The version, the build settings, and the checks a save file is measured
+ * against have to be known in two places: inside the game, and inside the
+ * makedefs tool that writes the data files the game will read. Keeping them in
+ * one file is what stops the two from disagreeing.
+ *
+ * That is also why this can either be linked in or included directly into
+ * makedefs.c -- the tool cannot link against the game.
+ *
+ * @warning Compiled in both contexts, so it must not depend on the full game
+ *          declarations; the includes here are deliberately narrow.
+ */
+
+/**
+ * @file mdlib.c
+ * @brief 이 NetHack 의 빌드 시점 정보. 데이터를 생성하는 도구와 공유한다.
+ *
+ * 버전, 빌드 설정, 저장 파일을 견주는 검사 기준은 두 곳에서 알고 있어야 한다.
+ * 게임 안에서, 그리고 게임이 읽을 데이터 파일을 쓰는 makedefs 도구 안에서다.
+ * 이것들을 한 파일에 두는 것이 둘이 서로 어긋나지 않게 하는 방법이다.
+ *
+ * 이 파일을 링크해 쓸 수도 있고 makedefs.c 에 직접 포함해 쓸 수도 있는 이유도
+ * 같다. 그 도구는 게임과 링크할 수 없기 때문이다.
+ *
+ * @warning 두 맥락 모두에서 컴파일되므로 게임 전체 선언에 의존해서는 안 된다.
+ *          여기의 include 목록이 의도적으로 좁은 이유다.
+ */
+
 #ifndef MAKEDEFS_C
 #define MDLIB_C
 #include "config.h"

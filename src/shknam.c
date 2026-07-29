@@ -5,6 +5,42 @@
 
 /* shknam.c -- initialize a shop */
 
+/**
+ * @file shknam.c
+ * @brief Turning a room into a shop: what it sells, and who keeps it.
+ *
+ * A shop is decided before it is stocked. The kind of shop determines what may
+ * appear in it and in what proportion, and the shopkeeper's name is drawn from
+ * a list belonging to that kind, which is why a lighting shop is kept by
+ * someone with a different sort of name than a delicatessen.
+ *
+ * Stocking then fills the room with goods the shopkeeper owns -- not the
+ * hero's, which is the distinction the whole shop economy rests on.
+ *
+ * @note A room can fail to become a shop: it may have too many doors, be the
+ *       wrong shape, or lie somewhere shops are not allowed.
+ * @warning Everything placed here belongs to the shopkeeper. An object that
+ *          loses that association becomes free goods, so ownership must be set
+ *          as the objects are created rather than afterwards.
+ */
+
+/**
+ * @file shknam.c
+ * @brief 방을 상점으로 만드는 일. 무엇을 팔고 누가 지키는가.
+ *
+ * 상점은 물건을 채우기 전에 먼저 종류가 정해진다. 종류가 그 안에 나타날 수 있는
+ * 물건과 그 비율을 정하고, 주인의 이름도 그 종류에 속한 목록에서 뽑는다. 조명
+ * 가게 주인과 식료품점 주인의 이름 느낌이 다른 이유다.
+ *
+ * 그다음 물건 채우기가 방을 주인 소유의 상품으로 채운다. 영웅의 것이 아니라는
+ * 이 구분 위에 상점 경제 전체가 놓여 있다.
+ *
+ * @note 방이 상점이 되지 못할 수도 있다. 문이 너무 많거나, 모양이 맞지 않거나,
+ *       상점이 허용되지 않는 곳에 있을 수 있다.
+ * @warning 여기서 놓인 모든 것은 주인의 소유다. 그 연결을 잃은 물건은 임자 없는
+ *          물건이 되므로, 소유권은 나중이 아니라 객체를 만들 때 설정해야 한다.
+ */
+
 #include "hack.h"
 
 staticfn boolean stock_room_goodpos(struct mkroom *, int, int, int, int);

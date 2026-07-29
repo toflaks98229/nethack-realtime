@@ -4,6 +4,39 @@
 /* NetHack may be freely redistributed.  See license for details. */
 
 
+/**
+ * @file version.c
+ * @brief Reporting what this build is, and deciding what it can read.
+ *
+ * The version is not only something to show the player. A save file, a level
+ * file and a bones file each carry the version and build settings that
+ * produced them, and this is where they are compared against what is running
+ * now. The comparison is about compatibility rather than equality: some
+ * differences merely need reporting, while others make the data unreadable.
+ *
+ * @note Reads its data from the DLB archive when one is in use, so the build
+ *       and the data it was packaged with cannot drift apart.
+ * @warning Accepting an incompatible file is worse than refusing it: the game
+ *          would read fields that mean something else and behave strangely
+ *          rather than fail.
+ */
+
+/**
+ * @file version.c
+ * @brief 이 빌드가 무엇인지 알리고, 무엇을 읽을 수 있는지 판단한다.
+ *
+ * 버전은 플레이어에게 보여 주기만 하는 것이 아니다. 저장 파일, 레벨 파일, 본즈
+ * 파일은 각각 자신을 만들어 낸 버전과 빌드 설정을 지니고 있으며, 지금 실행 중인
+ * 것과 비교하는 곳이 여기다. 비교의 기준은 동일함이 아니라 호환성이다. 어떤
+ * 차이는 알리기만 하면 되지만, 어떤 차이는 데이터를 읽을 수 없게 만든다.
+ *
+ * @note DLB 아카이브를 쓰는 빌드에서는 그 안에서 데이터를 읽는다. 빌드와 함께
+ *       묶인 데이터가 서로 어긋날 수 없게 하기 위함이다.
+ * @warning 호환되지 않는 파일을 받아들이는 것은 거부하는 것보다 나쁘다. 게임이
+ *          다른 의미를 지닌 필드를 읽고, 실패하는 대신 이상하게 동작할 것이기
+ *          때문이다.
+ */
+
 #include "hack.h"
 #include "dlb.h"
 
