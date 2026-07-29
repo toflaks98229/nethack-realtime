@@ -182,55 +182,52 @@ extern boolean rtv_offset_at(coordxy x, coordxy y, double *ox, double *oy);
 extern boolean rtv_hero_offset(double *ox, double *oy);
 
 /**
- * @brief Drive the hero from a sustained direction, emitting steps as squares
- *        are crossed.
+ * @brief Move the hero freely, letting the square it occupies follow.
  *
- * This inverts the relationship the rest of this layer has with the grid.
- * Elsewhere a position trails the square an entity was moved to; here the
- * hero's intent advances under real time and *decides* when the next discrete
- * step happens. Input can therefore be sampled every frame instead of once per
- * turn, which is what stops keystrokes from queueing up during an animation.
+ * This is the full inversion: the hero has a real position that input moves in
+ * any direction, and the square the game knows about is simply that position
+ * rounded. Crossing into a different square is what produces a step, so the
+ * hero is no longer confined to moving a square at a time.
  *
- * The grid is still what the game acts on: each crossing produces one ordinary
- * step, executed atomically as always. Only the timing moves to the continuous
- * side.
+ * Because the game executes that step asynchronously and may refuse it -- a
+ * wall, a closed door, something in the way -- the position is *predicted* and
+ * then reconciled: a step that is accepted leaves the position where the player
+ * put it, and one that is refused pulls it back into the square the hero is
+ * really in. That is what stops the drawn hero from walking through walls.
  *
- * @param[in]  dx  Horizontal component of the held direction, -1, 0, or 1.
- * @param[in]  dy  Vertical component of the held direction, -1, 0, or 1.
- * @param[out] sx  Receives the horizontal component of the step to take.
- * @param[out] sy  Receives the vertical component of the step to take.
- * @retval TRUE  A square boundary was crossed; take the step in @p sx, @p sy.
- * @retval FALSE Not far enough yet, or no direction is being held.
- * @note Releasing the direction discards the partial intent, so letting go
- *       never produces a step the player did not ask for.
- * @warning Emits at the same rate the world advances, so a caller must not
- *          additionally throttle the result or the hero will fall behind the
- *          input.
+ * @param[in] dx Horizontal input, -1 to 1; need not be normalized.
+ * @param[in] dy Vertical input, -1 to 1; need not be normalized.
+ * @note Diagonals are scaled so that moving corner-wise is no faster than
+ *       moving straight.
+ * @note Call every frame, including with (0,0) when nothing is held, so that
+ *       elapsed time is accounted for and a stall cannot bank up into a lurch.
+ * @warning Only one step may be outstanding at a time; while the game has yet
+ *          to act on one, the position is held at the boundary rather than
+ *          continuing into a square the hero may not be allowed to enter.
  */
 /**
- * @brief 지속되는 방향으로 영웅을 구동하며, 칸을 넘을 때마다 걸음을 방출한다.
+ * @brief 영웅을 자유롭게 이동시키고, 차지하는 칸이 그것을 따라오게 한다.
  *
- * 이 계층이 격자와 맺는 관계를 여기서만 뒤집는다. 다른 곳에서는 위치가 엔티티가
- * 옮겨진 칸을 뒤따르지만, 여기서는 영웅의 의도가 실제 시간에 따라 전진하며 다음
- * 이산 걸음이 *언제* 일어날지를 결정한다. 그 덕분에 입력을 턴마다가 아니라
- * 프레임마다 샘플링할 수 있고, 애니메이션 중에 키 입력이 쌓이는 일이 사라진다.
+ * 완전한 역전이다. 영웅은 실제 위치를 가지며 입력이 그것을 임의 방향으로
+ * 움직이고, 게임이 아는 칸은 그 위치를 반올림한 것일 뿐이다. 다른 칸으로
+ * 넘어가는 사건이 걸음을 만들어 내므로, 영웅은 더 이상 한 번에 한 칸씩만
+ * 움직이도록 갇혀 있지 않다.
  *
- * 게임이 실제로 작용하는 대상은 여전히 격자다. 경계를 넘을 때마다 평범한 걸음
- * 하나가 생기고, 언제나처럼 원자적으로 실행된다. 연속 쪽으로 옮겨 가는 것은
- * 시점뿐이다.
+ * 게임은 그 걸음을 비동기로 실행하며 거부할 수도 있으므로 -- 벽, 닫힌 문,
+ * 가로막은 무언가 -- 위치는 *예측*한 뒤 조정된다. 받아들여진 걸음은 위치를
+ * 플레이어가 둔 자리에 남기고, 거부된 걸음은 위치를 영웅이 실제로 있는 칸으로
+ * 되돌린다. 그려지는 영웅이 벽을 통과하지 않는 이유가 이것이다.
  *
- * @param[in]  dx  눌린 방향의 수평 성분. -1, 0, 1 중 하나.
- * @param[in]  dy  눌린 방향의 수직 성분. -1, 0, 1 중 하나.
- * @param[out] sx  내디딜 걸음의 수평 성분을 받는다.
- * @param[out] sy  내디딜 걸음의 수직 성분을 받는다.
- * @retval TRUE  칸 경계를 넘었다. @p sx, @p sy 방향으로 걸음을 내디딜 것.
- * @retval FALSE 아직 충분히 나아가지 않았거나, 눌린 방향이 없다.
- * @note 방향을 놓으면 남아 있던 의도는 버려진다. 따라서 손을 뗐다고 해서
- *       요청하지 않은 걸음이 생기는 일은 없다.
- * @warning 세계가 진행하는 속도와 같은 속도로 방출하므로, 호출자가 결과를 추가로
- *          제한해서는 안 된다. 그러면 영웅이 입력보다 뒤처진다.
+ * @param[in] dx 수평 입력. -1에서 1 사이이며 정규화되어 있지 않아도 된다.
+ * @param[in] dy 수직 입력. -1에서 1 사이이며 정규화되어 있지 않아도 된다.
+ * @note 대각선은 모서리 방향 이동이 직선 이동보다 빠르지 않도록 보정된다.
+ * @note 아무것도 눌리지 않았을 때 (0,0) 으로도 매 프레임 호출할 것. 그래야 경과
+ *       시간이 반영되고, 멈춰 있던 시간이 한꺼번에 튀지 않는다.
+ * @warning 한 번에 하나의 걸음만 미결 상태일 수 있다. 게임이 아직 처리하지
+ *          않은 동안에는, 들어가지 못할 수도 있는 칸으로 계속 나아가는 대신
+ *          위치를 경계에 붙잡아 둔다.
  */
-extern boolean rtv_hero_drive(int dx, int dy, coordxy *sx, coordxy *sy);
+extern void rtv_hero_free_move(double dx, double dy);
 
 /**
  * @brief Forget every tracked position.

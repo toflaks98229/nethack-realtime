@@ -56,6 +56,20 @@
 #define RTV_EPSILON 0.02
 
 /**
+ * @brief Round a real coordinate to the square that contains it.
+ * @note Written out rather than using @c floor() so the file needs no floating
+ *       point library beyond what it already uses, and so the halfway case is
+ *       defined rather than implementation-dependent.
+ */
+/**
+ * @brief 실수 좌표를 그것이 속한 칸으로 반올림한다.
+ * @note @c floor() 대신 직접 계산한다. 이 파일이 이미 쓰는 것 이상의 부동소수점
+ *       라이브러리를 요구하지 않기 위해서이고, 정확히 중간인 경우가 구현에
+ *       따라 달라지지 않고 정의되도록 하기 위해서다.
+ */
+#define RT_ROUND(v) ((int) (((v) < 0.0) ? ((v) - 0.5) : ((v) + 0.5)))
+
+/**
  * @brief One tracked entity: where it is drawn, and where it belongs.
  * @note @c id of zero marks a free slot; no monster has @c m_id zero and the
  *       hero uses @c RTV_HERO_ID.
@@ -74,6 +88,17 @@ struct rtv_slot {
 
 static struct rtv_slot rtv_slots[RTV_SLOTS];
 static unsigned long rtv_last_advance = 0;
+
+/*
+ * Free-movement state.  The hero is the one entity whose position is driven by
+ * input rather than chasing the square it was placed on, so it lives here
+ * rather than in the slot table.
+ */
+static double rtv_fx, rtv_fy;         /* the hero's real position */
+static boolean rtv_free_init = FALSE;
+static unsigned long rtv_free_tick = 0;
+static boolean rtv_step_pending = FALSE;
+static coordxy rtv_step_sqx, rtv_step_sqy; /* square the step asked for */
 
 staticfn struct rtv_slot *rtv_find(unsigned);
 staticfn struct rtv_slot *rtv_claim(unsigned);
@@ -241,77 +266,132 @@ rtv_offset_at(coordxy x, coordxy y, double *ox, double *oy)
     return (*ox != 0.0 || *oy != 0.0);
 }
 
-/* interface documented in nh_rtvector.h */
+/* interface documented in nh_rtvector.h
+   The hero's position is driven by input rather than chasing its square, so
+   this reports the free position rather than a slot in the chase table. */
 boolean
 rtv_hero_offset(double *ox, double *oy)
 {
-    struct rtv_slot *s = rtv_find(RTV_HERO_ID);
-
-    if (!s)
+    if (!rtv_free_init)
         return FALSE;
-    *ox = s->x - (double) u.ux;
-    *oy = s->y - (double) u.uy;
+    *ox = rtv_fx - (double) u.ux;
+    *oy = rtv_fy - (double) u.uy;
     return (*ox != 0.0 || *oy != 0.0);
 }
 
 /*
- * Hero drive.
+ * Free movement.
  *
- * Everything above lets a position trail the square its entity was moved to.
- * This does the opposite: intent accumulates under real time and decides when
- * the next step happens, so the grid follows the continuous side rather than
- * leading it.  Kept separate from the slot table because it is about a step
- * not yet taken, whereas the slots describe positions already occupied.
+ * The hero's position is a real point that input moves in any direction; the
+ * square the game works with is that point rounded.  Crossing into a different
+ * square is what asks the game for a step, and because the game may refuse
+ * (walls, doors, an occupant) the position is predicted and then reconciled
+ * against where the hero actually ended up.
  */
-static double rtv_intent = 0.0;      /* progress toward the next square */
-static int rtv_dirx = 0, rtv_diry = 0; /* direction that progress is for */
-static unsigned long rtv_intent_tick = 0;
+
+/** @brief How close to a square's edge the position may sit, in grid units. */
+/** @brief 위치가 칸의 가장자리에 얼마나 다가갈 수 있는지, 격자 단위. */
+#define RTV_EDGE 0.48
 
 /* interface documented in nh_rtvector.h */
-boolean
-rtv_hero_drive(int dx, int dy, coordxy *sx, coordxy *sy)
+void
+rtv_hero_free_move(double dx, double dy)
 {
     unsigned long now = nt_ticks(), elapsed;
+    double len, speed, nx, ny;
+    coordxy tx, ty;
+    int i;
 
-    if (dx == 0 && dy == 0) {
-        /* nothing held: discard partial progress so releasing a key can never
-           produce a step the player did not ask for */
-        rtv_intent = 0.0;
-        rtv_dirx = rtv_diry = 0;
-        rtv_intent_tick = 0;
-        return FALSE;
-    }
-    if (dx != rtv_dirx || dy != rtv_diry) {
-        /* a new direction starts fresh rather than inheriting progress made
-           toward a different square */
-        rtv_dirx = dx;
-        rtv_diry = dy;
-        rtv_intent = 0.0;
-        rtv_intent_tick = now ? now : 1;
-        return FALSE;
-    }
-    if (rtv_intent_tick == 0) {
-        rtv_intent_tick = now ? now : 1;
-        return FALSE;
+    if (!rtv_free_init || !isok((coordxy) rtv_fx, (coordxy) rtv_fy)) {
+        rtv_fx = (double) u.ux;
+        rtv_fy = (double) u.uy;
+        rtv_free_init = TRUE;
+        rtv_free_tick = now ? now : 1;
+        rtv_step_pending = FALSE;
+        return;
     }
 
-    elapsed = now - rtv_intent_tick;
-    rtv_intent_tick = now;
-    /* a stall means the window was not being drawn; do not bank it up into a
-       burst of steps once drawing resumes */
+    /* reconcile: see what the game did with the step we asked for.  Wait until
+       the queued key has actually been consumed -- judging sooner would call
+       every step refused in the frames before the game gets to act on it, and
+       the hero would stutter back and forth. */
+    if (rtv_step_pending) {
+        if (cmdq_peek(CQ_CANNED)) {
+            /* still waiting for the game to take it */
+        } else if (u.ux == rtv_step_sqx && u.uy == rtv_step_sqy) {
+            rtv_step_pending = FALSE; /* accepted; keep the predicted position */
+        } else {
+            /* refused, or the hero was moved by something other than us */
+            rtv_fx = (double) u.ux;
+            rtv_fy = (double) u.uy;
+            rtv_step_pending = FALSE;
+        }
+    } else if ((coordxy) RT_ROUND(rtv_fx) != u.ux
+               || (coordxy) RT_ROUND(rtv_fy) != u.uy) {
+        /* the game moved the hero on its own (teleport, level change, being
+           displaced); the prediction is meaningless now */
+        rtv_fx = (double) u.ux;
+        rtv_fy = (double) u.uy;
+    }
+
+    elapsed = now - rtv_free_tick;
+    rtv_free_tick = now;
     if (elapsed > (unsigned long) RT_TURN_MS)
-        elapsed = (unsigned long) RT_TURN_MS;
-    rtv_intent += (double) elapsed / (double) RT_TURN_MS;
+        elapsed = (unsigned long) RT_TURN_MS; /* a stall must not lurch */
+    if (dx == 0.0 && dy == 0.0)
+        return;
 
-    if (rtv_intent < 1.0)
-        return FALSE;
+    /* a diagonal must not cover more ground than a straight line; input is
+       eight-directional, so the only case to correct is both axes at once and
+       the factor is known without needing a square root */
+    len = (dx != 0.0 && dy != 0.0) ? 0.70710678 : 1.0;
+    dx *= len;
+    dy *= len;
 
-    rtv_intent -= 1.0;
-    if (rtv_intent > 1.0)
-        rtv_intent = 1.0; /* never owe more than one step */
-    *sx = (coordxy) dx;
-    *sy = (coordxy) dy;
-    return TRUE;
+    speed = (double) elapsed / (double) RT_TURN_MS; /* squares of travel */
+    nx = rtv_fx + dx * speed;
+    ny = rtv_fy + dy * speed;
+
+    tx = (coordxy) RT_ROUND(nx);
+    ty = (coordxy) RT_ROUND(ny);
+
+    if (tx == u.ux && ty == u.uy) {
+        rtv_fx = nx; /* still the same square: nothing to ask the game */
+        rtv_fy = ny;
+        return;
+    }
+    if (!isok(tx, ty) || rtv_step_pending) {
+        /* off the map, or we already have a step outstanding: hold at the edge
+           rather than drift into a square we may not be allowed to occupy */
+        if (nx > (double) u.ux + RTV_EDGE)
+            nx = (double) u.ux + RTV_EDGE;
+        else if (nx < (double) u.ux - RTV_EDGE)
+            nx = (double) u.ux - RTV_EDGE;
+        if (ny > (double) u.uy + RTV_EDGE)
+            ny = (double) u.uy + RTV_EDGE;
+        else if (ny < (double) u.uy - RTV_EDGE)
+            ny = (double) u.uy - RTV_EDGE;
+        rtv_fx = nx;
+        rtv_fy = ny;
+        return;
+    }
+
+    /* crossing into a new square: ask the game to take that step */
+    for (i = 0; i < 8; i++) {
+        if (xdir[i] == (schar) (tx - u.ux) && ydir[i] == (schar) (ty - u.uy)) {
+            const char *dc = gc.Cmd.dirchars;
+
+            if (dc && dc[i]) {
+                cmdq_add_key(CQ_CANNED, dc[i]);
+                rtv_step_pending = TRUE;
+                rtv_step_sqx = tx;
+                rtv_step_sqy = ty;
+                rtv_fx = nx;
+                rtv_fy = ny;
+            }
+            return;
+        }
+    }
 }
 
 /* interface documented in nh_rtvector.h */
@@ -323,9 +403,12 @@ rtv_reset(void)
     for (i = 0; i < RTV_SLOTS; i++)
         rtv_slots[i].id = 0;
     rtv_last_advance = 0;
-    rtv_intent = 0.0;
-    rtv_dirx = rtv_diry = 0;
-    rtv_intent_tick = 0;
+
+    /* the hero's free position refers to the level being left, and any step
+       asked for on it will never be answered */
+    rtv_free_init = FALSE;
+    rtv_free_tick = 0;
+    rtv_step_pending = FALSE;
 }
 
 #endif /* REALTIME_PROTO */

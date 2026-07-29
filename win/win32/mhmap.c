@@ -1209,7 +1209,7 @@ rt_anim_start_timer(PNHMapWindow data)
  * Sample the arrow keys and let the hero's continuous intent decide when to
  * step, rather than turning each key event into a queued command.  This is the
  * half of the interpolation layer that leads the grid instead of following it;
- * see rtv_hero_drive().
+ * see rtv_hero_free_move().
  *
  * Held keys are read as *state* rather than as events, because a sustained
  * direction is a continuous quantity and the message queue only reports edges.
@@ -1219,13 +1219,12 @@ rt_anim_start_timer(PNHMapWindow data)
 static void
 rt_drive_hero(HWND hWnd)
 {
-    int dx = 0, dy = 0, i;
-    coordxy sx = 0, sy = 0;
+    int dx = 0, dy = 0;
 
     /* only while the game is waiting for a command, and only when this window
        has the keyboard; otherwise a held key belongs to a menu or a prompt */
     if (program_state.input_state != commandInp || GetFocus() != hWnd) {
-        (void) rtv_hero_drive(0, 0, &sx, &sy); /* drop partial progress */
+        rtv_hero_free_move(0.0, 0.0); /* keep time accounted for, but stand */
         return;
     }
 
@@ -1240,20 +1239,9 @@ rt_drive_hero(HWND hWnd)
         dy = 1;
 #undef RT_HELD
 
-    if (!rtv_hero_drive(dx, dy, &sx, &sy))
-        return;
-
-    /* turn the step back into the movement key that means it, so the command
-       path cannot tell it from one the player pressed */
-    for (i = 0; i < 8; i++) {
-        if (xdir[i] == sx && ydir[i] == sy) {
-            const char *dc = gc.Cmd.dirchars;
-
-            if (dc && dc[i])
-                cmdq_add_key(CQ_CANNED, dc[i]);
-            break;
-        }
-    }
+    /* the layer moves the hero's real position and asks the game for a step
+       whenever that position crosses into another square */
+    rtv_hero_free_move((double) dx, (double) dy);
 }
 
 /*
