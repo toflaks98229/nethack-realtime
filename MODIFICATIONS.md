@@ -89,12 +89,14 @@ nothing is moving the render is pixel-identical to stock:
   whole squares as far as the game is concerned, and only their drawn position
   is interpolated. A monster that is not being shown (unseen, or on terrain with
   no remembered background to erase it with) is drawn stepping, not gliding.
-- **Input during animation is dropped, not queued.** Keystrokes made while a
-  glide/pan plays used to accumulate and then replay in a burst ("pre-input").
-  Each tick now keeps only the most recent buffered keystroke and discards the
-  rest, on both the console and win32 paths, so the hero acts on live intent.
-  The trade-off is deliberate: rapid multi-key sequences entered mid-animation
-  are not all honored.
+- **Input buffering is solved for movement, not for everything.** Holding a
+  direction is now sampled every frame and drives the hero's steps directly (see
+  *Vector positions*), so movement no longer queues up during an animation.
+  Other commands still arrive as discrete keystrokes, and the tick keeps only
+  the most recent one rather than replaying a backlog — so a rapid multi-key
+  sequence entered mid-animation is still not honored in full.
+- Continuous input is arrow keys only, in the win32 tile port. The console build
+  and other key bindings continue to step per keystroke.
 
 ### Vector positions
 Entities now carry a **continuous position** in the core (`src/rtvector.c`,
@@ -116,8 +118,25 @@ What it buys over the earlier renderer-side records:
   positions are correct by construction in both cases.
 - **Owned by the core, not one window port**, and expressed in grid units, so a
   port scales them itself; the layer knows nothing about tiles or screens.
-- **The foundation** for eventually letting continuous position drive motion,
-  which is what would remove per-turn input buffering at the root.
+- **Drives the hero's steps.** For the hero the relationship is inverted: held
+  direction is sampled every frame into an intent that advances under real time,
+  and crossing a square boundary is what emits the step. Input is therefore
+  sampled per frame rather than once per turn — the root cause of keystrokes
+  queueing up during an animation.
+
+**What is not promoted, and why.** Continuous position is never authoritative
+for *where* an entity is. The rules read occupancy through `m_at()`, a 1:1 map
+from square to entity, and decide adjacency with integer distance; an entity
+existing between squares has no representation there. So each crossing still
+produces one ordinary step, executed atomically, and the grid remains what the
+game acts on. Only the *timing* moved to the continuous side.
+
+Held keys are read as state (`GetAsyncKeyState`) rather than as events, because
+a sustained direction is a continuous quantity and the message queue only
+reports edges. A step is handed back as the movement key that means it, so it
+travels the same command path as a typed one. Driving is gated on the game
+awaiting a command and the map window holding focus, so a held key during a menu
+or prompt is not turned into movement, and releasing discards partial progress.
 
 Entities are tracked in a side table keyed by `m_id` rather than in fields on
 `struct monst`, so the saved game is unaffected. Teleports and level arrivals
