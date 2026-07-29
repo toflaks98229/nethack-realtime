@@ -3,6 +3,39 @@
 /*-Copyright (c) Michael Allison, 2009. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file restore.c
+ * @brief Reading a saved game back, and making it a live game again.
+ *
+ * Restoring is not simply the inverse of writing. What was saved is data, and
+ * what is needed is a working world: object and monster chains have to be
+ * relinked, the identifiers that stood in for pointers turned back into
+ * pointers, worn equipment reattached to the hero, and the level the hero was
+ * on brought in while the others stay on disk.
+ *
+ * @note Must undo save.c's steps in the same order it performed them; the file
+ *       carries no structure of its own to resynchronize against.
+ * @warning A save from a different build or a different machine cannot be
+ *          trusted -- integers may be laid out differently -- so the version
+ *          and data-model checks are load-bearing, not a formality.
+ */
+
+/**
+ * @file restore.c
+ * @brief 저장된 게임을 다시 읽어, 살아 있는 게임으로 되돌리는 일.
+ *
+ * 복원은 단순히 쓰기의 역순이 아니다. 저장된 것은 데이터이고 필요한 것은 동작하는
+ * 세계다. 객체와 몬스터 사슬을 다시 잇고, 포인터를 대신하던 식별자를 포인터로
+ * 되돌리고, 착용 장비를 영웅에게 다시 붙이고, 영웅이 있던 레벨을 불러오되 나머지는
+ * 디스크에 남겨 두어야 한다.
+ *
+ * @note save.c 의 단계를 그것이 수행한 것과 같은 순서로 되돌려야 한다. 파일 자체에
+ *       는 다시 동기화할 수 있는 구조가 없다.
+ * @warning 다른 빌드나 다른 기계에서 온 저장은 신뢰할 수 없다. 정수 배치가 다를 수
+ *          있기 때문이다. 그래서 버전과 데이터 모델 검사는 형식적인 절차가 아니라
+ *          동작을 좌우하는 부분이다.
+ */
+
 #include "hack.h"
 #include "tcap.h" /* for TERMLIB and ASCIIGRAPH */
 
@@ -529,6 +562,28 @@ ghostfruit(struct obj *otmp)
 #ifndef SFCTOOL
 staticfn
 #endif
+/**
+ * @brief Read back everything that belongs to the game rather than to a level.
+ * @param[in,out] nhfp Handle to read through.
+ * @retval TRUE  The state was restored and the game can continue.
+ * @retval FALSE The save could not be used; the caller must not proceed.
+ * @note Reads in exactly the order @c savegamestate() wrote, because the file
+ *       carries no structure to resynchronize against.
+ * @warning Rebuilds what could not be written: identifiers become pointers
+ *          again, worn items are reattached to the hero, and the pet the hero
+ *          was leading is found once the monster chain exists.
+ */
+/**
+ * @brief 레벨이 아니라 게임 전체에 속한 모든 것을 되읽는다.
+ * @param[in,out] nhfp 읽기에 사용할 핸들.
+ * @retval TRUE  상태가 복원되었고 게임을 이어갈 수 있다.
+ * @retval FALSE 저장을 쓸 수 없다. 호출자는 계속 진행해서는 안 된다.
+ * @note @c savegamestate() 가 쓴 것과 정확히 같은 순서로 읽는다. 파일에 다시
+ *       동기화할 만한 구조가 없기 때문이다.
+ * @warning 쓸 수 없었던 것들을 다시 만든다. 식별자는 포인터로 되돌아가고, 착용
+ *          중이던 물건은 영웅에게 다시 붙으며, 데리고 있던 애완동물은 몬스터
+ *          사슬이 갖춰진 뒤에 찾아진다.
+ */
 boolean
 restgamestate(NHFILE *nhfp)
 {

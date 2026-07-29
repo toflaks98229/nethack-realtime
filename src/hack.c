@@ -3,6 +3,46 @@
 /*-Copyright (c) Derek S. Ray, 2015. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file hack.c
+ * @brief The hero taking a step, and everything a step can turn out to be.
+ *
+ * Walking is rarely just walking. The square ahead may hold a boulder to push,
+ * rock to chew or dig through, a gap too narrow to squeeze into, a trap, a
+ * monster to attack or swap places with, or a shop whose keeper objects. This
+ * file is where a direction becomes one of those.
+ *
+ * @c test_move() answers whether a step is possible without taking it, which
+ * is what lets travel and running plan a route ahead; the same routine performs
+ * the move when asked to, so the question and the act cannot disagree.
+ *
+ * @note The hero's position changes in exactly one place, @c u_on_newpos() in
+ *       dungeon.c, not here; this file decides *whether* and *what else*.
+ * @warning Much of the file runs before the hero has actually moved, so code
+ *          here must be careful about which of @c u.ux and the destination it
+ *          is reasoning about.
+ */
+
+/**
+ * @file hack.c
+ * @brief 영웅이 한 걸음 내딛는 일과, 그 한 걸음이 될 수 있는 모든 것.
+ *
+ * 걷는 일이 그저 걷는 일인 경우는 드물다. 앞 칸에는 밀어야 할 바위, 갉거나 파야
+ * 할 암반, 비집고 들어가기엔 좁은 틈, 함정, 공격하거나 자리를 바꿀 몬스터,
+ * 주인이 항의할 상점이 있을 수 있다. 방향 하나가 그중 무엇이 되는지를 정하는
+ * 곳이 이 파일이다.
+ *
+ * @c test_move() 는 걸음을 실제로 내딛지 않고 가능한지만 답한다. 여행과 달리기가
+ * 미리 경로를 계획할 수 있는 이유다. 요청하면 같은 루틴이 이동을 수행하므로,
+ * 질문과 행위가 서로 어긋날 수 없다.
+ *
+ * @note 영웅의 위치가 실제로 바뀌는 곳은 dungeon.c 의 @c u_on_newpos() 한
+ *       군데뿐이며 여기가 아니다. 이 파일은 *가능한지* 와 *그 밖에 무엇이
+ *       일어나는지* 를 정한다.
+ * @warning 이 파일의 상당 부분은 영웅이 아직 이동하기 전에 실행된다. 따라서
+ *          @c u.ux 와 목적지 중 무엇을 두고 이야기하는 중인지 주의해야 한다.
+ */
+
 #include "hack.h"
 #include "extern.h"
 
@@ -985,8 +1025,49 @@ invocation_pos(coordxy x, coordxy y)
                       && x == svi.inv_pos.x && y == svi.inv_pos.y);
 }
 
-/* return TRUE if (ux+dx,uy+dy) is an OK place to move;
-   mode is one of DO_MOVE, TEST_MOVE, TEST_TRAV, or TEST_TRAP */
+/**
+ * @brief Decide whether the hero can step from one square to the next, and in
+ *        @c DO_MOVE also carry out what that step involves.
+ *
+ * The same routine answers the question and performs the act so the two cannot
+ * drift apart: travel plans a route by asking, and then walking it takes the
+ * very steps that were approved.
+ *
+ * @param[in] ux   Column being stepped from.
+ * @param[in] uy   Row being stepped from.
+ * @param[in] dx   Horizontal component of the step, -1, 0 or 1.
+ * @param[in] dy   Vertical component of the step, -1, 0 or 1.
+ * @param[in] mode @c DO_MOVE to act, or one of the @c TEST_ modes to ask.
+ * @retval TRUE  The step is allowed.
+ * @retval FALSE It is not; in @c DO_MOVE the reason has been reported.
+ * @note Diagonals are refused in places a body cannot turn -- doorways, and
+ *       squeezing between boulders -- which is why a legal step is not simply
+ *       a passable destination.
+ * @warning Only @c DO_MOVE may have effects. The @c TEST_ modes run repeatedly
+ *          while a route is being planned and must leave the world untouched,
+ *          including saying nothing to the player.
+ */
+/**
+ * @brief 영웅이 한 칸에서 다음 칸으로 갈 수 있는지 판단하고, @c DO_MOVE 에서는
+ *        그 걸음이 수반하는 일까지 수행한다.
+ *
+ * 질문과 행위를 같은 루틴이 처리하므로 둘이 어긋날 수 없다. 여행은 물어서 경로를
+ * 세우고, 실제로 걸을 때는 바로 그 승인된 걸음들을 내딛는다.
+ *
+ * @param[in] ux   출발하는 열.
+ * @param[in] uy   출발하는 행.
+ * @param[in] dx   걸음의 수평 성분. -1, 0, 1 중 하나.
+ * @param[in] dy   걸음의 수직 성분. -1, 0, 1 중 하나.
+ * @param[in] mode 수행하려면 @c DO_MOVE, 묻기만 하려면 @c TEST_ 모드 중 하나.
+ * @retval TRUE  걸음이 허용된다.
+ * @retval FALSE 허용되지 않는다. @c DO_MOVE 였다면 이유가 이미 전달되었다.
+ * @note 몸을 틀 수 없는 곳 -- 출입구, 바위 사이를 비집는 경우 -- 에서는 대각선이
+ *       거부된다. 목적지가 지날 수 있는 곳이라고 해서 곧바로 적법한 걸음이 되는
+ *       것은 아닌 이유다.
+ * @warning 부작용이 있어도 되는 것은 @c DO_MOVE 뿐이다. @c TEST_ 모드는 경로를
+ *          계획하는 동안 반복 실행되므로 세계를 건드려서는 안 되며, 플레이어에게
+ *          말을 거는 것도 포함된다.
+ */
 boolean
 test_move(
     coordxy ux, coordxy uy,
@@ -1261,6 +1342,28 @@ test_move(
  * Returns TRUE if a path was found.
  * gt.travelmap keeps track of map locations we've moved through
  * this travel session. It will be cleared once the travel stops.
+ */
+/**
+ * @brief Find a route to the travel destination, or take the next step of one.
+ * @param[in] mode How far to commit: probing for a route, or walking it.
+ * @retval TRUE  A usable route exists, and in a walking mode a step was taken.
+ * @retval FALSE No route could be found.
+ * @note Searches outward from the destination rather than the hero, so the
+ *       first time the search reaches the hero it has already found the
+ *       shortest way there.
+ * @note Only squares the hero has seen are considered; travel plans over the
+ *       remembered map, not the real one, so it can be wrong in the same ways
+ *       the player is.
+ */
+/**
+ * @brief 여행 목적지까지의 경로를 찾거나, 그 경로의 다음 걸음을 내딛는다.
+ * @param[in] mode 어디까지 수행할지. 경로를 탐색만 할지, 실제로 걸을지.
+ * @retval TRUE  쓸 수 있는 경로가 있으며, 걷는 모드였다면 한 걸음 내디뎠다.
+ * @retval FALSE 경로를 찾지 못했다.
+ * @note 영웅이 아니라 목적지에서 바깥으로 탐색한다. 그래서 탐색이 영웅에
+ *       도달하는 순간 이미 최단 경로를 찾은 상태가 된다.
+ * @note 영웅이 본 적 있는 칸만 고려한다. 여행은 실제 지도가 아니라 기억된 지도
+ *       위에서 계획되므로, 플레이어가 틀릴 수 있는 방식 그대로 틀릴 수 있다.
  */
 staticfn boolean
 findtravelpath(int mode)
@@ -2691,6 +2794,31 @@ escape_from_sticky_mon(coordxy x, coordxy y)
     return FALSE;
 }
 
+/**
+ * @brief Carry out the hero's movement command for this turn.
+ *
+ * The entry point for a step the player asked for, by direction, by running, or
+ * by travelling. It settles what the step actually is -- an attack, a push, a
+ * swap with a pet, an attempt to squeeze through -- and leaves the consequences
+ * to the specialists.
+ *
+ * @note Stunned or confused movement is resolved here too, so the direction
+ *       acted on is not always the direction asked for.
+ * @warning May end the hero's turn without moving them at all; a refused step
+ *          still counts as having acted in many cases.
+ */
+/**
+ * @brief 이번 턴의 영웅 이동 명령을 수행한다.
+ *
+ * 플레이어가 방향으로, 달리기로, 또는 여행으로 요청한 걸음의 진입점이다. 그
+ * 걸음이 실제로 무엇인지 -- 공격인지, 밀기인지, 애완동물과 자리 바꾸기인지,
+ * 비집고 들어가려는 시도인지 -- 를 결정하고, 결과 처리는 전담 함수들에 넘긴다.
+ *
+ * @note 기절하거나 혼란한 상태의 이동도 여기서 해석된다. 따라서 실제로 작용하는
+ *       방향이 요청한 방향과 늘 같지는 않다.
+ * @warning 영웅을 전혀 움직이지 않은 채 턴을 끝낼 수 있다. 거부된 걸음도 많은
+ *          경우 행동한 것으로 친다.
+ */
 void
 domove(void)
 {

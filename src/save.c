@@ -3,6 +3,45 @@
 /*-Copyright (c) Michael Allison, 2009. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file save.c
+ * @brief Writing the game out: the hero's state, and every level visited.
+ *
+ * A saved game is not one file's worth of data. Only the current level is in
+ * memory; the rest live in their own level files, and saving means gathering
+ * them back together along with the game state that spans them all.
+ *
+ * The routines here double as the teardown path. The same traversal that
+ * writes a structure can free it, selected by the mode bits on the handle, so
+ * quitting and saving walk the same code. That is why so many functions take
+ * an @c NHFILE rather than returning data.
+ *
+ * @note Pointers cannot be written, so anything that refers to something else
+ *       is saved as an identifier and rebuilt on restore -- see restore.c,
+ *       which must undo each of these steps in the same order.
+ * @warning A save that is interrupted must not leave a file that looks
+ *          complete: the game will read it back and trust it.
+ */
+
+/**
+ * @file save.c
+ * @brief 게임을 밖으로 쓰는 일. 영웅의 상태와, 다녀온 모든 레벨.
+ *
+ * 저장된 게임은 파일 하나 분량의 데이터가 아니다. 메모리에 있는 것은 현재
+ * 레벨뿐이고 나머지는 각자의 레벨 파일에 있으므로, 저장이란 그것들을 다시 모아
+ * 레벨을 가로지르는 게임 상태와 함께 쓰는 일이다.
+ *
+ * 여기 루틴들은 해제 경로를 겸한다. 구조체를 쓰는 것과 같은 순회가 핸들의 모드
+ * 비트에 따라 그것을 해제하기도 하므로, 그만두기와 저장하기가 같은 코드를 지난다.
+ * 많은 함수가 데이터를 반환하는 대신 @c NHFILE 을 받는 이유가 그것이다.
+ *
+ * @note 포인터는 쓸 수 없다. 그래서 다른 것을 가리키는 모든 것은 식별자로
+ *       저장되고 복원 시 다시 이어진다. restore.c 를 참고할 것. 그쪽은 여기의
+ *       각 단계를 같은 순서로 되돌려야 한다.
+ * @warning 중단된 저장이 완결된 것처럼 보이는 파일을 남겨서는 안 된다. 게임은
+ *          그것을 다시 읽고 신뢰할 것이다.
+ */
+
 #include "hack.h"
 
 #ifndef NO_SIGNAL
@@ -39,6 +78,18 @@ staticfn void save_adjust_levelflags(void);
 #endif
 
 /* the #save command */
+/**
+ * @brief Save and leave the game, at the player's request.
+ * @retval 0 Always; the value exists because commands share a signature.
+ * @note Confirms first, since this ends the session -- and the game is not
+ *       resumable from within the same run.
+ */
+/**
+ * @brief 플레이어의 요청에 따라 저장하고 게임을 떠난다.
+ * @retval 0 항상 0. 명령들이 시그니처를 공유하기 때문에 존재하는 반환값이다.
+ * @note 먼저 확인을 받는다. 이 명령은 세션을 끝내며, 같은 실행 안에서 다시
+ *       이어서 할 수 없기 때문이다.
+ */
 int
 dosave(void)
 {
@@ -261,6 +312,26 @@ save_gamelog(NHFILE *nhfp)
         gg.gamelog = NULL;
 }
 
+/**
+ * @brief Write everything that belongs to the game rather than to a level.
+ * @param[in,out] nhfp Handle to write through; its mode also decides whether
+ *                     the structures visited are freed as they are written.
+ * @note The hero, inventory, discoveries, the dungeon's shape, timers and
+ *       light sources -- anything that outlives the level the hero stands on.
+ * @warning @c restgamestate() reads these back in exactly this order. Adding
+ *          a write here without the matching read there produces a save that
+ *          loads as nonsense rather than failing.
+ */
+/**
+ * @brief 레벨이 아니라 게임 전체에 속한 모든 것을 쓴다.
+ * @param[in,out] nhfp 쓰기에 사용할 핸들. 그 모드가 방문한 구조체를 쓰면서
+ *                     해제할지 여부도 결정한다.
+ * @note 영웅, 소지품, 발견 목록, 던전의 형태, 타이머와 광원 등 영웅이 서 있는
+ *       레벨보다 오래 남는 모든 것이다.
+ * @warning @c restgamestate() 가 정확히 이 순서로 되읽는다. 저쪽에 대응하는 읽기
+ *          없이 여기에 쓰기를 추가하면, 실패하는 대신 엉뚱하게 읽히는 저장이
+ *          만들어진다.
+ */
 staticfn void
 savegamestate(NHFILE *nhfp)
 {
