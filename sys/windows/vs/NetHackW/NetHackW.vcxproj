@@ -91,6 +91,10 @@
       <OmitFramePointers>true</OmitFramePointers>
       <AdditionalIncludeDirectories>$(WinWin32Dir);$(IncDir);$(SysWindDir);$(SysShareDir);$(WinShareDir);$(LuaDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>TILES;_WINDOWS;DLB;MSWIN_GRAPHICS;NOTTYGRAPHICS;SND_LIB_WINDSOUND;USER_SOUNDS;SND_SOUNDEFFECTS_AUTOMAP;HAS_STDINT_H;HAS_INTTYPES_H;PDC_WIDE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <!-- Precompiled headers via hack.h (see NetHack.vcxproj); allmain.c
+           creates the PCH, non-conforming files are set NotUsing below. -->
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>hack.h</PrecompiledHeaderFile>
       <LanguageStandard_C Condition="'$(DefaultPlatformToolset)'!='v142' And '$(Configuration)|$(Platform)'=='Debug|Win32'">stdclatest</LanguageStandard_C>
       <LanguageStandard_C Condition="'$(DefaultPlatformToolset)'!='v142' And '$(Configuration)|$(Platform)'=='Release|Win32'">stdclatest</LanguageStandard_C>
       <LanguageStandard_C Condition="'$(DefaultPlatformToolset)'!='v142' And '$(Configuration)|$(Platform)'=='Debug|x64'">stdclatest</LanguageStandard_C>
@@ -400,6 +404,54 @@
     <Image Include="$(WinWin32Dir)rip.bmp" />
     <Image Include="$(WinWin32Dir)splash.bmp" />
     <Image Include="$(WinWin32Dir)tiles.bmp" />
+  </ItemGroup>
+  <!-- Precompiled-header per-file overrides (real-time fork).  allmain.c
+       creates the PCH; the listed files are excluded from PCH use because they
+       do not include hack.h first (or wrap/precede it), so the shared PCH
+       prefix would not match.  Derived from a full ClCompile conformance scan. -->
+  <ItemGroup>
+    <ClCompile Update="$(SrcDir)allmain.c"><PrecompiledHeader>Create</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(SrcDir)alloc.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(SrcDir)cfgfiles.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(SrcDir)date.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(SrcDir)dlb.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(SrcDir)drawing.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(SrcDir)end.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(SrcDir)files.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(SrcDir)isaac64.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(SrcDir)mdlib.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(SrcDir)monst.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(SrcDir)objects.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(SrcDir)options.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(SrcDir)sp_lev.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(WinCursDir)cursdial.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(WinCursDir)cursinit.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(WinCursDir)cursinvt.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(WinCursDir)cursmain.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(WinCursDir)cursmesg.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(WinCursDir)cursmisc.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(WinCursDir)cursstat.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(WinCursDir)curswins.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(SysShareDir)cppregex.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(SysWindDir)guitty.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(SysWindDir)windmain.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(SysWindDir)windsys.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(SysWindDir)win10.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(SndWindDir)windsound.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(WinWin32Dir)mhaskyn.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(WinWin32Dir)mhdlg.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(WinWin32Dir)mhfont.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(WinWin32Dir)mhinput.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(WinWin32Dir)mhmain.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(WinWin32Dir)mhmap.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(WinWin32Dir)mhmenu.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(WinWin32Dir)mhmsgwnd.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(WinWin32Dir)mhrip.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(WinWin32Dir)mhsplash.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(WinWin32Dir)mhstatus.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(WinWin32Dir)mhtext.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(WinWin32Dir)mswproc.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
+    <ClCompile Update="$(WinWin32Dir)NetHackW.c"><PrecompiledHeader>NotUsing</PrecompiledHeader></ClCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="AfterBuild">
