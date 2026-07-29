@@ -2,6 +2,43 @@
 /*      Copyright (C) 1990 by Ken Arromdee */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file explode.c
+ * @brief Explosions: one event that happens to nine squares at once.
+ *
+ * An explosion is not nine separate attacks. It is resolved as a whole so that
+ * everything caught in it is affected by the same blast -- which matters
+ * because the blast can destroy the very objects and monsters it is still
+ * iterating over.
+ *
+ * The shape is drawn from a set of tiles that fit together into a 3x3 cloud, so
+ * the display shows one explosion rather than nine flashes.
+ *
+ * @note Resistance is per victim and per damage type, so the same explosion can
+ *       kill one creature, singe another and leave a third untouched.
+ * @warning The hero may be caught in their own explosion, and an explosion can
+ *          be set off by something that dies in it, so neither the source nor
+ *          the victims can be assumed to survive the call.
+ */
+
+/**
+ * @file explode.c
+ * @brief 폭발. 아홉 칸에 동시에 일어나는 하나의 사건.
+ *
+ * 폭발은 아홉 번의 개별 공격이 아니다. 하나의 사건으로 해석되어, 휘말린 모든
+ * 것이 같은 폭풍의 영향을 받는다. 이는 중요한데, 그 폭풍이 아직 순회 중인 객체와
+ * 몬스터를 파괴할 수 있기 때문이다.
+ *
+ * 모양은 3x3 구름으로 맞물리는 타일 집합에서 가져온다. 그래서 화면에는 아홉 번의
+ * 섬광이 아니라 하나의 폭발이 보인다.
+ *
+ * @note 저항은 피해자마다, 피해 종류마다 다르다. 같은 폭발이 하나는 죽이고 다른
+ *       하나는 그을리며 또 다른 하나는 건드리지 않을 수 있다.
+ * @warning 영웅이 자신의 폭발에 휘말릴 수 있고, 폭발이 그 안에서 죽는 무언가에
+ *          의해 일어날 수도 있다. 따라서 발생원도 피해자도 이 호출을 넘겨 살아
+ *          남는다고 가정할 수 없다.
+ */
+
 #include "hack.h"
 
 staticfn int explosionmask(struct monst *, uchar, char) NONNULLARG1;

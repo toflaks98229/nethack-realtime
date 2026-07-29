@@ -2,6 +2,38 @@
 /*      Copyright (c) 2018 by Pasi Kallinen */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file nhlsel.c
+ * @brief Sets of map squares, as level scripts manipulate them.
+ *
+ * A level script rarely wants one square; it wants "the floor of this room",
+ * "a line from here to there", "everywhere that is not wall". A selection is
+ * that idea made concrete -- a set of squares that can be built up, combined,
+ * and then used to place terrain, objects or monsters all at once.
+ *
+ * Selections combine like sets, so a script can describe a region by what it
+ * is not, or by the overlap of two shapes, instead of enumerating squares.
+ *
+ * @note The set is stored as one bit per square of the map, so a selection
+ *       costs the same whether it holds one square or every square.
+ */
+
+/**
+ * @file nhlsel.c
+ * @brief 맵 칸들의 집합. 레벨 스크립트가 다루는 방식.
+ *
+ * 레벨 스크립트가 칸 하나만 원하는 경우는 드물다. "이 방의 바닥", "여기서 저기까지의
+ * 선", "벽이 아닌 모든 곳"을 원한다. 선택(selection)은 그 개념을 구체화한 것으로,
+ * 쌓아 올리고 결합한 뒤 지형·객체·몬스터를 한꺼번에 배치하는 데 쓸 수 있는 칸들의
+ * 집합이다.
+ *
+ * 선택은 집합처럼 결합되므로, 스크립트는 칸을 하나하나 나열하는 대신 "무엇이
+ * 아닌지"로, 또는 두 도형이 겹치는 부분으로 영역을 기술할 수 있다.
+ *
+ * @note 집합은 맵의 칸마다 1비트로 저장된다. 그래서 선택의 비용은 그것이 한 칸을
+ *       담든 모든 칸을 담든 같다.
+ */
+
 #include "hack.h"
 #include "sp_lev.h"
 

@@ -2,6 +2,39 @@
 /* Copyright (c) Michael Allison, 2025. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file sfbase.c
+ * @brief Choosing how a game is written, and routing every read and write
+ *        through that choice.
+ *
+ * The save code says what it wants to store; this decides how. A table of
+ * routines per format sits behind that, so the historical binary layout and
+ * the field-by-field text export are interchangeable without the save code
+ * knowing which is in use.
+ *
+ * That indirection is also what makes conversion between formats possible: a
+ * file can be read through one set of routines and written through another.
+ *
+ * @note The mode bits on the handle still decide whether a traversal writes or
+ *       frees; the format only decides what the writing looks like.
+ */
+
+/**
+ * @file sfbase.c
+ * @brief 게임을 어떤 방식으로 쓸지 고르고, 모든 읽기와 쓰기를 그 선택으로
+ *        흘려보내기.
+ *
+ * 저장 코드는 무엇을 담을지 말하고, 어떻게 담을지는 여기서 정한다. 그 뒤에 형식별
+ * 루틴 표가 있어서, 전통적인 이진 배치와 필드 단위 텍스트 내보내기를 저장 코드가
+ * 어느 쪽인지 모른 채 바꿔 쓸 수 있다.
+ *
+ * 이 간접화 덕분에 형식 간 변환도 가능해진다. 한 루틴 집합으로 읽고 다른 집합으로
+ * 쓰면 되기 때문이다.
+ *
+ * @note 순회가 쓰기인지 해제인지는 여전히 핸들의 모드 비트가 정한다. 형식은 그
+ *       쓰기가 어떤 모습인지만 정한다.
+ */
+
 #include "hack.h"
 #include "sfprocs.h"
 

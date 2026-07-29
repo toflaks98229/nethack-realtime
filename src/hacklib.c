@@ -4,6 +4,37 @@
 /* Copyright (c) Robert Patrick Rankin, 1991                      */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file hacklib.c
+ * @brief Small utilities that happen to live in NetHack but do not belong to it.
+ *
+ * String tidying, character classification, a few numeric helpers, and the
+ * random-number conveniences. Nothing here knows about the dungeon, the hero,
+ * or the map, which is deliberate: these are used from the build tools as well
+ * as the game, and a dependency on game state would make that impossible.
+ *
+ * @note Several routines modify the string they are given and return it, so
+ *       the result is the argument rather than a copy; the index below records
+ *       which.
+ * @warning Callers commonly chain these, and a routine that trims or strips
+ *          can shorten a buffer another still holds a pointer into.
+ */
+
+/**
+ * @file hacklib.c
+ * @brief NetHack 안에 있지만 NetHack 의 것은 아닌 작은 유틸리티들.
+ *
+ * 문자열 정돈, 문자 분류, 몇 가지 수치 도우미, 그리고 난수 편의 함수들이다.
+ * 여기의 어떤 것도 던전이나 영웅, 지도를 알지 못하며 이는 의도된 것이다. 이
+ * 함수들은 게임뿐 아니라 빌드 도구에서도 쓰이는데, 게임 상태에 의존한다면
+ * 그것이 불가능해지기 때문이다.
+ *
+ * @note 여러 루틴이 받은 문자열을 직접 고치고 그것을 반환한다. 결과는 사본이
+ *       아니라 인자 자신이며, 아래 목록이 어느 것이 그런지 알려 준다.
+ * @warning 호출자들은 이 함수들을 이어 쓰는 일이 잦고, 다듬거나 걷어내는 루틴은
+ *          다른 쪽이 아직 포인터를 쥐고 있는 버퍼를 짧게 만들 수 있다.
+ */
+
 #include "hack.h" /* for config.h+extern.h */
 
 /*=

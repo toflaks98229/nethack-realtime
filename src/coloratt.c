@@ -2,6 +2,40 @@
 /* Copyright (c) Pasi Kallinen, 2024 */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file coloratt.c
+ * @brief Colors and attributes: naming them, parsing them, and fitting them to
+ *        what the terminal can actually show.
+ *
+ * The player names colors in configuration -- for menu coloring, status
+ * highlighting, and custom symbols -- so those names have to be recognized and
+ * turned into something the interface can use.
+ *
+ * What that is depends on the terminal. A build may have sixteen colors, two
+ * hundred and fifty-six, or the full range, and a color asked for is mapped to
+ * the nearest one available rather than refused.
+ *
+ * @note Attributes (bold, inverse, blink, and so on) travel alongside color and
+ *       are parsed by the same code, since configuration mixes them freely.
+ */
+
+/**
+ * @file coloratt.c
+ * @brief 색과 속성. 이름 붙이기, 해석하기, 그리고 터미널이 실제로 보여 줄 수 있는
+ *        것에 맞추기.
+ *
+ * 플레이어는 설정에서 색을 이름으로 지정한다. 메뉴 색칠, 상태 강조, 사용자 지정
+ * 기호 등에 쓰이므로, 그 이름들을 알아보고 인터페이스가 쓸 수 있는 것으로 바꿔야
+ * 한다.
+ *
+ * 그것이 무엇인지는 터미널에 달려 있다. 빌드에 따라 16색일 수도, 256색일 수도,
+ * 전체 범위일 수도 있으며, 요청된 색은 거부되는 대신 사용 가능한 가장 가까운
+ * 색으로 대응된다.
+ *
+ * @note 속성(굵게, 반전, 깜빡임 등)은 색과 함께 다니며 같은 코드가 해석한다.
+ *       설정에서 둘을 자유롭게 섞어 쓰기 때문이다.
+ */
+
 #include "hack.h"
 
 struct color_names {
