@@ -1466,6 +1466,29 @@ int nhgetch()   -- Returns a single character input from the user.
  */
 #define RT_REST_KEY 's' /* synthetic 'wait one turn' (search) when idle */
 
+/*
+ * True only while the game is waiting for the player's next command.
+ *
+ * The map window samples held keys to move the hero and needs to know when
+ * doing so is meaningful.  program_state.input_state cannot answer that: it is
+ * set inside parse(), and a step the map window injects is taken from the
+ * command queue before parse() ever runs -- so after the first injected step it
+ * would never read as "awaiting a command" again, and free movement would stop
+ * after a single square.  This flag brackets the wait itself, which is exactly
+ * the period during which a held direction should move the hero.
+ */
+/*
+ * 게임이 플레이어의 다음 명령을 기다리는 동안에만 참이다.
+ *
+ * 맵 창은 눌린 키를 샘플링해 영웅을 움직이며, 그것이 언제 의미 있는지 알아야
+ * 한다. program_state.input_state 로는 답할 수 없다. 그 값은 parse() 안에서
+ * 설정되는데, 맵 창이 주입한 걸음은 parse() 가 실행되기도 전에 명령 큐에서
+ * 꺼내지기 때문이다. 그래서 주입된 첫 걸음 이후로는 다시 "명령 대기 중"으로
+ * 읽히지 않고, 자유 이동이 한 칸 만에 멈춘다. 이 플래그는 대기 구간 자체를
+ * 감싸며, 그 구간이 바로 눌린 방향이 영웅을 움직여야 하는 시점이다.
+ */
+boolean mswin_rt_awaiting_cmd = FALSE;
+
 static void
 mswin_rt_wait_for_tick(void)
 {
@@ -1532,7 +1555,10 @@ mswin_nh_poskey(coordxy *x, coordxy *y, int *mod)
     if (program_state.input_state == commandInp) {
         PMSNHEvent e;
 
+        /* the map window may move the hero from held keys while we wait here */
+        mswin_rt_awaiting_cmd = TRUE;
         mswin_rt_wait_for_tick(); /* pace to the shared world clock */
+        mswin_rt_awaiting_cmd = FALSE;
         if (!mswin_have_input()) {
             /* tick arrived with nothing buffered: hero waits this turn */
             *x = u.ux, *y = u.uy, *mod = 0;

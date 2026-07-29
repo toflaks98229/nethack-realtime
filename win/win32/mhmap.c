@@ -130,6 +130,9 @@ static void rt_drive_hero(HWND hWnd);
 static void nhglyph2charcolor(short glyph, uchar *ch, int *color);
 #endif
 extern boolean win32_cursorblink;       /* from sys\windows\windsys.c */
+#ifdef REALTIME_PROTO
+extern boolean mswin_rt_awaiting_cmd;   /* from win\win32\mswproc.c */
+#endif
 
 HWND
 mswin_init_map_window(void)
@@ -1221,9 +1224,14 @@ rt_drive_hero(HWND hWnd)
 {
     int dx = 0, dy = 0;
 
-    /* only while the game is waiting for a command, and only when this window
-       has the keyboard; otherwise a held key belongs to a menu or a prompt */
-    if (program_state.input_state != commandInp || GetFocus() != hWnd) {
+    /* Only while the game is waiting for a command, and only when this window
+       has the keyboard; otherwise a held key belongs to a menu or a prompt.
+
+       The flag is used rather than program_state.input_state because a step we
+       inject is taken from the command queue without parse() running, which is
+       what sets input_state -- so after the first injected step input_state
+       would never read as commandInp again and movement would stop dead. */
+    if (!mswin_rt_awaiting_cmd || GetFocus() != hWnd) {
         rtv_hero_free_move(0.0, 0.0); /* keep time accounted for, but stand */
         return;
     }
