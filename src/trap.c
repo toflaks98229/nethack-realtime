@@ -3,6 +3,45 @@
 /*-Copyright (c) Robert Patrick Rankin, 2013. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file trap.c
+ * @brief Traps: setting them off, and everything that follows.
+ *
+ * Traps affect the hero and monsters alike, but not identically -- a creature
+ * that flies misses a pit, one that is small avoids a bear trap, and one that
+ * has seen a trap before will step around it.
+ *
+ * Several traps do not merely damage: a trapdoor moves the victim to another
+ * level, a teleport trap elsewhere on this one, a polymorph trap changes what
+ * they are, and a pit holds them for turns afterwards. So triggering a trap
+ * frequently ends with the victim no longer where -- or what -- they were.
+ *
+ * @note A trap must be discovered to be avoided, and discovery is per creature:
+ *       the hero remembering a trap does not stop a monster walking into it.
+ * @warning The victim may die, change level, or become a different creature
+ *          before the routine returns, so callers must re-establish everything
+ *          about them rather than continue.
+ */
+
+/**
+ * @file trap.c
+ * @brief 함정. 그것을 발동시키는 일과 뒤따르는 모든 것.
+ *
+ * 함정은 영웅과 몬스터 모두에게 작용하지만 똑같이는 아니다. 나는 생물은 구덩이를 지나치고,
+ * 작은 것은 곰덫을 피하며, 전에 그 함정을 본 것은 돌아서 간다.
+ *
+ * 여러 함정은 단순히 피해만 주지 않는다. 뚜껑문은 희생자를 다른 레벨로 옮기고, 순간이동
+ * 함정은 같은 레벨의 다른 곳으로 보내며, 변신 함정은 그가 무엇인지를 바꾸고, 구덩이는
+ * 그 뒤로 여러 턴 동안 붙잡아 둔다. 그래서 함정 발동은 희생자가 있던 곳에 -- 또는 있던
+ * 모습으로 -- 더 이상 있지 않은 채 끝나는 일이 잦다.
+ *
+ * @note 피하려면 먼저 발견해야 하고, 발견은 생물마다 따로다. 영웅이 함정을 기억한다고
+ *       해서 몬스터가 그리로 걸어 들어가지 않는 것은 아니다.
+ * @warning 루틴이 반환하기 전에 희생자가 죽거나, 레벨을 옮기거나, 다른 생물이 되어
+ *          있을 수 있다. 호출자는 그대로 진행하지 말고 그에 관한 모든 것을 다시 확인해야
+ *          한다.
+ */
+
 #include "hack.h"
 
 extern const char *const destroy_strings[][3]; /* from zap.c */

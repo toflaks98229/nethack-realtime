@@ -3,6 +3,45 @@
 /*-Copyright (c) Michael Allison, 2008. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file options.c
+ * @brief Every setting the player can change, and the ways they can change it.
+ *
+ * Options arrive from several places -- a configuration file, the environment,
+ * the command line, and the in-game menu -- and all of them end at the same
+ * table, which describes each option once: its name, its type, where its value
+ * lives, and what may legally be set.
+ *
+ * Some options can only be set before the game starts, some only while it is
+ * running, and some take effect immediately in a way the interface must be told
+ * about, so setting a value is a question of when as much as what.
+ *
+ * @note Compound options -- symbols, menu colours, message types, autopickup
+ *       exceptions -- carry their own syntax, which is why this file is as
+ *       large as it is.
+ * @warning Also compiled standalone to generate option documentation, which is
+ *          why the game declarations are behind a conditional at the top; code
+ *          here must not assume a game exists.
+ */
+
+/**
+ * @file options.c
+ * @brief 플레이어가 바꿀 수 있는 모든 설정과, 바꾸는 여러 방법.
+ *
+ * 옵션은 여러 경로로 들어온다. 설정 파일, 환경 변수, 명령행, 게임 내 메뉴다. 그리고
+ * 그 모두가 같은 표에 도달한다. 그 표는 옵션마다 한 번씩 기술한다. 이름, 종류, 값이
+ * 어디에 있는지, 그리고 무엇을 설정할 수 있는지다.
+ *
+ * 어떤 옵션은 게임이 시작되기 전에만, 어떤 것은 실행 중에만 설정할 수 있고, 어떤 것은
+ * 인터페이스에 알려야 하는 방식으로 즉시 반영된다. 그래서 값을 설정하는 일은 무엇을
+ * 만큼이나 언제의 문제다.
+ *
+ * @note 복합 옵션 -- 기호, 메뉴 색, 메시지 유형, 자동 줍기 예외 -- 은 저마다 고유한
+ *       문법을 지닌다. 이 파일이 이토록 큰 이유다.
+ * @warning 옵션 문서를 생성하기 위해 단독으로도 컴파일된다. 게임 선언이 파일 상단의
+ *          조건부 뒤에 있는 이유이며, 여기 코드는 게임이 존재한다고 가정해서는 안 된다.
+ */
+
 #ifndef OPTION_LISTS_ONLY
 #include "hack.h"
 #include "tcap.h"

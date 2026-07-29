@@ -11,6 +11,45 @@
 
 #define IN_SP_LEV_C
 
+/**
+ * @file sp_lev.c
+ * @brief Building the levels that are described rather than generated.
+ *
+ * Sokoban, the Mines' ends, the Quest, the Castle, the Planes and every other
+ * fixed level is written in Lua, and this is what those descriptions talk to:
+ * placing terrain from a map, creating rooms at chosen positions, putting
+ * objects, monsters, traps and stairs where the author asked.
+ *
+ * A description is not fully specific. It may ask for a random monster in a
+ * particular room, or for a room somewhere in a region, so this fills in what
+ * was left open while honouring what was fixed.
+ *
+ * @note What the script names -- a room, a selection of squares, a place -- has
+ *       to be resolved to coordinates here, since the script cannot know how
+ *       the level was laid out.
+ * @warning A level whose description cannot be satisfied must fail rather than
+ *          produce a partial one: an unreachable Castle or a Sokoban missing a
+ *          boulder is worse than an error.
+ */
+
+/**
+ * @file sp_lev.c
+ * @brief 생성되는 것이 아니라 기술된 레벨을 짓는 일.
+ *
+ * 소코반, 광산의 끝, 퀘스트, 성, 엔드게임의 세계들을 비롯한 모든 고정 레벨은 Lua 로
+ * 쓰여 있고, 그 기술이 말을 거는 상대가 바로 이 파일이다. 지도에서 지형을 놓고, 지정된
+ * 위치에 방을 만들고, 작성자가 요청한 자리에 물건과 몬스터와 함정과 계단을 두는 일이다.
+ *
+ * 기술이 모든 것을 구체적으로 정하지는 않는다. 특정 방에 무작위 몬스터를 요청하거나,
+ * 어떤 영역 안 어딘가에 방을 요청할 수 있다. 그래서 여기서는 고정된 것을 지키면서 열어
+ * 둔 부분을 채운다.
+ *
+ * @note 스크립트가 이름으로 가리키는 것 -- 방, 칸의 선택, 장소 -- 은 여기서 좌표로
+ *       해석되어야 한다. 스크립트는 레벨이 어떻게 배치되었는지 알 수 없기 때문이다.
+ * @warning 기술을 만족시킬 수 없는 레벨은 부분적인 결과를 내놓는 대신 실패해야 한다.
+ *          닿을 수 없는 성이나 바위가 빠진 소코반은 오류보다 나쁘다.
+ */
+
 #include "hack.h"
 #include "sp_lev.h"
 
