@@ -234,6 +234,30 @@ MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_KEYDOWN: {
 
+#ifdef REALTIME_PROTO
+        /* Windows repeats a held key, and in real-time play the direction keys
+           are also sampled as state every frame to drive the hero.  Letting the
+           repeats through as well would enqueue a second stream of moves, which
+           is what made a held key run further than it was held.  Swallow the
+           repeats and let the frame sampling be the single source; bit 30 of
+           lParam is set when the key was already down. */
+        if ((lParam & (1L << 30)) != 0) {
+            switch (wParam) {
+            case VK_LEFT:
+            case VK_RIGHT:
+            case VK_UP:
+            case VK_DOWN:
+            case VK_HOME:
+            case VK_END:
+            case VK_PRIOR:
+            case VK_NEXT:
+                return 0;
+            default:
+                break;
+            }
+        }
+#endif
+
         /* translate arrow keys into nethack commands */
         switch (wParam) {
         case VK_LEFT:

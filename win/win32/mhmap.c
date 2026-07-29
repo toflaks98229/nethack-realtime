@@ -692,33 +692,26 @@ MapWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_TIMER:
 #ifdef REALTIME_PROTO
         if (wParam == RT_CAM_TIMER_ID) {
-            /* decay the pan and hero-slide offsets toward zero, ~RT_TURN_MS */
-            int stepx = data->xFrontTile * RT_CAM_FRAME_MS / RT_TURN_MS;
-            int stepy = data->yFrontTile * RT_CAM_FRAME_MS / RT_TURN_MS;
+            /* Offsets are no longer decayed here: they are recomputed from the
+               hero's continuous position on every paint, which is what makes
+               motion smooth rather than stepped.  This timer's job is to keep
+               the frame going -- sampling held input and repainting while
+               anything is moving.
 
-            if (stepx < 1)
-                stepx = 1;
-            if (stepy < 1)
-                stepy = 1;
-            data->camDX = (data->camDX > 0) ? max(0, data->camDX - stepx)
-                                            : min(0, data->camDX + stepx);
-            data->camDY = (data->camDY > 0) ? max(0, data->camDY - stepy)
-                                            : min(0, data->camDY + stepy);
-            data->heroDX = (data->heroDX > 0) ? max(0, data->heroDX - stepx)
-                                              : min(0, data->heroDX + stepx);
-            data->heroDY = (data->heroDY > 0) ? max(0, data->heroDY - stepy)
-                                              : min(0, data->heroDY + stepy);
-            if (data->heroDX == 0 && data->heroDY == 0)
-                data->heroSlideActive = FALSE;
-            /* The frame timer is not stopped when the offsets reach zero: it
-               is what samples held input, so it has to keep running even with
-               nothing on screen moving.  Repaint only when there is something
-               to show, so an idle map does not redraw sixty times a second. */
-            if (data->camDX || data->camDY || data->heroDX || data->heroDY
-                || data->monSliding)
-                InvalidateRect(hWnd, NULL, FALSE);
-            else
-                rt_drive_hero(hWnd); /* still needs sampling while idle */
+               The timer is never stopped, because it is what samples input, but
+               an idle map is not repainted sixty times a second. */
+            {
+                double hx = 0.0, hy = 0.0;
+
+                /* ask the layer directly as well as looking at the cached
+                   offsets, so the first frame after a step repaints even
+                   though the offsets were computed before it happened */
+                if (data->camDX || data->camDY || data->heroDX || data->heroDY
+                    || data->monSliding || rtv_hero_offset(&hx, &hy))
+                    InvalidateRect(hWnd, NULL, FALSE);
+                else
+                    rt_drive_hero(hWnd); /* sample input even while at rest */
+            }
             break;
         }
 #endif
@@ -1263,73 +1256,52 @@ rt_drive_hero(HWND hWnd)
     }
 }
 
-/* returns TRUE if the scroll origin jumped this frame (camera is panning) */
-static boolean
-rt_cam_seed(PNHMapWindow data)
-{
-    int maxdx, maxdy;
-
-    if (!data->camInit) { /* first paint: adopt current pos, don't pan */
-        data->camLastXPos = data->xPos;
-        data->camLastYPos = data->yPos;
-        data->camInit = TRUE;
-        return FALSE;
-    }
-    if (data->xPos == data->camLastXPos && data->yPos == data->camLastYPos)
-        return FALSE;
-
-    data->camDX += (data->camLastXPos - data->xPos) * data->xFrontTile;
-    data->camDY += (data->camLastYPos - data->yPos) * data->yFrontTile;
-    data->camLastXPos = data->xPos;
-    data->camLastYPos = data->yPos;
-
-    /* clamp lag so a burst of fast moves can't fling the view far */
-    maxdx = RT_CAM_MAX_TILES * data->xFrontTile;
-    maxdy = RT_CAM_MAX_TILES * data->yFrontTile;
-    data->camDX = max(-maxdx, min(maxdx, data->camDX));
-    data->camDY = max(-maxdy, min(maxdy, data->camDY));
-
-    rt_anim_start_timer(data);
-    return TRUE;
-}
-
-/* When the view is NOT scrolling (camJumped == FALSE), glide the hero tile
-   itself between cells: seed a decaying overlay offset on a single-step move.
-   Only when we know the terrain under the hero (bkglyph) so onPaint can erase
-   the static hero cleanly. */
+/*
+ * Derive this frame's hero and camera offsets from the hero's continuous
+ * position.
+ *
+ * There used to be two mechanisms here -- one that detected a whole-tile jump
+ * of the scroll origin and decayed a camera offset, and another that did the
+ * same for the hero tile -- which is why motion still looked stepped: the
+ * offsets were seeded a square at a time and then decayed, rather than being
+ * read from where the hero actually is. Both are now the same quantity, taken
+ * straight from the interpolation layer.
+ *
+ * Whether that offset moves the world or the hero depends on the view: when the
+ * map is larger than the window it scrolls to follow the hero, so the offset is
+ * applied to the world and the hero stays put on screen; when the level fits,
+ * there is nothing to scroll and the hero moves within a fixed view.
+ */
 static void
-rt_hero_seed(PNHMapWindow data, boolean camJumped)
+rt_frame_offsets(PNHMapWindow data)
 {
-    int hx = (int) u.ux, hy = (int) u.uy;
-    int dx, dy, maxdx, maxdy;
+    double hx = 0.0, hy = 0.0;
+    boolean moving = rtv_hero_offset(&hx, &hy);
+    boolean scrolls = (data->xMax > 0 || data->yMax > 0);
 
-    if (!data->heroInit) {
-        data->heroLastX = hx;
-        data->heroLastY = hy;
-        data->heroInit = TRUE;
+    if (!moving) {
+        data->camDX = data->camDY = 0;
+        data->heroDX = data->heroDY = 0;
+        data->heroSlideActive = FALSE;
         return;
     }
-    dx = hx - data->heroLastX;
-    dy = hy - data->heroLastY;
-    if (dx == 0 && dy == 0)
-        return; /* hero didn't move */
 
-    if (!camJumped && dx >= -1 && dx <= 1 && dy >= -1 && dy <= 1
-        && data->bkmap[hx][hy].glyph != NO_GLYPH) {
-        /* start the overlay back at the old cell and let it decay to zero */
-        data->heroDX += -dx * data->xFrontTile;
-        data->heroDY += -dy * data->yFrontTile;
-        maxdx = RT_CAM_MAX_TILES * data->xFrontTile;
-        maxdy = RT_CAM_MAX_TILES * data->yFrontTile;
-        data->heroDX = max(-maxdx, min(maxdx, data->heroDX));
-        data->heroDY = max(-maxdy, min(maxdy, data->heroDY));
-        if (data->heroDX != 0 || data->heroDY != 0) {
-            data->heroSlideActive = TRUE;
-            rt_anim_start_timer(data);
-        }
+    if (scrolls) {
+        /* the view follows the hero, so slide the world under a fixed hero */
+        data->camDX = -(int) (hx * (double) data->xFrontTile);
+        data->camDY = -(int) (hy * (double) data->yFrontTile);
+        data->heroDX = data->heroDY = 0;
+        data->heroSlideActive = FALSE;
+    } else {
+        /* nothing to scroll: move the hero within the view instead */
+        data->camDX = data->camDY = 0;
+        data->heroDX = (int) (hx * (double) data->xFrontTile);
+        data->heroDY = (int) (hy * (double) data->yFrontTile);
+        /* only glide where there is terrain to erase the static hero with */
+        data->heroSlideActive =
+            (data->bkmap[u.ux][u.uy].glyph != NO_GLYPH);
     }
-    data->heroLastX = hx;
-    data->heroLastY = hy;
+    rt_anim_start_timer(data);
 }
 #endif /* REALTIME_PROTO */
 
@@ -1349,17 +1321,16 @@ onPaint(HWND hWnd)
     int originY = data->map_orig.y - (data->yPos * data->yFrontTile);
 
 #ifdef REALTIME_PROTO
-    boolean camJumped;
-
     /* move the continuous positions on by however much real time has passed
        since the previous frame, before anything reads them below */
     rtv_advance();
     /* and let a held direction decide whether it is time to step */
     rt_drive_hero(hWnd);
 
-    camJumped = rt_cam_seed(data);  /* pan if scroll origin jumped */
-    rt_hero_seed(data, camJumped);  /* else glide the hero tile */
-    originX += data->camDX; /* apply the smooth-pan offset (0 when idle) */
+    /* both offsets come from where the hero actually is, not from detecting
+       that its square changed */
+    rt_frame_offsets(data);
+    originX += data->camDX;
     originY += data->camDY;
 #endif
 
