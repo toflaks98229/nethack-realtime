@@ -2,6 +2,45 @@
 /*      Copyright (c) M. Stephenson 1988                          */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file spell.c
+ * @brief Learning spells, forgetting them, and casting what is remembered.
+ *
+ * A known spell is not permanent. Learning one from a book sets a memory that
+ * decays, so a spell must be studied again before it is forgotten -- which is
+ * why the spell list shows how long each has left.
+ *
+ * Whether a cast succeeds depends on more than energy: the hero's role and
+ * attributes, the spell's level and school, and above all what is being worn.
+ * Metal armour and heavy shields interfere, so a wizard's failure rate is as
+ * much about equipment as about learning.
+ *
+ * @note Reading a spellbook is an occupation spanning many turns, and being
+ *       interrupted partway can leave the attempt failed rather than merely
+ *       postponed.
+ * @warning A forgotten spell stays in the list rather than vanishing, so the
+ *          hero can attempt one they no longer know -- which fails in its own
+ *          way.
+ */
+
+/**
+ * @file spell.c
+ * @brief 주문을 배우고, 잊고, 기억하는 것을 시전하는 일.
+ *
+ * 아는 주문은 영구적이지 않다. 책으로 배우면 시간이 지나며 흐려지는 기억이 설정되므로,
+ * 잊기 전에 다시 공부해야 한다. 주문 목록이 각각 얼마나 남았는지 보여 주는 이유가
+ * 그것이다.
+ *
+ * 시전 성공은 마력만으로 정해지지 않는다. 영웅의 직업과 능력치, 주문의 등급과 계열,
+ * 그리고 무엇보다 무엇을 입고 있는지에 달려 있다. 금속 갑옷과 무거운 방패가 방해하므로,
+ * 마법사의 실패율은 배움만큼이나 장비의 문제다.
+ *
+ * @note 주문서를 읽는 일은 여러 턴에 걸친 occupation 이며, 도중에 방해받으면 단지
+ *       미뤄지는 것이 아니라 시도가 실패로 끝날 수 있다.
+ * @warning 잊은 주문은 목록에서 사라지지 않고 남는다. 그래서 영웅은 더 이상 모르는
+ *          주문을 시도할 수 있고, 그것은 그것대로 실패한다.
+ */
+
 #include "hack.h"
 
 /* spellmenu arguments; 0..n-1 used as svs.spl_book[] index when swapping */

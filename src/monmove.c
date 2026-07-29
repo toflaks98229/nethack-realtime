@@ -3,6 +3,44 @@
 /*-Copyright (c) Michael Allison, 2006. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file monmove.c
+ * @brief What a monster does with its turn.
+ *
+ * A monster's turn is a decision before it is a movement: whether it notices
+ * the hero, whether it wants to approach or flee, whether something it is
+ * carrying would serve better than its claws, and only then which square to
+ * step to.
+ *
+ * Movement itself is constrained by what the creature is. A monster that cannot
+ * open doors goes around, one that swims prefers water, one that clings to
+ * walls stays hidden -- so where it may go is asked of the species, not of the
+ * map alone.
+ *
+ * @note A monster acts more than once in a turn if it is fast enough; this is
+ *       called until its movement allowance is spent, not once per turn.
+ * @warning A monster can die during its own turn -- a trap, a passive defence,
+ *          an attack that killed it in return -- so the caller must check
+ *          rather than continue with it.
+ */
+
+/**
+ * @file monmove.c
+ * @brief 몬스터가 자기 턴에 하는 일.
+ *
+ * 몬스터의 턴은 이동이기 이전에 판단이다. 영웅을 알아챘는지, 다가갈지 도망칠지,
+ * 지니고 있는 무언가가 발톱보다 나을지, 그러고 나서야 어느 칸으로 갈지다.
+ *
+ * 이동 자체도 그 생물이 무엇이냐에 제약된다. 문을 열지 못하는 몬스터는 돌아가고,
+ * 헤엄치는 것은 물을 선호하며, 벽에 붙는 것은 숨어 있는다. 그래서 어디로 갈 수
+ * 있는지는 지도만이 아니라 종에게 묻는다.
+ *
+ * @note 충분히 빠른 몬스터는 한 턴에 여러 번 행동한다. 이 함수는 턴당 한 번이 아니라
+ *       이동력이 소진될 때까지 호출된다.
+ * @warning 몬스터는 자기 턴 도중에 죽을 수 있다. 함정, 수동 방어, 되받아친 공격
+ *          때문이다. 호출자는 그대로 진행하지 말고 확인해야 한다.
+ */
+
 #include "hack.h"
 #include "mfndpos.h"
 #include "artifact.h"

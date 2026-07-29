@@ -8,6 +8,44 @@
  * command.
  */
 
+/**
+ * @file detect.c
+ * @brief Learning about the level without looking at it.
+ *
+ * Detection puts things on the hero's map that were never seen: objects of a
+ * kind, monsters, traps, gold, the whole layout. Each shows one category and
+ * hides everything else, which is why detecting objects reveals a room's
+ * contents but not its walls.
+ *
+ * What is learned this way is *remembered*, not seen -- so it persists after
+ * the effect ends and goes stale as the level changes underneath it, exactly
+ * like a corridor the hero walked through and left.
+ *
+ * @note The display is switched to the detected view and then restored, so
+ *       these routines take over the map briefly rather than drawing over it.
+ * @warning Detected knowledge can be wrong by the time it is used: a monster
+ *          detected a hundred turns ago has moved, and the map still shows it
+ *          where it was.
+ */
+
+/**
+ * @file detect.c
+ * @brief 보지 않고 레벨에 대해 알게 되는 일.
+ *
+ * 탐지는 본 적 없는 것들을 영웅의 지도에 올린다. 특정 종류의 물건, 몬스터, 함정,
+ * 금, 또는 배치 전체다. 각각은 한 범주만 보여 주고 나머지는 감춘다. 물건 탐지가 방의
+ * 내용물은 드러내면서 벽은 드러내지 않는 이유다.
+ *
+ * 이렇게 알게 된 것은 본 것이 아니라 *기억된* 것이다. 그래서 효과가 끝난 뒤에도 남고,
+ * 그 아래에서 레벨이 변해 가는 동안 낡아 간다. 영웅이 걸어서 지나온 뒤 떠나온 복도와
+ * 똑같다.
+ *
+ * @note 화면을 탐지된 시야로 바꿨다가 되돌린다. 이 루틴들은 지도 위에 덧그리는 것이
+ *       아니라 잠시 지도를 넘겨받는 셈이다.
+ * @warning 탐지로 얻은 지식은 쓸 때쯤 틀려 있을 수 있다. 백 턴 전에 탐지된 몬스터는
+ *          이미 움직였지만 지도는 여전히 그것을 있던 자리에 보여 준다.
+ */
+
 #include "hack.h"
 #include "artifact.h"
 

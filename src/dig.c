@@ -3,6 +3,44 @@
 /*-Copyright (c) Michael Allison, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file dig.c
+ * @brief Digging, and what a hole in the floor leads to.
+ *
+ * Digging with a tool takes many turns, so it is an occupation the hero resumes
+ * each turn rather than an action: progress accumulates, and interrupting it
+ * leaves a partially dug square that is remembered.
+ *
+ * What results depends on direction. Digging down makes a pit and then a hole
+ * the hero falls through, digging sideways cuts through walls and rock, and
+ * either can breach a shop wall, disturb a grave, or open into somewhere the
+ * level did not intend to be reachable.
+ *
+ * @note Not every square yields. Some walls, floors and levels refuse to be
+ *       dug, which is what keeps the endgame and the vaults intact.
+ * @warning Digging down while standing somewhere unusual -- a boat of ice, a
+ *          shop floor, a level with nothing beneath it -- has consequences
+ *          beyond the hole, so the destination is decided before it is made.
+ */
+
+/**
+ * @file dig.c
+ * @brief 파는 일과, 바닥의 구멍이 이어지는 곳.
+ *
+ * 도구로 파는 일은 여러 턴이 걸리므로, 하나의 행동이 아니라 영웅이 매 턴 이어가는
+ * occupation 이다. 진척이 쌓이고, 중단하면 절반쯤 판 칸이 기억된 채 남는다.
+ *
+ * 결과는 방향에 달려 있다. 아래로 파면 구덩이가 되었다가 영웅이 빠지는 구멍이 되고,
+ * 옆으로 파면 벽과 암반을 뚫는다. 어느 쪽이든 상점 벽을 뚫거나, 무덤을 건드리거나,
+ * 레벨이 닿을 수 있게 의도하지 않은 곳으로 열릴 수 있다.
+ *
+ * @note 모든 칸이 뚫리는 것은 아니다. 어떤 벽과 바닥과 레벨은 파이기를 거부하며,
+ *       그것이 엔드게임과 금고를 온전히 지킨다.
+ * @warning 특이한 곳에 선 채로 아래를 파면 -- 얼음 위, 상점 바닥, 아래에 아무것도
+ *          없는 레벨 -- 구멍 이상의 결과가 따른다. 그래서 목적지는 구멍을 만들기
+ *          전에 정해진다.
+ */
+
 #include "hack.h"
 
 staticfn boolean rm_waslit(void);

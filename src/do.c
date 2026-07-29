@@ -5,6 +5,51 @@
 
 /* Contains code for 'd', 'D' (drop), '>', '<' (up, down) */
 
+/**
+ * @file do.c
+ * @brief Dropping things, and going somewhere else.
+ *
+ * Two subjects that share a file because they share a difficulty: both take
+ * something out of one place and put it into another, and both have to get the
+ * bookkeeping right at the boundary.
+ *
+ * Dropping is not simply removing from inventory. The object lands somewhere
+ * that may be water, lava, a trap or a shop floor, and where it lands decides
+ * whether it survives, sinks, burns or must be paid for.
+ *
+ * Changing level is the same problem at a larger scale: the hero leaves a level
+ * that must be saved as it stands, arrives on one that may not exist yet, and
+ * brings along pets, a steed, and anything being dragged.
+ *
+ * @note Falling through a hole, taking stairs, and being teleported between
+ *       levels all converge here, so arrival is written once rather than per
+ *       cause.
+ * @warning The level being left is written to disk and freed. Anything held
+ *          across that transition -- a pointer to a monster or object on the
+ *          old level -- is invalid afterwards.
+ */
+
+/**
+ * @file do.c
+ * @brief 물건을 내려놓는 일과, 다른 곳으로 가는 일.
+ *
+ * 한 파일에 있는 두 주제이며, 어려움을 공유하기에 함께 있다. 둘 다 무언가를 한 곳에서
+ * 꺼내 다른 곳에 넣는 일이고, 둘 다 그 경계에서 장부를 정확히 맞춰야 한다.
+ *
+ * 내려놓기는 단순히 소지품에서 빼는 것이 아니다. 물건은 물이나 용암, 함정, 상점 바닥일
+ * 수도 있는 어딘가에 떨어지며, 어디에 떨어지느냐가 그것이 멀쩡할지, 가라앉을지, 탈지,
+ * 값을 치러야 할지를 정한다.
+ *
+ * 레벨 이동은 같은 문제의 더 큰 규모다. 영웅은 있는 그대로 저장되어야 할 레벨을 떠나,
+ * 아직 존재하지 않을 수도 있는 레벨에 도착하며, 애완동물과 탈것과 끌고 있는 것들을
+ * 함께 데려간다.
+ *
+ * @note 구멍으로 떨어지는 것, 계단을 타는 것, 레벨 간 순간이동이 모두 여기로 모인다.
+ *       도착 처리를 원인마다가 아니라 한 번만 쓰기 위함이다.
+ * @warning 떠나는 레벨은 디스크에 쓰이고 해제된다. 그 전환을 가로질러 쥐고 있던 것 --
+ *          옛 레벨의 몬스터나 객체를 가리키는 포인터 -- 은 이후 유효하지 않다.
+ */
+
 #include "hack.h"
 
 staticfn boolean teleport_sink(void);
