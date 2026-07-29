@@ -4,6 +4,39 @@
 
 /*  attribute modification routines. */
 
+/**
+ * @file attrib.c
+ * @brief The hero's attributes, and the exercise that quietly changes them.
+ *
+ * Strength, intelligence and the rest are not only set at the start and altered
+ * by potions. The way the hero is played nudges them: fighting exercises
+ * strength, casting exercises wisdom, going hungry abuses constitution. Those
+ * nudges accumulate out of sight and are settled periodically, so attributes
+ * drift toward how the character has actually been used.
+ *
+ * @note Each attribute has a ceiling set by role and race, so exercise moves a
+ *       hero toward their own limit rather than toward a universal one.
+ * @warning A change here can invalidate things derived from it -- carrying
+ *          capacity, spell success, to-hit -- so attributes are adjusted
+ *          through these routines rather than assigned directly.
+ */
+
+/**
+ * @file attrib.c
+ * @brief 영웅의 능력치와, 그것을 조용히 바꾸는 단련.
+ *
+ * 힘이나 지능 같은 값들은 시작할 때 정해지고 물약으로 바뀌기만 하는 것이 아니다.
+ * 어떻게 플레이했는지가 그것들을 밀어 준다. 싸우면 힘이 단련되고, 주문을 쓰면
+ * 지혜가 단련되며, 굶주리면 체질이 상한다. 이 밀림은 보이지 않는 곳에 쌓였다가
+ * 주기적으로 정산되므로, 능력치는 그 인물이 실제로 어떻게 쓰였는지를 향해 흘러간다.
+ *
+ * @note 능력치마다 직업과 종족이 정하는 상한이 있다. 그래서 단련은 영웅을 보편적인
+ *       한계가 아니라 자기 자신의 한계 쪽으로 옮긴다.
+ * @warning 여기서의 변화는 그로부터 파생된 것들 -- 소지 한계, 주문 성공률, 명중 --
+ *          을 무효화할 수 있다. 그래서 능력치는 직접 대입하지 않고 이 루틴들을
+ *          통해 조정한다.
+ */
+
 #include "hack.h"
 
 /* part of the output on gain or loss of attribute */

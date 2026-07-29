@@ -2,6 +2,40 @@
 /* Copyright (c) NetHack Development Team 2020.                   */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file symbols.c
+ * @brief What each thing looks like when the map is drawn as characters.
+ *
+ * Every terrain, object class, monster class and effect has a symbol, and the
+ * player may change any of them: through a chosen symbol set, through
+ * individual overrides in configuration, or by switching between plain ASCII
+ * and line-drawing characters for walls.
+ *
+ * So the table the display reads is assembled rather than fixed, and this is
+ * where the layers -- defaults, the chosen set, the player's own changes -- are
+ * resolved into it.
+ *
+ * @note Tile-based interfaces do not use these, but they still exist there:
+ *       messages describe things by symbol, and the player may switch to a
+ *       character display at any time.
+ */
+
+/**
+ * @file symbols.c
+ * @brief 지도를 문자로 그릴 때 각각이 어떤 모습인지.
+ *
+ * 모든 지형, 객체 분류, 몬스터 분류, 효과에는 기호가 있고 플레이어는 그 무엇이든
+ * 바꿀 수 있다. 기호 집합을 골라서, 설정에서 개별적으로 덮어써서, 또는 벽을 순수
+ * ASCII 로 그릴지 선 문자로 그릴지 전환해서다.
+ *
+ * 그래서 표시부가 읽는 표는 고정된 것이 아니라 조립되는 것이며, 여기가 그 층들
+ * -- 기본값, 선택한 집합, 플레이어 자신의 변경 -- 이 하나로 정리되는 곳이다.
+ *
+ * @note 타일 기반 인터페이스는 이것을 쓰지 않지만 거기서도 여전히 존재한다.
+ *       메시지가 사물을 기호로 설명하고, 플레이어가 언제든 문자 표시로 바꿀 수
+ *       있기 때문이다.
+ */
+
 #include "hack.h"
 #include "tcap.h"
 

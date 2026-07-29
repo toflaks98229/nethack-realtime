@@ -2,6 +2,39 @@
 /* Copyright (c) Michael Allison, 2021. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file glyphs.c
+ * @brief The numbering that lets one integer stand for anything drawable.
+ *
+ * The display does not receive "a gnome lord, peaceful, remembered" -- it
+ * receives a glyph, a single number carved out of one large space with a range
+ * reserved for each kind of thing: monsters, their statues and corpses, objects,
+ * terrain, traps, zaps, warnings and the rest.
+ *
+ * That is what lets the map be an array of integers and the interface a lookup,
+ * and this file is where the ranges are defined and translated back and forth.
+ *
+ * @note The ordering is not arbitrary. Interfaces derive tile indices from
+ *       glyph numbers by arithmetic, so inserting a value in the middle of a
+ *       range would silently renumber everything after it.
+ */
+
+/**
+ * @file glyphs.c
+ * @brief 정수 하나가 그릴 수 있는 무엇이든 나타내게 하는 번호 체계.
+ *
+ * 표시부는 "평화로운, 기억된 노움 군주"를 받지 않는다. glyph 하나, 즉 큰 번호
+ * 공간에서 잘라낸 단일 숫자를 받는다. 그 공간은 종류마다 범위가 예약되어 있다.
+ * 몬스터, 그 조각상과 시체, 객체, 지형, 함정, 광선, 경고 등이다.
+ *
+ * 덕분에 지도는 정수 배열이 되고 인터페이스는 조회가 된다. 이 파일이 그 범위를
+ * 정의하고 양방향으로 변환하는 곳이다.
+ *
+ * @note 순서는 임의가 아니다. 인터페이스들이 glyph 번호에서 타일 인덱스를 산술로
+ *       유도하므로, 범위 중간에 값을 끼워 넣으면 그 뒤가 전부 조용히 다시 번호
+ *       매겨진다.
+ */
+
 #include "hack.h"
 
 extern const struct symparse loadsyms[];

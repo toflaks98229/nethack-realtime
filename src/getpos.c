@@ -2,6 +2,45 @@
 /*-Copyright (c) Pasi Kallinen, 2023. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file getpos.c
+ * @brief Asking the player to point at a square.
+ *
+ * Casting at a spot, looking at something, travelling somewhere -- all need a
+ * position, and a roguelike has no pointer, so the player moves a cursor with
+ * the same keys they walk with.
+ *
+ * Most of the work is in making that bearable on a large map: keys that jump
+ * to the next monster, object, door or unexplored square, a filter for which
+ * squares are even valid for the question being asked, and a description of
+ * whatever is under the cursor as it moves.
+ *
+ * @note Mouse input arrives here too where the interface supports it, so a
+ *       click and a cursor keypress reach the same answer.
+ * @warning Runs a loop of its own while the game waits, so anything that can
+ *          happen during it -- a redraw, a resize -- must be handled here
+ *          rather than by the caller.
+ */
+
+/**
+ * @file getpos.c
+ * @brief 플레이어에게 어떤 칸을 가리켜 달라고 요청하기.
+ *
+ * 어떤 지점에 주문을 걸거나, 무언가를 살펴보거나, 어딘가로 여행하려면 위치가
+ * 필요하다. 로그라이크에는 포인터가 없으므로, 플레이어는 걸을 때 쓰는 바로 그
+ * 키로 커서를 움직인다.
+ *
+ * 작업 대부분은 넓은 지도에서 그 일을 견딜 만하게 만드는 데 있다. 다음 몬스터·
+ * 물건·문·미탐색 칸으로 건너뛰는 키, 지금 묻는 질문에 대해 어떤 칸이 유효한지
+ * 거르는 필터, 그리고 커서가 움직일 때마다 그 아래 있는 것에 대한 설명이다.
+ *
+ * @note 인터페이스가 지원하는 경우 마우스 입력도 여기로 들어온다. 클릭과 커서
+ *       키가 같은 답에 이르게 하기 위함이다.
+ * @warning 게임이 기다리는 동안 자체 루프를 돈다. 따라서 그동안 일어날 수 있는
+ *          일 -- 다시 그리기, 크기 변경 -- 은 호출자가 아니라 여기서 처리해야
+ *          한다.
+ */
+
 #include "hack.h"
 
 extern const char what_is_a_location[]; /* from pager.c */

@@ -3,6 +3,43 @@
 /*-Copyright (c) Michael Allison, 2009. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file decl.c
+ * @brief Where the game's global state actually exists.
+ *
+ * The headers declare it; this defines it. Every instance-globals group, the
+ * hero, the level, the monster and object chains, and the constant tables that
+ * accompany them have their single definition here, which is what stops a
+ * second copy from appearing in some other translation unit.
+ *
+ * The state is grouped rather than scattered -- @c svc, @c svm, @c gy and the
+ * rest -- so that saving, restoring, and reinitializing for a new game can each
+ * treat it as a small number of things instead of thousands.
+ *
+ * @note The direction tables here are ordered to match the movement enums, so
+ *       a direction can be turned by arithmetic; see nh_move.h.
+ * @warning Everything here outlives one game. Starting a new game in the same
+ *          process means these must be reset, not merely reallocated.
+ */
+
+/**
+ * @file decl.c
+ * @brief 게임의 전역 상태가 실제로 존재하는 곳.
+ *
+ * 헤더는 그것을 선언하고, 이 파일이 정의한다. 인스턴스 전역 그룹들, 영웅, 레벨,
+ * 몬스터와 객체 사슬, 그리고 그것들에 딸린 상수 표가 모두 여기에 단 하나의 정의를
+ * 갖는다. 다른 번역 단위에 두 번째 사본이 생기지 않게 하는 것이 이것이다.
+ *
+ * 상태는 흩어져 있지 않고 묶여 있다. @c svc, @c svm, @c gy 등이며, 덕분에 저장·
+ * 복원·새 게임을 위한 재초기화가 각각 수천 개가 아니라 몇 개의 대상을 다루면 된다.
+ *
+ * @note 여기의 방향 표는 이동 열거와 순서가 맞도록 정렬되어 있다. 그래야 방향을
+ *       산술로 회전시킬 수 있다. nh_move.h 참고.
+ * @warning 여기 있는 모든 것은 한 판의 게임보다 오래 산다. 같은 프로세스에서 새
+ *          게임을 시작한다는 것은 이것들을 다시 할당하는 정도가 아니라 재설정해야
+ *          한다는 뜻이다.
+ */
+
 #include "hack.h"
 
 const char * const nhcb_name[NUM_NHCB] = {
