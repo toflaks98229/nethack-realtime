@@ -1224,17 +1224,23 @@ rt_drive_hero(HWND hWnd)
 {
     int dx = 0, dy = 0;
 
-    /* Only while the game is waiting for a command, and only when this window
-       has the keyboard; otherwise a held key belongs to a menu or a prompt.
+    /* Only while the game is waiting for a command, and only while this
+       application is the one being typed at.
 
        The flag is used rather than program_state.input_state because a step we
        inject is taken from the command queue without parse() running, which is
        what sets input_state -- so after the first injected step input_state
-       would never read as commandInp again and movement would stop dead. */
-    if (!mswin_rt_awaiting_cmd || GetFocus() != hWnd) {
+       would never read as commandInp again and movement would stop dead.
+
+       The window tested is the top-level one, not this map.  Keystrokes are
+       handled by the main window, so the map child never holds the keyboard
+       focus and testing for it here would refuse to move the hero at all. */
+    if (!mswin_rt_awaiting_cmd
+        || GetForegroundWindow() != GetNHApp()->hMainWnd) {
         rtv_hero_free_move(0.0, 0.0); /* keep time accounted for, but stand */
         return;
     }
+    nhUse(hWnd);
 
 #define RT_HELD(vk) ((GetAsyncKeyState(vk) & 0x8000) != 0)
     if (RT_HELD(VK_LEFT))
