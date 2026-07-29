@@ -166,97 +166,8 @@ enum bubble_contains_types {
     CONS_TRAP
 };
 
-/*
- * Rudimentary command queue.
- * Allows the code to put keys and extended commands into the queue,
- * and they're executed just as if the user did them.  Time passes
- * normally when doing queued actions.  The queue will get cleared
- * if hero is interrupted.
- */
-enum cmdq_cmdtypes {
-    CMDQ_KEY = 0, /* a literal character, cmdq_add_key() */
-    CMDQ_EXTCMD,  /* extended command, cmdq_add_ec() */
-    CMDQ_DIR,     /* direction, cmdq_add_dir() */
-    CMDQ_USER_INPUT, /* placeholder for user input, cmdq_add_userinput() */
-    CMDQ_INT,     /* integer value, cmdq_add_int() */
-};
-
-struct _cmd_queue {
-    int typ;
-    char key;
-    schar dirx, diry, dirz;
-    int intval;
-    const struct ext_func_tab *ec_entry;
-    struct _cmd_queue *next;
-};
-
-enum {
-    CQ_CANNED = 0, /* internal canned sequence */
-    CQ_REPEAT,     /* user-inputted, if gi.in_doagain, replayed */
-    NUM_CQS
-};
-
-typedef long cmdcount_nht;    /* Command counts */
-
-
-/* special key functions */
-enum nh_keyfunc {
-    NHKF_ESC = 0,
-
-    NHKF_GETDIR_SELF,
-    NHKF_GETDIR_SELF2,
-    NHKF_GETDIR_HELP,
-    NHKF_GETDIR_MOUSE,   /* simulated click for #therecmdmenu; use '_' as
-                          * direction to initiate, then getpos() finishing
-                          * with ',' (left click) or '.' (right click) */
-    NHKF_COUNT,
-    NHKF_GETPOS_SELF,
-    NHKF_GETPOS_PICK,
-    NHKF_GETPOS_PICK_Q,  /* quick */
-    NHKF_GETPOS_PICK_O,  /* once */
-    NHKF_GETPOS_PICK_V,  /* verbose */
-    NHKF_GETPOS_SHOWVALID,
-    NHKF_GETPOS_AUTODESC,
-    NHKF_GETPOS_MON_NEXT,
-    NHKF_GETPOS_MON_PREV,
-    NHKF_GETPOS_OBJ_NEXT,
-    NHKF_GETPOS_OBJ_PREV,
-    NHKF_GETPOS_DOOR_NEXT,
-    NHKF_GETPOS_DOOR_PREV,
-    NHKF_GETPOS_UNEX_NEXT,
-    NHKF_GETPOS_UNEX_PREV,
-    NHKF_GETPOS_INTERESTING_NEXT,
-    NHKF_GETPOS_INTERESTING_PREV,
-    NHKF_GETPOS_VALID_NEXT,
-    NHKF_GETPOS_VALID_PREV,
-    NHKF_GETPOS_HELP,
-    NHKF_GETPOS_MENU,
-    NHKF_GETPOS_LIMITVIEW,
-    NHKF_GETPOS_MOVESKIP,
-
-    NUM_NHKF
-};
-
-/* commands[] is used to directly access cmdlist[] instead of looping
-   through it to find the entry for a given input character;
-   move_X is the character used for moving one step in direction X;
-   alphadirchars corresponds to old sdir,
-   dirchars corresponds to ``iflags.num_pad ? ndir : sdir'';
-   pcHack_compat and phone_layout only matter when num_pad is on,
-   swap_yz only matters when it's off */
-struct cmd {
-    unsigned serialno;     /* incremented after each update */
-    boolean num_pad;       /* same as iflags.num_pad except during updates */
-    boolean pcHack_compat; /* for numpad:  affects 5, M-5, and M-0 */
-    boolean phone_layout;  /* inverted keypad:  1,2,3 above, 7,8,9 below */
-    boolean swap_yz;       /* QWERTZ keyboards; use z to move NW, y to zap */
-    const char *dirchars;      /* current movement/direction characters */
-    const char *alphadirchars; /* same as dirchars if !numpad */
-    struct Cmd_bind *cmdbinds;
-    const struct ext_func_tab *mousebtn[NUM_MOUSE_BUTTONS];
-    char spkeys[NUM_NHKF];
-    char extcmd_char;      /* key that starts an extended command ('#') */
-};
+/* command queue, special keys, and the command dispatch table */
+#include "nh_cmd.h"
 
 struct c_color_names {
     const char *const c_black, *const c_amber, *const c_golden,
@@ -355,74 +266,8 @@ enum dismount_types {
     DISMOUNT_BYCHOICE = 7
 };
 
-struct dgn_topology { /* special dungeon levels for speed */
-    d_level d_oracle_level;
-    d_level d_bigroom_level; /* unused */
-    d_level d_rogue_level;
-    d_level d_medusa_level;
-    d_level d_stronghold_level;
-    d_level d_valley_level;
-    d_level d_wiz1_level;
-    d_level d_wiz2_level;
-    d_level d_wiz3_level;
-    d_level d_juiblex_level;
-    d_level d_orcus_level;
-    d_level d_baalzebub_level; /* unused */
-    d_level d_asmodeus_level;  /* unused */
-    d_level d_portal_level;    /* only in goto_level() [do.c] */
-    d_level d_sanctum_level;
-    d_level d_earth_level;
-    d_level d_water_level;
-    d_level d_fire_level;
-    d_level d_air_level;
-    d_level d_astral_level;
-    xint16 d_tower_dnum;
-    xint16 d_sokoban_dnum;
-    xint16 d_mines_dnum, d_quest_dnum;
-    xint16 d_tutorial_dnum;
-    d_level d_qstart_level, d_qlocate_level, d_nemesis_level;
-    d_level d_knox_level;
-    d_level d_mineend_level;
-    d_level d_sokoend_level;
-};
-
-/* macros for accessing the dungeon levels by their old names */
-/* clang-format off */
-#define oracle_level            (svd.dungeon_topology.d_oracle_level)
-#define bigroom_level           (svd.dungeon_topology.d_bigroom_level)
-#define rogue_level             (svd.dungeon_topology.d_rogue_level)
-#define medusa_level            (svd.dungeon_topology.d_medusa_level)
-#define stronghold_level        (svd.dungeon_topology.d_stronghold_level)
-#define valley_level            (svd.dungeon_topology.d_valley_level)
-#define wiz1_level              (svd.dungeon_topology.d_wiz1_level)
-#define wiz2_level              (svd.dungeon_topology.d_wiz2_level)
-#define wiz3_level              (svd.dungeon_topology.d_wiz3_level)
-#define juiblex_level           (svd.dungeon_topology.d_juiblex_level)
-#define orcus_level             (svd.dungeon_topology.d_orcus_level)
-#define baalzebub_level         (svd.dungeon_topology.d_baalzebub_level)
-#define asmodeus_level          (svd.dungeon_topology.d_asmodeus_level)
-#define portal_level            (svd.dungeon_topology.d_portal_level)
-#define sanctum_level           (svd.dungeon_topology.d_sanctum_level)
-#define earth_level             (svd.dungeon_topology.d_earth_level)
-#define water_level             (svd.dungeon_topology.d_water_level)
-#define fire_level              (svd.dungeon_topology.d_fire_level)
-#define air_level               (svd.dungeon_topology.d_air_level)
-#define astral_level            (svd.dungeon_topology.d_astral_level)
-#define tower_dnum              (svd.dungeon_topology.d_tower_dnum)
-#define sokoban_dnum            (svd.dungeon_topology.d_sokoban_dnum)
-#define mines_dnum              (svd.dungeon_topology.d_mines_dnum)
-#define quest_dnum              (svd.dungeon_topology.d_quest_dnum)
-#define tutorial_dnum           (svd.dungeon_topology.d_tutorial_dnum)
-#define qstart_level            (svd.dungeon_topology.d_qstart_level)
-#define qlocate_level           (svd.dungeon_topology.d_qlocate_level)
-#define nemesis_level           (svd.dungeon_topology.d_nemesis_level)
-#define knox_level              (svd.dungeon_topology.d_knox_level)
-#define mineend_level           (svd.dungeon_topology.d_mineend_level)
-#define sokoend_level           (svd.dungeon_topology.d_sokoend_level)
-/* clang-format on */
-
-#define dunlev_reached(x) (svd.dungeons[(x)->dnum].dunlev_ureached)
-#define MAXLINFO (MAXDUNGEON * MAXLEVEL)
+/* special-level locations and the short names used to reach them */
+#include "nh_dgntopo.h"
 
 enum lua_theme_group {
     all_themes = 1,  /* for end of game */
@@ -958,61 +803,8 @@ struct xlock_s {
 
 #define MAX_BMASK 4
 
-/* NetHack ftypes */
-#define NHF_LEVELFILE       1
-#define NHF_SAVEFILE        2
-#define NHF_BONESFILE       3
-/* modes */
-#define READING      0x0
-#define COUNTING     0x01
-#define WRITING      0x02
-#define FREEING      0x04
-#define CONVERTING   0x08
-#define UNCONVERTING 0x10
-#if 0
-/* operations of the various saveXXXchn & co. routines */
-#define perform_bwrite(nhfp) ((nhfp)->mode & (COUNTING | WRITING))
-#define release_data(nhfp) ((nhfp)->mode & FREEING)
-#endif
-
-/* operations of the various saveXXXchn & co. routines */
-#define update_file(nhfp) ((nhfp)->mode & (COUNTING | WRITING))
-#define release_data(nhfp) ((nhfp)->mode & FREEING)
-
-enum saveformats {
-    invalid = 0,
-    historical = 1,     /* entire struct, binary, as-is */
-    exportascii = 2,    /* each field written out as ascii text */
-    NUM_SAVEFORMATS
-};
-
-/* Content types for fieldlevel files */
-struct fieldlevel_content {
-    boolean deflt;        /* individual fields */
-    boolean binary;       /* binary rather than text */
-};
-
-struct nh_file {
-    int fd;               /* for traditional structlevel binary writes */
-    int mode;             /* holds READING, WRITING, FREEING, CONVERTING modes  */
-    int ftype;            /* NHF_LEVELFILE, NHF_SAVEFILE, or NHF_BONESFILE */
-    int fnidx;            /* index of procs for fieldlevel saves */
-    long rcount,          /* read count since opening */
-         wcount;          /* write count since opening */
-    boolean structlevel;  /* traditional structure binary saves */
-    boolean fieldlevel;   /* fieldlevel saves each field individually */
-    boolean addinfo;      /* if set, some additional context info from core */
-    boolean eof;          /* place to mark eof reached */
-    boolean bendian;      /* set to true if executing on big-endian machine */
-    FILE *fpdef;          /* file pointer for fieldlevel default style */
-    FILE *fpdefmap;       /* file pointer mapfile for def format */
-    FILE *fplog;          /* file pointer logfile */
-    FILE *fpdebug;        /* file pointer debug info */
-    struct fieldlevel_content style;
-    struct nh_file *nhfpconvert;
-};
-
-typedef struct nh_file NHFILE;
+/* NHFILE handle plus the mode bits shared by the serializers */
+#include "nh_savefile.h"
 
 /* Monster name articles */
 #define ARTICLE_NONE 0
