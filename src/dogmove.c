@@ -3,6 +3,43 @@
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file dogmove.c
+ * @brief How a pet decides where to go.
+ *
+ * A pet is not steered. It weighs what is around it -- the hero it wants to
+ * stay near, food it would rather eat, a monster it might attack, a trap it has
+ * learned to avoid -- and moves accordingly, which is why pets wander off,
+ * refuse to follow into danger, and stop to eat at inconvenient moments.
+ *
+ * Each candidate square is scored, and the choice is the best of them rather
+ * than the result of a rule, so behaviour emerges from the weights instead of
+ * being enumerated.
+ *
+ * @note Hunger changes the weighting rather than overriding it: a hungry pet
+ *       does not abandon the hero, it merely values food more.
+ * @warning A pet may eat an object the game is still referring to, or step onto
+ *          a square the hero is about to use, so callers cannot assume the map
+ *          is unchanged after a pet has moved.
+ */
+
+/**
+ * @file dogmove.c
+ * @brief 애완동물이 어디로 갈지 정하는 방식.
+ *
+ * 애완동물은 조종되지 않는다. 주변을 저울질한다. 곁에 있고 싶은 영웅, 그보다 먹고
+ * 싶은 먹이, 공격할 만한 몬스터, 겪어서 피하게 된 함정 등이다. 그래서 애완동물은
+ * 딴 데로 새고, 위험한 곳으로는 따라오지 않으며, 하필 곤란한 때에 멈춰 서서 먹는다.
+ *
+ * 후보 칸마다 점수를 매기고 그중 가장 나은 것을 고른다. 규칙의 결과가 아니라서,
+ * 행동은 나열된 것이 아니라 가중치에서 자연히 나온다.
+ *
+ * @note 허기는 가중치를 바꿀 뿐 덮어쓰지 않는다. 배고픈 애완동물이 영웅을 버리는
+ *       것이 아니라, 먹이를 더 높이 치는 것이다.
+ * @warning 애완동물이 게임이 아직 참조 중인 객체를 먹거나, 영웅이 곧 쓰려던 칸에
+ *          올라설 수 있다. 애완동물이 움직인 뒤에 지도가 그대로라고 가정할 수 없다.
+ */
+
 #include "hack.h"
 
 #include "mfndpos.h"

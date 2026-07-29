@@ -3,6 +3,42 @@
 /*-Copyright (c) Robert Patrick Rankin, 2011. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file mondata.c
+ * @brief Questions asked about what a monster is.
+ *
+ * Can it see, does it breathe, will fire hurt it, does it fly, is it made of
+ * flesh, would this attack even reach it -- the rules ask such things
+ * constantly, and they must be answered from the species and from the
+ * individual together.
+ *
+ * The distinction matters: the species says what a gnome is, while the
+ * individual may be polymorphed, cancelled, or the hero wearing another shape.
+ * These predicates exist so the rest of the game asks a question rather than
+ * inspecting flags and getting that distinction wrong.
+ *
+ * @note The hero is answered by the same predicates through @c youmonst, which
+ *       is what lets a polymorphed hero be treated as the creature they have
+ *       become without duplicating every rule.
+ */
+
+/**
+ * @file mondata.c
+ * @brief 몬스터가 무엇인지에 대해 던지는 질문들.
+ *
+ * 볼 수 있는가, 숨을 쉬는가, 불에 다치는가, 나는가, 살로 되어 있는가, 이 공격이
+ * 닿기는 하는가 -- 규칙은 이런 것들을 끊임없이 묻고, 그 답은 종과 개체를 함께
+ * 봐야 나온다.
+ *
+ * 이 구분은 중요하다. 종은 노움이 무엇인지를 말하지만, 개체는 변신했거나, 무효화
+ * 되었거나, 다른 모습을 쓴 영웅일 수 있다. 이 술어들이 존재하는 이유는 게임의
+ * 나머지 부분이 플래그를 직접 들여다보다 그 구분을 틀리는 대신 질문을 던지게 하기
+ * 위함이다.
+ *
+ * @note 영웅도 @c youmonst 를 통해 같은 술어로 답해진다. 덕분에 변신한 영웅을 그가
+ *       된 생물로 취급할 수 있으며, 모든 규칙을 두 번 쓰지 않아도 된다.
+ */
+
 #include "hack.h"
 /*
  *      These routines provide basic data for any type of monster.

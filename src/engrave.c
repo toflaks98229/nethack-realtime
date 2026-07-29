@@ -3,6 +3,43 @@
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file engrave.c
+ * @brief Writing on the floor, and what becomes of what was written.
+ *
+ * An engraving belongs to a square and persists there, which is what makes it
+ * useful: Elbereth scares monsters, and a note survives until something erases
+ * it.
+ *
+ * What is written with decides how it endures. Dust smudges as soon as it is
+ * walked on, a wand of digging cuts permanently, blood and grease wear away at
+ * their own rates -- so degrading an engraving is a matter of mangling its text
+ * rather than removing it, and a half-erased Elbereth no longer works.
+ *
+ * @note The hero may add to an existing engraving rather than replace it, so
+ *       writing is not simply assignment.
+ * @warning Text is degraded in place, character by character, which is what
+ *          produces the misspellings that make a worn engraving unreliable.
+ */
+
+/**
+ * @file engrave.c
+ * @brief 바닥에 쓰는 일과, 쓰인 것이 겪는 일.
+ *
+ * 각인은 어떤 칸에 속해 그 자리에 남는다. 그래서 쓸모가 있다. Elbereth 는 몬스터를
+ * 겁주고, 남긴 글은 무언가가 지울 때까지 살아남는다.
+ *
+ * 무엇으로 썼는지가 얼마나 견디는지를 정한다. 먼지는 밟히자마자 뭉개지고, 굴착
+ * 지팡이는 영구히 새기며, 피와 기름은 각자의 속도로 닳는다. 그래서 각인이 상한다는
+ * 것은 지워지는 것이 아니라 글자가 망가지는 일이고, 절반쯤 지워진 Elbereth 는 더
+ * 이상 작동하지 않는다.
+ *
+ * @note 영웅은 기존 각인을 대체하는 대신 덧붙일 수 있다. 그래서 쓰는 일은 단순한
+ *       대입이 아니다.
+ * @warning 글자는 제자리에서 한 자씩 상한다. 닳은 각인을 믿을 수 없게 만드는 오타가
+ *          그렇게 생긴다.
+ */
+
 #include "hack.h"
 
 /* doengrave() data */

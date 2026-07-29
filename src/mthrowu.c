@@ -3,6 +3,41 @@
 /*-Copyright (c) Pasi Kallinen, 2016. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file mthrowu.c
+ * @brief Monsters attacking at a distance.
+ *
+ * Thrown daggers, fired arrows, spat venom and breath weapons all travel from
+ * one square to another and may hit something on the way, so they are resolved
+ * by walking the line rather than by comparing positions.
+ *
+ * Whether a monster shoots at all is decided here too: it needs a clear line,
+ * something worth shooting at, and ammunition it is willing to spend -- and a
+ * monster will not fire through its allies.
+ *
+ * @note What is thrown becomes an object where it lands, so a monster's
+ *       ammunition is genuinely spent and can be picked up afterwards.
+ * @warning The line is walked while things on it may die or move, so each step
+ *          must re-examine the square rather than trusting what was there when
+ *          the shot began.
+ */
+
+/**
+ * @file mthrowu.c
+ * @brief 몬스터의 원거리 공격.
+ *
+ * 던진 단검, 쏜 화살, 뱉은 독, 브레스는 모두 한 칸에서 다른 칸으로 날아가며 도중에
+ * 무언가에 맞을 수 있다. 그래서 위치를 비교하는 대신 선을 따라 걸어가며 해석한다.
+ *
+ * 몬스터가 애초에 쏠지 말지도 여기서 정한다. 트인 선과 쏠 만한 대상, 그리고 기꺼이
+ * 소모할 탄약이 있어야 하며, 아군 사이로는 쏘지 않는다.
+ *
+ * @note 던진 것은 떨어진 자리에서 객체가 된다. 몬스터의 탄약은 실제로 소모되고
+ *       나중에 주울 수 있다.
+ * @warning 선을 따라가는 동안 그 위의 것들이 죽거나 움직일 수 있다. 각 단계는 발사
+ *          시점에 무엇이 있었는지를 믿지 말고 그 칸을 다시 살펴야 한다.
+ */
+
 #include "hack.h"
 
 staticfn int monmulti(struct monst *, struct obj *, struct obj *);

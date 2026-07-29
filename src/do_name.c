@@ -3,6 +3,44 @@
 /*-Copyright (c) Pasi Kallinen, 2018. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file do_name.c
+ * @brief Naming things, and describing what the player is looking at.
+ *
+ * Two related jobs. The player may name an individual creature or object, or
+ * name a whole type -- calling every unlabelled potion "the fizzy one" -- and
+ * those names then appear wherever the thing is described.
+ *
+ * The other half answers "what is that?", turning what is on a square into
+ * prose: what it is, whether the hero can see it or merely remembers it, and
+ * how much may honestly be said about something not yet identified.
+ *
+ * @note Naming a type is knowledge the hero has recorded, so it survives losing
+ *       sight of the object and applies to every other one like it.
+ * @warning A description must not reveal more than the hero knows. What is said
+ *          depends on what has been identified and what is currently visible,
+ *          not on what the object actually is.
+ */
+
+/**
+ * @file do_name.c
+ * @brief 이름 붙이기, 그리고 플레이어가 보고 있는 것을 설명하기.
+ *
+ * 관련된 두 가지 일이다. 플레이어는 개별 생물이나 물건에 이름을 붙일 수도 있고,
+ * 종류 전체에 이름을 붙일 수도 있다. 이름 없는 물약 전부를 "거품 나는 것"이라
+ * 부르는 식이다. 그렇게 붙인 이름은 그 대상이 설명되는 모든 곳에 나타난다.
+ *
+ * 나머지 절반은 "저게 뭐지?"에 답한다. 어떤 칸에 있는 것을 문장으로 바꾸는 일이다.
+ * 그것이 무엇인지, 영웅이 지금 보고 있는지 아니면 기억하고 있을 뿐인지, 아직
+ * 감정되지 않은 것에 대해 어디까지 정직하게 말할 수 있는지다.
+ *
+ * @note 종류에 붙인 이름은 영웅이 기록해 둔 지식이다. 그래서 그 물건을 시야에서
+ *       놓쳐도 남고, 같은 종류의 다른 모든 것에도 적용된다.
+ * @warning 설명은 영웅이 아는 것 이상을 드러내서는 안 된다. 무엇을 말할지는 그
+ *          물건이 실제로 무엇인가가 아니라, 무엇이 감정되었고 지금 무엇이 보이는가에
+ *          달려 있다.
+ */
+
 #include "hack.h"
 
 staticfn char *nextmbuf(void);
