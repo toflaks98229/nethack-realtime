@@ -3,6 +3,14 @@
 /*-Copyright (c) Robert Patrick Rankin, 2007. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file exper.c
+ * @brief 영웅의 경험치·경험 레벨 및 관련 능력치 계산 로직.
+ *
+ * 레벨별 필요 경험치, 몬스터 처치 시 획득 경험치, 레벨 상승/하락에 따른
+ * 체력·마나 증감, 경험치 배수 조정 등 캐릭터 성장에 관한 계산을 담당한다.
+ */
+
 #include "hack.h"
 #ifndef LONG_MAX
 #include <limits.h>
@@ -10,6 +18,11 @@
 
 staticfn int enermod(int);
 
+/**
+ * @brief 특정 경험 레벨에 도달하는 데 필요한 누적 경험치를 반환한다.
+ * @param[in] lev 대상 경험 레벨.
+ * @return 해당 레벨에 필요한 경험치. @p lev 가 1 미만이면 0.
+ */
 long
 newuexp(int lev)
 {
@@ -22,25 +35,16 @@ newuexp(int lev)
     return (10000000L * ((long) (lev - 19)));
 }
 
-staticfn int
-enermod(int en)
-{
-    switch (Role_switch) {
-    case PM_CLERIC:
-    case PM_WIZARD:
-        return (2 * en);
-    case PM_HEALER:
-    case PM_KNIGHT:
-        return ((3 * en) / 2);
-    case PM_BARBARIAN:
-    case PM_VALKYRIE:
-        return ((3 * en) / 4);
-    default:
-        return en;
-    }
-}
-
-/* calculate spell power/energy points for new level */
+/**
+ * @brief 새 레벨에 대한 마나(주문 에너지) 증가량을 계산한다.
+ *
+ * 직업/종족의 성장 파라미터와 지혜(WIS)를 반영하여 마나 증가량을 산출하고,
+ * 최대 레벨 이후에는 증가폭을 제한한다.
+ *
+ * @return 이번에 증가시킬 마나 포인트(최소 1).
+ * @note 최대 레벨 이전에는 증가량을 @c u.ueninc[] 에 기록해 향후 레벨 드레인에
+ *       대비한다.
+ */
 int
 newpw(void)
 {
@@ -80,6 +84,16 @@ newpw(void)
     return en;
 }
 
+/**
+ * @brief 몬스터 처치로 얻는 경험치를 계산한다.
+ *
+ * 몬스터 레벨, 방어도, 이동 속도, 특수 공격·피해 유형, 흉악도 등을 반영하여
+ * 경험치를 산정하며, 되살아났거나 복제된 몬스터의 반복 처치는 감소시킨다.
+ *
+ * @param[in] mtmp 처치한 몬스터.
+ * @param[in] nk   해당 종류의 누적 처치 수(반복 처치 감산에 사용).
+ * @return 획득 경험치.
+ */
 /* return # of exp points for mtmp after nk killed */
 int
 experience(struct monst *mtmp, int nk)
@@ -165,6 +179,14 @@ experience(struct monst *mtmp, int nk)
     return (tmp);
 }
 
+/**
+ * @brief 영웅의 경험치와 점수를 증가시킨다.
+ *
+ * @param[in] exper 추가할 경험치.
+ * @param[in] rexp  추가할 점수(record exp) 보정치.
+ * @note 오버플로 시 값을 @c LONG_MAX 로 고정하며, 필요 시 하단 상태줄 갱신을
+ *       예약한다.
+ */
 void
 more_experienced(int exper, int rexp)
 {
@@ -202,6 +224,17 @@ more_experienced(int exper, int rexp)
         flags.beginner = FALSE;
 }
 
+/**
+ * @brief 영웅의 경험 레벨을 한 단계 낮춘다(생명력 흡수 등).
+ *
+ * 레벨과 그에 따른 내재 능력, 최대 체력·마나를 감소시킨다. 레벨 1에서
+ * 치명적 드레인을 받으면 사망 처리될 수 있다.
+ *
+ * @param[in] drainer 사망 원인 문자열(치명적이어야 하는 경우). 신의 분노 등
+ *                    비치명적 상황에서는 NULL. "#levelchange" 는 위저드 모드
+ *                    요청으로 취급되어 드레인 내성을 무시하되 치명적이지 않다.
+ * @warning 레벨 1에서 @p drainer 가 지정되면 @c done(DIED) 로 사망할 수 있다.
+ */
 /* e.g., hit by drain life attack */
 void
 losexp(
@@ -290,6 +323,13 @@ losexp(
     disp.botl = TRUE;
 }
 
+/**
+ * @brief 경험치가 충분하면 경험 레벨을 한 단계 올린다.
+ *
+ * AD&D 방식처럼 한 번에 최대 한 레벨만 상승시킨다.
+ *
+ * @note 최대 레벨 미만이고 현재 경험치가 다음 레벨 요구치 이상일 때만 상승한다.
+ */
 /*
  * Make experience gaining similar to AD&D(tm), whereby you can at most go
  * up by one level at a time, extra expr possibly helping you along.
@@ -303,6 +343,15 @@ newexplevel(void)
         pluslvl(TRUE);
 }
 
+/**
+ * @brief 영웅의 경험 레벨을 실제로 한 단계 올린다.
+ *
+ * 체력·마나 최대치를 증가시키고, 경험치를 새 레벨에 맞춰 조정하며, 새 내재
+ * 능력·업적·랭크 승급 등을 처리한다.
+ *
+ * @param[in] incr TRUE 이면 경험치 누적에 의한 점진적 상승, FALSE 이면 레벨업
+ *                 물약/레이스 시체/위저드 모드 #levelchange 에 의한 상승.
+ */
 void
 pluslvl(
     boolean incr) /* True: incremental experience growth;
@@ -371,6 +420,16 @@ pluslvl(
     disp.botl = TRUE;
 }
 
+/**
+ * @brief 영웅의 현재 경험 레벨에 어울리는 무작위 경험치 값을 계산한다.
+ *
+ * 현재 레벨 도달에 필요한 기본 경험치에, 다음 레벨까지의 양 중 무작위 일부를
+ * 더한 값을 만든다.
+ *
+ * @param[in] gaining TRUE 이면 물약 등으로 경험치를 얻는 경우, FALSE 이면
+ *                    변신(polyself)용 경험치 설정.
+ * @return 계산된 경험치 값.
+ */
 /* compute a random amount of experience points suitable for the hero's
    experience level:  base number of points needed to reach the current
    level plus a random portion of what it takes to get to the next level */
@@ -397,6 +456,29 @@ rndexp(boolean gaining) /* gaining XP via potion vs setting XP for polyself */
             result = u.uexp;
     }
     return result;
+}
+
+/**
+ * @brief 직업(role)에 따라 마나 증가량을 보정한다.
+ * @param[in] en 기본 마나 증가량.
+ * @return 직업별 배율이 적용된 마나 증가량.
+ */
+staticfn int
+enermod(int en)
+{
+    switch (Role_switch) {
+    case PM_CLERIC:
+    case PM_WIZARD:
+        return (2 * en);
+    case PM_HEALER:
+    case PM_KNIGHT:
+        return ((3 * en) / 2);
+    case PM_BARBARIAN:
+    case PM_VALKYRIE:
+        return ((3 * en) / 4);
+    default:
+        return en;
+    }
 }
 
 /*exper.c*/

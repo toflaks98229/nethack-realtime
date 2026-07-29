@@ -1,6 +1,9 @@
 /* NetHack 5.0	extern.h	$NHDT-Date: 1778886716 2026/05/15 15:11:56 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.1558 $ */
 /* Copyright (c) Steve Creps, 1988.                               */
 /* NetHack may be freely redistributed.  See license for details. */
+/* MODIFIED 2026-07 (real-time fork): declared nt_ticks() and
+   rt_world_tick_ready() for the real-time build; see MODIFICATIONS.md.
+   This file differs from the upstream NetHack distribution. */
 
 #ifndef EXTERN_H
 #define EXTERN_H
@@ -101,6 +104,9 @@ extern unsigned FITSuint_(unsigned long long, const char *, int) NONNULLARG2;
 extern void early_init(int, char *[]);
 extern void moveloop_core(void);
 extern void moveloop(boolean);
+#ifdef REALTIME_PROTO
+extern boolean rt_world_tick_ready(void);
+#endif
 extern void stop_occupation(void);
 extern void init_sound_disp_gamewindows(void);
 extern void newgame(void);
@@ -2027,6 +2033,9 @@ extern int dosuspend(void);
 extern void nt_regularize(char *);
 extern int(*nt_kbhit)(void);
 extern void Delay(int);
+#ifdef REALTIME_PROTO
+extern unsigned long nt_ticks(void);
+#endif
 boolean get_user_home_folder(char *, size_t);
 # ifdef CRASHREPORT
 struct CRctxt;

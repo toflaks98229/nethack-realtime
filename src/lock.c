@@ -3,6 +3,18 @@
 /*-Copyright (c) Robert Patrick Rankin, 2011. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file lock.c
+ * @brief 자물쇠·문·상자 잠금과 관련된 명령 및 처리.
+ *
+ * 자물쇠 따기/잠그기(#apply key/pick/card), 무기로 상자 강제 열기(#force),
+ * 문 열기/닫기(#open/#close), 마법(지팡이·주문)에 의한 문/상자 잠금 변화,
+ * 자동 잠금 해제(autounlock) 도구 선택 등을 담당한다.
+ *
+ * @note static 헬퍼가 공개 명령 함수와 뒤섞여 있어 재배치는 적용하지 않고
+ *       정의 위치에서 문서화한다.
+ */
+
 #include "hack.h"
 
 /* occupation callbacks */
@@ -13,6 +25,11 @@ staticfn const char *lock_action(void);
 staticfn boolean obstructed(coordxy, coordxy, boolean);
 staticfn void chest_shatter_msg(struct obj *);
 
+/**
+ * @brief 현재 자물쇠를 따는 중인지 확인하고 대상 좌표를 반환한다.
+ * @param[out] x,y 자물쇠 따기 대상 문의 좌표(따는 중이 아니면 0,0).
+ * @return 자물쇠 따기 작업 중이면 TRUE, 아니면 FALSE.
+ */
 boolean
 picking_lock(coordxy *x, coordxy *y)
 {
@@ -26,6 +43,11 @@ picking_lock(coordxy *x, coordxy *y)
     }
 }
 
+/**
+ * @brief 지정한 좌표의 문을 지금 따는 중인지 확인한다.
+ * @param[in] x,y 확인할 문의 좌표.
+ * @return 해당 문을 따는 중이면 TRUE, 아니면 FALSE.
+ */
 boolean
 picking_at(coordxy x, coordxy y)
 {
@@ -33,6 +55,10 @@ picking_at(coordxy x, coordxy y)
                       && gx.xlock.door == &levl[x][y]);
 }
 
+/**
+ * @brief 현재 자물쇠 작업에 맞는 진행 상태 문자열을 만든다.
+ * @return "unlocking the door", "picking the lock" 등 현재 활동 설명 문자열.
+ */
 /* produce an occupation string appropriate for the current activity */
 staticfn const char *
 lock_action(void)
@@ -63,6 +89,12 @@ lock_action(void)
         return actions[3];
 }
 
+/**
+ * @brief 자물쇠 따기/잠그기 진행을 처리하는 occupation 콜백.
+ * @return 계속 진행 중이면 1, 종료(성공/실패/포기)되면 0.
+ * @note 마법 열쇠로 함정을 발견하면 해제를 시도할 수 있으며, 성공 시 문/상자의
+ *       잠금 상태를 전환하고 함정이 있으면 발동시킨다.
+ */
 /* try to open/close a lock */
 staticfn int
 picklock(void)
@@ -158,6 +190,12 @@ picklock(void)
     return ((gx.xlock.usedtime = 0));
 }
 
+/**
+ * @brief 상자의 자물쇠를 부순다(또는 상자 자체를 파괴한다).
+ * @param[in,out] box       대상 상자.
+ * @param[in]     destroyit TRUE 이면 상자를 완전히 파괴하고 내용물을 바닥에 쏟는다.
+ * @note 상점 물품이면 파손/파괴 비용이 청구될 수 있다.
+ */
 void
 breakchestlock(struct obj *box, boolean destroyit)
 {
@@ -211,6 +249,12 @@ breakchestlock(struct obj *box, boolean destroyit)
     }
 }
 
+/**
+ * @brief 무기로 잠긴 상자를 강제로 여는 진행을 처리하는 occupation 콜백.
+ * @return 계속 진행 중이면 1, 종료되면 0.
+ * @note 날붙이는 부러질 수 있고, 둔기는 주변 몬스터를 깨운다. 성공 시 자물쇠를
+ *       부순다.
+ */
 /* try to force a locked chest */
 staticfn int
 forcelock(void)
@@ -255,6 +299,9 @@ forcelock(void)
     return 0;
 }
 
+/**
+ * @brief 자물쇠 따기/강제 열기 컨텍스트(@c gx.xlock)를 초기화한다.
+ */
 void
 reset_pick(void)
 {
@@ -264,6 +311,11 @@ reset_pick(void)
     gx.xlock.box = (struct obj *) 0;
 }
 
+/**
+ * @brief 레벨 변경/오브젝트 삭제 시 자물쇠 컨텍스트를 조건부로 초기화한다.
+ * @param[in] container 삭제되는 특정 컨테이너(NULL 이면 레벨 변경 상황).
+ * @note 컨텍스트가 무효가 되는 경우에만 초기화하며, 들고 있는 컨테이너는 유효하다.
+ */
 /* level change or object deletion; context may no longer be valid */
 void
 maybe_reset_pick(struct obj *container) /* passed from obfree() */
@@ -284,6 +336,13 @@ maybe_reset_pick(struct obj *container) /* passed from obfree() */
         reset_pick();
 }
 
+/**
+ * @brief 자동 잠금 해제에 사용할 도구(열쇠/픽/카드)를 인벤토리에서 고른다.
+ * @param[in] opening TRUE 이면 열기용(열쇠/픽/카드), FALSE 이면 열쇠/픽만.
+ * @return 사용할 도구 포인터, 적당한 것이 없으면 NULL.
+ * @note 다른 직업의 퀘스트 아티팩트(도둑의 열쇠/관광객의 신용카드)는 다른
+ *       선택지가 없을 때만 사용한다.
+ */
 /* pick a tool for autounlock */
 struct obj *
 autokey(boolean opening) /* True: key, pick, or card; False: key or pick */
@@ -353,6 +412,18 @@ DISABLE_WARNING_FORMAT_NONLITERAL
 #define PICKLOCK_DID_NOTHING 0          /* no time passes */
 #define PICKLOCK_DID_SOMETHING 1
 
+/**
+ * @brief 열쇠·자물쇠 따개·신용카드를 사용해 문이나 상자의 잠금을 다룬다.
+ *
+ * 대상(발밑 상자 또는 인접 문)을 정하고, 함정 확인/해제, 잠금·해제 성공 확률
+ * 계산을 거쳐 자물쇠 작업(occupation)을 시작한다.
+ *
+ * @param[in] pick      사용할 도구(NULL 이면 도구 없이 자동 해제 시도).
+ * @param[in] rx,ry     대상 문/상자 좌표(자동 해제 시 지정; 0이면 방향을 묻는다).
+ * @param[in] container 자동 해제 대상 컨테이너.
+ * @return @c PICKLOCK_LEARNED_SOMETHING(-1, 시간 소모),
+ *         @c PICKLOCK_DID_NOTHING(0), @c PICKLOCK_DID_SOMETHING(1).
+ */
 /* player is applying a key, lock pick, or credit card */
 int
 pick_lock(
@@ -655,6 +726,10 @@ pick_lock(
     return PICKLOCK_DID_SOMETHING;
 }
 
+/**
+ * @brief 영웅이 #force 로 상자를 열 수 있는 무기를 들고 있는지 판정한다.
+ * @return 강제 열기에 적합한 무기를 들고 있으면 TRUE, 아니면 FALSE.
+ */
 /* is hero wielding a weapon that can #force? */
 boolean
 u_have_forceable_weapon(void)
@@ -671,6 +746,10 @@ u_have_forceable_weapon(void)
 
 RESTORE_WARNING_FORMAT_NONLITERAL
 
+/**
+ * @brief #force 명령: 무기로 발밑의 잠긴 상자를 강제로 연다.
+ * @return 명령 처리 결과 코드(@c ECMD_TIME 또는 @c ECMD_OK).
+ */
 /* the #force command - try to force a chest with your weapon */
 int
 doforce(void)
@@ -755,6 +834,11 @@ doforce(void)
     return ECMD_TIME;
 }
 
+/**
+ * @brief 문으로 위장한 흉내쟁이(mimic)를 건드렸는지 확인하고 처리한다.
+ * @param[in] x,y 확인할 좌표.
+ * @return 문 흉내쟁이를 건드려 정체가 드러났으면 TRUE, 아니면 FALSE.
+ */
 boolean
 stumble_on_door_mimic(coordxy x, coordxy y)
 {
@@ -768,6 +852,10 @@ stumble_on_door_mimic(coordxy x, coordxy y)
     return FALSE;
 }
 
+/**
+ * @brief #open 명령: 인접한 문을 연다.
+ * @return 명령 처리 결과 코드.
+ */
 /* the #open command - try to open a door */
 int
 doopen(void)
@@ -775,6 +863,12 @@ doopen(void)
     return doopen_indir(0, 0);
 }
 
+/**
+ * @brief 지정 방향(또는 좌표)의 문을 여는 실제 구현.
+ * @param[in] x,y 대상 좌표(0,0 이면 방향을 물어 결정).
+ * @return 명령 처리 결과 코드(@c ECMD_TIME 또는 @c ECMD_OK).
+ * @note 잠긴 문에 대해서는 설정에 따라 자동 해제(열쇠/발차기)를 시도할 수 있다.
+ */
 /* try to open a door in direction u.dx/u.dy */
 int
 doopen_indir(coordxy x, coordxy y)
@@ -922,6 +1016,12 @@ doopen_indir(coordxy x, coordxy y)
     return ECMD_TIME;
 }
 
+/**
+ * @brief 지정 좌표가 몬스터나 오브젝트로 막혀 있는지 판정한다(문 닫기용).
+ * @param[in] x,y     확인할 좌표.
+ * @param[in] quietly TRUE 이면 방해 메시지를 출력하지 않는다.
+ * @return 막혀 있으면 TRUE, 비어 있으면 FALSE.
+ */
 staticfn boolean
 obstructed(coordxy x, coordxy y, boolean quietly)
 {
@@ -952,6 +1052,10 @@ obstructed(coordxy x, coordxy y, boolean quietly)
     return FALSE;
 }
 
+/**
+ * @brief #close 명령: 인접한 문을 닫는다.
+ * @return 명령 처리 결과 코드(@c ECMD_TIME, @c ECMD_OK, @c ECMD_CANCEL).
+ */
 /* the #close command - try to close a door */
 int
 doclose(void)
@@ -1050,6 +1154,12 @@ doclose(void)
     return ECMD_TIME;
 }
 
+/**
+ * @brief 상자가 주문/지팡이 효과를 받았을 때 잠금 상태를 변화시킨다.
+ * @param[in,out] obj  대상 상자.
+ * @param[in]     otmp 적용된 주문/지팡이(잠금/열기/변신 등).
+ * @return 무언가 일어났으면 TRUE, 아니면 FALSE.
+ */
 /* box obj was hit with spell or wand effect otmp;
    returns true if something happened */
 boolean
@@ -1097,6 +1207,13 @@ boxlock(struct obj *obj, struct obj *otmp) /* obj *is* a box */
     return res;
 }
 
+/**
+ * @brief 문(또는 비밀문)이 주문/지팡이 효과를 받았을 때의 변화를 처리한다.
+ * @param[in] otmp 적용된 주문/지팡이(잠금/열기/타격 등).
+ * @param[in] x,y  대상 문의 좌표.
+ * @return 무언가 일어났으면 TRUE, 아니면 FALSE.
+ * @note 로그 레벨에서는 실제 잠금 대신 문간을 숨기며, 함정 문은 폭발할 수 있다.
+ */
 /* Door/secret door was hit with spell or wand effect otmp;
    returns true if something happened */
 boolean
@@ -1272,6 +1389,11 @@ doorlock(struct obj *otmp, coordxy x, coordxy y)
     return res;
 }
 
+/**
+ * @brief 상자 파괴 시 내부 아이템이 부서지는 모습을 알리는 메시지를 출력한다.
+ * @param[in] otmp 부서지는 아이템.
+ * @note 물약은 깨져 증기 효과를 내며, 그 외에는 재질에 따라 다른 문구를 쓴다.
+ */
 staticfn void
 chest_shatter_msg(struct obj *otmp)
 {

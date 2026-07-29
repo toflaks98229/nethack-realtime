@@ -3,6 +3,15 @@
 /*-Copyright (c) Robert Patrick Rankin, 2016. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file wizard.c
+ * @brief 옌더의 마법사(및 유물을 노리는 몬스터)의 전략·전술 인공지능.
+ *
+ * 부적 소지 시 마법사의 등장/포탈 힌트, 유물을 탐내는(covetous) 몬스터의 목표
+ * 선정(strategy)과 실행(tactics), 몬스터 자극(aggravate), 마법사 복제·부활,
+ * 고약한 몬스터 소환(nasty), 마법사의 조롱(cuss) 등을 구현한다.
+ */
+
 /* wizard code - inspired by rogue code from Merlyn Leroy (digi-g!brian) */
 /*             - heavily modified to give the wiz balls.  (genat!mike)   */
 /*             - dewimped and given some maledictions. -3. */
@@ -28,6 +37,7 @@ staticfn unsigned long strategy(struct monst *) NONNULLARG1;
    only four lawful candidates, so lawful summoners tended to summon more
    (trying to get lawful or neutral but obtaining chaotic instead) than
    their chaotic counterparts */
+/** @brief nasty() 가 소환할 수 있는 고약한 몬스터 종 목록(정렬별로 구성). */
 static NEARDATA const int nasties[] = {
     /* neutral */
     PM_COCKATRICE, PM_ETTIN, PM_STALKER, PM_MINOTAUR,
@@ -49,12 +59,18 @@ static NEARDATA const int nasties[] = {
        they're summoners so would aggravate excessive summoning) */
 };
 
+/** @brief 마법사 복제본이 위장할 수 있는 겉모습 종 목록. */
 static NEARDATA const unsigned wizapp[] = {
     PM_HUMAN,      PM_WATER_DEMON,  PM_VAMPIRE,       PM_RED_DRAGON,
     PM_TROLL,      PM_UMBER_HULK,   PM_XORN,          PM_XAN,
     PM_COCKATRICE, PM_FLOATING_EYE, PM_GUARDIAN_NAGA, PM_TRAPPER,
 };
 
+/**
+ * @brief 부적 소지 시 마법사를 깨우고 포탈 위치 힌트를 제공한다.
+ * @note 부적을 착용/장착 중이면 마법 포탈에 가까울수록 부적이 뜨겁게 느껴지며,
+ *       존재하는 마법사를 확률적으로 깨운다.
+ */
 /* If you've found the Amulet, make the Wizard appear after some time */
 /* Also, give hints about portal locations, if amulet is worn/wielded -dlc */
 void
@@ -102,6 +118,11 @@ amulet(void)
     }
 }
 
+/**
+ * @brief 몬스터가 옌더의 부적을 소지하고 있는지 판정한다.
+ * @param[in] mtmp 검사할 몬스터.
+ * @return 부적을 가지고 있으면 1, 아니면 0.
+ */
 int
 mon_has_amulet(struct monst *mtmp)
 {
@@ -113,6 +134,11 @@ mon_has_amulet(struct monst *mtmp)
     return 0;
 }
 
+/**
+ * @brief 몬스터가 특별 아이템(부적·소환 도구·퀘스트 아티팩트)을 가졌는지 판정한다.
+ * @param[in] mtmp 검사할 몬스터.
+ * @return 하나라도 가지고 있으면 1, 아니면 0.
+ */
 int
 mon_has_special(struct monst *mtmp)
 {
@@ -138,6 +164,11 @@ mon_has_special(struct monst *mtmp)
 
 #define M_Wants(mask) (mtmp->data->mflags3 & (mask))
 
+/**
+ * @brief "탐냄" 플래그 마스크를 대응하는 아이템 종류로 변환한다.
+ * @param[in] mask 탐냄 플래그(@c M3_WANTSAMUL 등).
+ * @return 대응하는 아이템 종류, 퀘스트 아티팩트 탐냄이면 0.
+ */
 staticfn short
 which_arti(int mask)
 {
@@ -156,6 +187,12 @@ which_arti(int mask)
     return 0;
 }
 
+/**
+ * @brief 몬스터가 특정 종류(또는 퀘스트 아티팩트)를 가졌는지 판정한다.
+ * @param[in] mtmp 검사할 몬스터.
+ * @param[in] otyp 찾을 아이템 종류(0이면 퀘스트 아티팩트를 검사).
+ * @return 가지고 있으면 1, 아니면 0.
+ */
 /*
  *      If "otyp" is zero, it triggers a check for the quest_artifact,
  *      since bell, book, candle, and amulet are all objects, not really
@@ -176,6 +213,12 @@ mon_has_arti(struct monst *mtmp, short otyp)
     return 0;
 }
 
+/**
+ * @brief 지정한 종류를 소지한, @p mtmp 이외의 다른 몬스터를 찾는다.
+ * @param[in] mtmp 제외할 몬스터.
+ * @param[in] otyp 찾을 아이템 종류(0이면 퀘스트 아티팩트).
+ * @return 조건에 맞는 다른 몬스터, 없으면 NULL.
+ */
 /*
  * Returns some monster other than mtmp that
  * has artifact, or NULL monst pointer.
@@ -194,6 +237,11 @@ other_mon_has_arti(struct monst *mtmp, short otyp)
     return (struct monst *) 0;
 }
 
+/**
+ * @brief 지정한 종류(또는 퀘스트 아티팩트)의 오브젝트가 바닥에 있는지 찾는다.
+ * @param[in] otyp 찾을 아이템 종류(0이면 퀘스트 아티팩트).
+ * @return 바닥의 해당 오브젝트, 없으면 NULL.
+ */
 /*
  * Returns obj of type specified if there is one
  * on the ground, otherwise returns NULL obj pointer.
@@ -212,6 +260,11 @@ on_ground(short otyp)
     return (struct obj *) 0;
 }
 
+/**
+ * @brief 영웅이 지정한 탐냄 대상 아이템을 소지하고 있는지 판정한다.
+ * @param[in] mask 탐냄 플래그(@c M3_WANTSAMUL 등).
+ * @return 소지하고 있으면 TRUE, 아니면 FALSE.
+ */
 staticfn boolean
 you_have(int mask)
 {
@@ -232,6 +285,12 @@ you_have(int mask)
     return 0;
 }
 
+/**
+ * @brief 탐냄 대상을 어디서 노릴지(영웅/바닥/다른 몬스터) 결정하고 목표를 설정한다.
+ * @param[in]     mask 탐냄 플래그.
+ * @param[in,out] mtmp 대상 몬스터(목표 좌표 @c mgoal 이 갱신됨).
+ * @return 선택된 전략 코드(대상 위치 정보 포함), 대상이 없으면 @c STRAT_NONE.
+ */
 staticfn unsigned long
 target_on(int mask, struct monst *mtmp)
 {
@@ -266,6 +325,12 @@ target_on(int mask, struct monst *mtmp)
     return (unsigned long) STRAT_NONE;
 }
 
+/**
+ * @brief 유물을 탐내는 몬스터의 전략(무엇을 할지)을 결정한다.
+ * @param[in,out] mtmp 대상 몬스터.
+ * @return 선택된 전략 코드(치유·근접·목표 추적 등).
+ * @note 부상 시 은신·치유, 그렇지 않으면 부적/벨/책/촛대/퀘스트 아티팩트를 노린다.
+ */
 staticfn unsigned long
 strategy(struct monst *mtmp)
 {
@@ -326,6 +391,11 @@ strategy(struct monst *mtmp)
     return dstrat;
 }
 
+/**
+ * @brief 유물 탐내는 몬스터가 도망쳐 치유하거나 경비가 모일 계단을 고른다.
+ * @param[out] sx,sy 선택된 계단 좌표(찾지 못하면 그대로 둔다).
+ * @param[in]  dir   TRUE 이면 진행 방향, FALSE 이면 되돌아가는 방향(대개 위).
+ */
 /* pick a destination for a covetous monster to flee to so that it can
    heal or for guardians (Kops) to congregate at to block hero's progress */
 void
@@ -365,6 +435,12 @@ choose_stairs(
 
 DISABLE_WARNING_UNREACHABLE_CODE
 
+/**
+ * @brief 전략(@c strategy)이 결정한 바를 실제 행동으로 실행한다.
+ * @param[in,out] mtmp 대상 몬스터.
+ * @return 이 처리로 몬스터의 턴을 소비했으면 1, 아니면 0.
+ * @note 은신/치유·괴롭힘·목표로의 순간이동 및 유물 획득 등을 수행한다.
+ */
 int
 tactics(struct monst *mtmp)
 {
@@ -469,6 +545,11 @@ tactics(struct monst *mtmp)
 
 RESTORE_WARNINGS
 
+/**
+ * @brief @p mon 이 자극할 수 있는 몬스터가 존재하는지 판정한다.
+ * @param[in] mon 자극 주체 몬스터.
+ * @return 대기/무력 상태의 자극 가능한 몬스터가 있으면 TRUE, 아니면 FALSE.
+ */
 /* are there any monsters mon could aggravate? */
 boolean
 has_aggravatables(struct monst *mon)
@@ -490,6 +571,10 @@ has_aggravatables(struct monst *mon)
     return FALSE;
 }
 
+/**
+ * @brief 주변 몬스터들을 자극하여 대기 상태를 풀고 깨운다.
+ * @note 마비된 몬스터도 확률적으로 움직일 수 있게 된다.
+ */
 void
 aggravate(void)
 {
@@ -510,6 +595,11 @@ aggravate(void)
     }
 }
 
+/**
+ * @brief 마법사가 시전하는 "Double Trouble"로 자신의 복제본을 만든다.
+ * @note 호출자는 현재 마법사가 하나뿐일 때만 시전해야 한다. 부적이 없으면
+ *       복제본에 가짜 부적을 주고, 형태 변경 방지가 아니면 위장 외형을 씌운다.
+ */
 /* "Double Trouble" spell cast by the Wizard; caller is responsible for
    only casting this when there is currently one wizard in existence;
    the clone can't use it unless/until its creator has been killed off */
@@ -533,6 +623,12 @@ clonewiz(void)
     }
 }
 
+/**
+ * @brief 소환할 고약한 몬스터 종류를 무작위로 하나 고른다.
+ * @param[in] difcap 0이 아니면 이 난이도 미만이 되도록 시도한다.
+ * @return 선택된 몬스터 종 번호.
+ * @note 멸종/지옥 제한/난이도 초과 시 적절한 대체 종으로 강등한다.
+ */
 /* also used by newcham() */
 int
 pick_nasty(
@@ -580,6 +676,11 @@ pick_nasty(
     return res;
 }
 
+/**
+ * @brief 시전자 정렬에 맞는 고약한 몬스터들을 소환한다.
+ * @param[in] summoner 소환 주체(NULL 이면 후반부 괴롭힘용, 중립으로 취급).
+ * @return 생성된 몬스터의 수.
+ */
 /* create some nasty monsters, aligned with the caster or neutral; chaotic
    and unaligned are treated as equivalent; if summoner is Null, this is
    for late-game harassment (after the Wizard has been killed at least once
@@ -710,6 +811,11 @@ nasty(struct monst *summoner)
     return count;
 }
 
+/**
+ * @brief 옌더의 마법사를 부활(또는 재등장)시킨다.
+ * @note 존재하지 않으면 새로 만들고, 이주 중이면 다시 불러들이며, 부활한
+ *       마법사는 위협 대사를 내뱉는다.
+ */
 /* Let's resurrect the Wizard, for some unexpected fun. */
 void
 resurrect(void)
@@ -779,6 +885,11 @@ resurrect(void)
     }
 }
 
+/**
+ * @brief 마법사를 처치한 영웅에게 무작위 시련을 가한다.
+ * @note 불안감, 무작위 저주, 몬스터 자극, 고약한 소환, 마법사 부활 중 하나가
+ *       발동한다(아스트랄 평면에서는 일부 제외).
+ */
 /* Here, we make trouble for the poor shmuck who actually
    managed to do in the Wizard. */
 void
@@ -809,6 +920,10 @@ intervene(void)
     }
 }
 
+/**
+ * @brief 마법사가 퇴장(사망 또는 탈출)할 때 관련 상태를 갱신한다.
+ * @note 마법사 수를 줄이고, 처음이라면 반신(demigod) 단계 진입을 표시한다.
+ */
 /* Wizard of Yendor is being removed from play (dead or escaped the dungeon);
    keep the bookkeeping for him up to date */
 void
@@ -821,6 +936,7 @@ wizdeadorgone(void)
     }
 }
 
+/** @brief 마법사의 조롱에 쓰이는 무작위 모욕어 목록. */
 static const char *const random_insult[] = {
     "antic",      "blackguard",   "caitiff",    "chucklehead",
     "coistrel",   "craven",       "cretin",     "cur",
@@ -832,6 +948,7 @@ static const char *const random_insult[] = {
     "wittol",     "worm",         "wretch",
 };
 
+/** @brief 마법사의 조롱에 쓰이는 무작위 저주 문구 목록. */
 static const char *const random_malediction[] = {
     "Hell shall soon claim thy remains,", "I chortle at thee, thou pathetic",
     "Prepare to die, thou", "Resistance is useless,",
@@ -841,6 +958,11 @@ static const char *const random_malediction[] = {
     "Verily, thou shalt be one dead"
 };
 
+/**
+ * @brief 몬스터가 영웅을 모욕하거나 위협하는 대사를 출력한다.
+ * @param[in] mtmp 대사를 말할 몬스터(마법사/천사류 하수인/악마 등).
+ * @note 귀머거리 상태면 아무 동작도 하지 않으며, 대사 후 주변을 깨운다.
+ */
 /* Insult or intimidate the player */
 void
 cuss(struct monst *mtmp)

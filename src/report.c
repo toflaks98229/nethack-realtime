@@ -2,6 +2,18 @@
 /* Copyright (c) Kenneth Lorber, Kensington, Maryland, 2024 */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file report.c
+ * @brief 크래시 리포트 및 패닉 스택 트레이스(traceback) 생성.
+ *
+ * 바이너리 식별용 해시(bid) 계산, 크래시/버그 리포트용 URL 구성 및 브라우저
+ * 실행(@c CRASHREPORT), libc/gdb 기반 스택 트레이스 출력과 시그널 처리
+ * (@c PANICTRACE)를 담당한다. 대부분 플랫폼별 매크로와 조건부 컴파일로
+ * 구성된다.
+ *
+ * @note 플랫폼 매크로와 @c #ifdef 구조가 선언 순서를 규정하므로 재배치하지 않는다.
+ */
+
 #include "hack.h"
 
 /* NB: CRASHREPORT implies PANICTRACE */
@@ -104,10 +116,17 @@
     }
 # endif // WIN32
 
+/** @brief 바이너리 식별 해시 문자열(자기 바이너리 인식 힌트용; 위조 가능). */
 /* Binary ID - Use only as a hint to contact.html for recognizing our own
    binaries.  This is easily spoofed! */
 static char bid[40];
 
+/**
+ * @brief 실행 바이너리의 해시를 계산하여 바이너리 ID(@c bid)를 초기화한다.
+ * @param[in] argc 프로그램 인자 개수(플랫폼에 따라 사용).
+ * @param[in] argv 프로그램 인자 배열(일부 플랫폼에서 실행 파일 경로로 사용).
+ * @note 두 번째 이후 호출은 무시된다. 계산 실패 시 @c bid 를 "unknown" 으로 둔다.
+ */
 /* ARGSUSED */
 void
 crashreport_init(int argc, char *argv[])
@@ -185,6 +204,9 @@ crashreport_init(int argc, char *argv[])
 #undef HASH_BINFILE_DECL
 #undef HASH_BINFILE
 
+/**
+ * @brief 계산된 바이너리 ID(@c bid)를 출력한다.
+ */
 void
 crashreport_bidshow(void)
 {
@@ -232,6 +254,14 @@ crashreport_bidshow(void)
     if (swr_add_uricoded(str, &uend, &urem, mark))      \
         goto full;
 
+/**
+ * @brief 문자열을 URI 인코딩하여 출력 버퍼에 덧붙인다.
+ * @param[in]     in        인코딩할 원본 문자열.
+ * @param[in,out] out       출력 위치 포인터(전진됨).
+ * @param[in,out] remaining 남은 버퍼 용량(감소됨).
+ * @param[in]     markp     오버플로 시 되돌릴 위치(NULL 이면 되돌리지 않음).
+ * @return 오버플로로 잘렸으면 TRUE, 정상 완료면 FALSE.
+ */
 /* On overflow, truncate to markp (but only if markp != NULL). */
 boolean
 swr_add_uricoded(
@@ -280,12 +310,28 @@ swr_add_uricoded(
     return FALSE; /* normal return */
 }
 
+/** @brief 리포트 URL을 조립하는 정적 버퍼. */
 static char url[MAX_URL];   // XXX too bad this isn't allocated as needed
+/** @brief @c url 버퍼의 남은 용량. */
 static int urem = MAX_URL;  // adjusted for gc.crash_urlmax below
+/** @brief @c url 버퍼의 현재 쓰기 위치. */
 static char *uend = url;
+/** @brief SWR 매크로 내부에서 사용하는 임시 길이 변수. */
 static int utmp;            // used inside macros
+/** @brief 이전 종료 위치(오버플로 시 롤백 지점). */
 static char *mark;          // holds previous terminator (generally)
 
+/**
+ * @brief 크래시/버그 리포트 URL을 구성하고 브라우저로 전송을 시도한다.
+ *
+ * 버전·바이너리 ID·사용자 정보·스택 트레이스·최근 메시지 등을 쿼리 문자열로
+ * 조립한 뒤, 외부 브라우저(또는 플랫폼 헬퍼)를 실행해 리포트 페이지를 연다.
+ *
+ * @param[in] cos 작업 종류(1=크래시/트레이스 포함, 2=버그 리포트).
+ * @param[in] msg 리포트 제목용 문자열(#bugreport 등에서는 NULL).
+ * @param[in] why 상세 사유 문자열(없으면 NULL).
+ * @return 전송을 시작했으면 TRUE, 실패(또는 URL 미설정)면 FALSE.
+ */
 boolean
 submit_web_report(int cos, const char *msg, const char *why)
 {
@@ -457,6 +503,11 @@ printf("ShellExecute returned: %p\n",rv);   // >32 is ok
         return TRUE;
 }
 
+/**
+ * @brief #bugreport 명령을 처리하여 버그 리포트 전송을 시도한다.
+ * @return 명령 처리 결과 코드(@c ECMD_OK).
+ * @note 전송에 실패하면 대신 방문할 URL을 안내한다.
+ */
 int
 dobugreport(void)
 {
@@ -480,6 +531,10 @@ dobugreport(void)
 
 #ifdef PANICTRACE
 
+/**
+ * @brief libc 의 @c backtrace() 로 스택 트레이스를 출력한다.
+ * @return 트레이스를 출력했으면 TRUE, 지원되지 않으면 FALSE.
+ */
 /*ARGSUSED*/
 boolean
 NH_panictrace_libc(void)
@@ -525,6 +580,11 @@ NH_panictrace_libc(void)
 #  endif /* SYSCF */
 # endif /* PANICTRACE_GDB */
 
+/**
+ * @brief 자기 자신에게 gdb 를 붙여 스택 트레이스를 출력한다.
+ * @return 트레이스를 생성했으면 TRUE, 실패/미지원이면 FALSE.
+ * @note gdb/grep 경로가 설정되어 있어야 하며, 출력에서 스택 프레임 줄만 추린다.
+ */
 boolean
 NH_panictrace_gdb(void)
 {
@@ -565,6 +625,12 @@ NH_panictrace_gdb(void)
 #define USED_if_dumplog UNUSED
 #endif
 
+/**
+ * @brief 저장된 최근 메시지(pline) 기록에서 한 줄을 가져온다.
+ * @param[in] lineno 가져올 줄 번호(0=가장 최근 메시지).
+ * @return 해당 메시지 문자열, 없거나 범위를 벗어나면 NULL.
+ * @note @c DUMPLOG_CORE 빌드에서만 실제 기록을 반환한다.
+ */
 /* lineno==0 gives the most recent message (e.g.
    "Do you want to call panic..." if called from #panic) */
 const char *
@@ -594,6 +660,11 @@ get_saved_pline(int lineno USED_if_dumplog)
 #undef USED_if_dumplog
 
 # ifndef NO_SIGNAL
+/**
+ * @brief 프로그램 종료 시그널을 받았을 때 호출되는 핸들러.
+ * @param[in] sig_unused 수신한 시그널 번호(사용되지 않음).
+ * @note 시그널 수신 메시지를 stderr 에 쓰고 @c NH_abort() 로 중단시킨다.
+ */
 /* called as signal() handler, so sent at least one arg */
 /*ARGUSED*/
 void
@@ -621,6 +692,10 @@ panictrace_handler(int sig_unused UNUSED)
     NH_abort(NULL); /* ... and we're already in the process of quitting? */
 }
 
+/**
+ * @brief 패닉 트레이스용 시그널 핸들러를 등록하거나 해제한다.
+ * @param[in] set TRUE 이면 핸들러 등록, FALSE 이면 기본 동작으로 복원.
+ */
 void
 panictrace_setsignals(boolean set)
 {

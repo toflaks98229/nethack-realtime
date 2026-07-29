@@ -3,12 +3,28 @@
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file sit.c
+ * @brief #sit 명령 처리 및 앉기와 관련된 각종 효과.
+ *
+ * 왕좌(throne)에 앉았을 때의 무작위 효과(일반/블라드 탑 특수), 알 낳기,
+ * 함정·용암·물·제단 등 위에 앉는 상황 처리와, 왕좌 저주로 인한 무작위 저주
+ * (@c rndcurse) 및 내재 능력 상실(@c attrcurse)을 담당한다.
+ *
+ * @note static 헬퍼가 공개 함수보다 앞서 정의되어 있으나 재배치는 적용하지
+ *       않고 정의 위치에서 문서화한다.
+ */
+
 #include "hack.h"
 #include "artifact.h"
 
 staticfn void throne_sit_effect(void);
 staticfn int lay_an_egg(void);
 
+/**
+ * @brief 영웅이 소지한 모든 금화를 빼앗는다(왕좌 효과 중 하나).
+ * @note 잃을 금화가 없으면 대신 이상한 기운만 느낀다.
+ */
 /* take away the hero's money */
 void
 take_gold(void)
@@ -34,6 +50,15 @@ take_gold(void)
 
 staticfn void special_throne_effect(int effect);
 
+/**
+ * @brief 영웅이 왕좌에 앉았을 때 무작위 효과를 적용한다.
+ *
+ * 약 1/3 확률로 13가지 효과(능력치 변화, 감전, 회복, 소환, 학살, 저주,
+ * 텔레포트, 통찰 등) 중 하나가 발동한다. 블라드 탑의 특수 왕좌이면 특수
+ * 효과 처리로 넘긴다. 발동 후 일정 확률로 왕좌가 사라진다.
+ *
+ * @note 위저드 모드에서는 원하는 효과 번호(1..13)를 직접 지정할 수 있다.
+ */
 /* maybe do something when hero sits on a throne */
 staticfn void
 throne_sit_effect(void)
@@ -233,6 +258,12 @@ throne_sit_effect(void)
     }
 }
 
+/**
+ * @brief 블라드 탑의 특수 왕좌에 앉았을 때의 효과를 적용한다.
+ * @param[in] effect 적용할 효과 번호(1~13).
+ * @note 효과 1~4는 소원을 들어주되 왕좌가 소멸하므로, 반복해서 앉으면 결국
+ *       소원을 얻는 유일한 소멸 경로가 된다.
+ */
 /* special throne in Vlad's tower: effect is 1 to 13 inclusive */
 staticfn void
 special_throne_effect(int effect) {
@@ -353,6 +384,11 @@ special_throne_effect(int effect) {
     }
 }
 
+/**
+ * @brief 영웅(암컷)이 알을 낳는다.
+ * @return 명령 처리 결과 코드(@c ECMD_TIME 성공, @c ECMD_OK 조건 미충족).
+ * @note 수컷이거나 배고픔/환경 조건이 맞지 않으면 낳지 못한다.
+ */
 /* hero lays an egg */
 staticfn int
 lay_an_egg(void)
@@ -395,6 +431,14 @@ lay_an_egg(void)
     return ECMD_TIME;
 }
 
+/**
+ * @brief #sit 명령을 처리한다.
+ *
+ * 영웅이 서 있는 지형/오브젝트/함정에 따라 적절한 앉기 동작과 효과를
+ * 수행한다(왕좌 효과, 알 낳기, 함정 악화, 용암/물 피해 등).
+ *
+ * @return 명령 처리 결과 코드(@c ECMD_TIME 또는 @c ECMD_OK).
+ */
 /* #sit command */
 int
 dosit(void)
@@ -564,6 +608,11 @@ dosit(void)
     return ECMD_TIME;
 }
 
+/**
+ * @brief 소지품 중 일부를 무작위로 저주한다.
+ * @note 매직베인(@c ART_MAGICBANE) 착용 시 대개 무효화되며, 반마법/주문 피해
+ *       절반 속성은 저주 개수를 줄인다. 탈것의 안장도 대상에 포함될 수 있다.
+ */
 /* curse a few inventory items at random! */
 void
 rndcurse(void)
@@ -637,6 +686,12 @@ rndcurse(void)
     }
 }
 
+/**
+ * @brief 영웅의 내재(intrinsic) 능력 하나를 무작위로 제거한다.
+ * @return 제거된 내재 속성 값, 제거된 것이 없으면 0.
+ * @note 화염/냉기/독 내성, 텔레포트, 텔레파시, 투명, 속도, 은신, 보호,
+ *       몬스터 자극 등이 대상이다.
+ */
 /* remove a random INTRINSIC ability from hero.
    returns the intrinsic property which was removed,
    or 0 if nothing was removed. */

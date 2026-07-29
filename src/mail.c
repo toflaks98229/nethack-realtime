@@ -3,6 +3,18 @@
 /*-Copyright (c) Pasi Kallinen, 2018. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file mail.c
+ * @brief 새 메일 도착 알림 및 우편 배달부(mail daemon) 처리.
+ *
+ * 외부 메일함 상태를 확인하고, 메일이 도착하면 우편 배달부를 소환해 영웅에게
+ * 달려오게 하여 "메일 두루마리"를 전달한다. UNIX/VMS/기타 플랫폼별로 메일
+ * 확인 방식이 다르며, 메일이 없는 환경에서는 무작위 시점에 흉내만 낸다.
+ *
+ * @note 대부분 @c #ifdef(@c MAIL, @c UNIX, @c VMS, @c SIMPLE_MAIL 등)로 구성되어
+ *       있어 선언 재배치는 적용하지 않는다.
+ */
+
 #include "hack.h"
 
 #ifdef MAIL
@@ -86,6 +98,9 @@ static long laststattime;
 #define MAILPATH "/usr/mail/"
 #endif
 
+/**
+ * @brief 메일함 경로 문자열에 할당된 메모리를 해제한다.
+ */
 void
 free_maildata(void)
 {
@@ -93,6 +108,9 @@ free_maildata(void)
         free((genericptr_t) mailbox), mailbox = (char *) 0;
 }
 
+/**
+ * @brief 메일함 경로를 설정하고 초기 상태(수정 시각 등)를 기록한다.
+ */
 void
 getmailstatus(void)
 {
@@ -141,6 +159,12 @@ getmailstatus(void)
 }
 #endif /* UNIX */
 
+/**
+ * @brief 우편 배달부가 등장할 시작 위치를 고른다.
+ * @param[out] startp 선택된 시작 좌표.
+ * @return 적당한 위치를 찾으면 TRUE, 못 찾으면 FALSE.
+ * @note 가능하면 영웅 시야 안의 계단, 아니면 시야에서 벗어난 먼 지점을 고른다.
+ */
 /*
  * Pick coordinates for a starting position for the mail daemon.  Called
  * from newmail() and newphone().
@@ -238,6 +262,12 @@ md_start(coord *startp)
     return TRUE;
 }
 
+/**
+ * @brief 우편 배달부가 멈출(영웅에 인접한) 위치를 고른다.
+ * @param[out] stopp  선택된 정지 좌표.
+ * @param[in]  startp 시작 좌표(가까운 정지점 선호에 사용).
+ * @return 적당한 정지점을 찾으면 TRUE, 못 찾으면 FALSE.
+ */
 /*
  * Try to choose a stopping point as near as possible to the starting
  * position while still adjacent to the hero.  If all else fails, try
@@ -283,6 +313,13 @@ staticfn NEARDATA const char *mail_text[] = { "Gangway!", "Look out!",
  * any monsters that are in its path, but will replace them later.  Return
  * FALSE if the md gets stuck in a position where there is a monster.  Return
  * TRUE otherwise.
+ */
+/**
+ * @brief 우편 배달부가 목적지까지 돌진하며 애니메이션을 보여준다.
+ * @param[in,out] md    우편 배달부 몬스터.
+ * @param[in]     tx,ty 목적지 좌표.
+ * @return 목적지에 도달했으면 TRUE, 몬스터에 막혀 실패하면 FALSE.
+ * @note 경로 상의 몬스터를 잠시 밀어냈다가 지나간 뒤 되돌려 놓는다.
  */
 staticfn boolean
 md_rush(struct monst *md,
@@ -393,6 +430,10 @@ md_rush(struct monst *md,
     return TRUE;
 }
 
+/**
+ * @brief 우편 배달부를 소환해 메일 두루마리를 영웅에게 전달한다.
+ * @param[in] info 전달할 메일 정보(메시지 유형·표시 텍스트 등).
+ */
 /* Deliver a scroll of mail. */
 /*ARGSUSED*/
 staticfn void
@@ -457,6 +498,10 @@ newmail(struct mail_info *info)
 
 #if !defined(UNIX) && !defined(VMS)
 
+/**
+ * @brief 메일 도착 여부를 확인한다(비-UNIX/VMS: 무작위 시점에 흉내낸다).
+ * @note 실제 메일함이 없는 플랫폼에서 무작위 간격으로 가짜 메일을 배달한다.
+ */
 void
 ckmailstatus(void)
 {
@@ -482,6 +527,10 @@ DISABLE_WARNING_FORMAT_NONLITERAL
 
 enum delivery_types { faulty_delivery, normal_delivery, subst_delivery };
 
+/**
+ * @brief 메일 두루마리를 읽는다(비-UNIX/VMS: 가짜 스팸/안내 문구를 생성).
+ * @param[in] otmp 읽는 메일 두루마리(사용되지 않음).
+ */
 /*ARGSUSED*/
 void
 readmail(struct obj *otmp UNUSED)
@@ -546,6 +595,10 @@ RESTORE_WARNING_FORMAT_NONLITERAL
 
 #ifdef UNIX
 
+/**
+ * @brief 메일 도착 여부를 확인한다(UNIX: 메일함 파일 상태 검사).
+ * @note 메일함 수정 시각이 갱신되고 크기가 0이 아니면 메일을 배달한다.
+ */
 void
 ckmailstatus(void)
 {
@@ -585,6 +638,11 @@ ckmailstatus(void)
 
 #if defined(SIMPLE_MAIL) || defined(SERVER_ADMIN_MSG)
 
+/**
+ * @brief 간이 메일함/서버 관리자 메시지 파일을 읽어 게임 내에 표시한다.
+ * @param[in] mbox     읽을 메일함 파일 경로.
+ * @param[in] adminmsg TRUE 이면 서버 관리자 메시지로 처리한다.
+ */
 void
 read_simplemail(const char *mbox, boolean adminmsg)
 {
@@ -681,6 +739,10 @@ read_simplemail(const char *mbox, boolean adminmsg)
 
 #endif /* SIMPLE_MAIL */
 
+/**
+ * @brief 서버 관리자 메시지 파일이 갱신되었는지 주기적으로 확인해 표시한다.
+ * @note @c SERVER_ADMIN_MSG 빌드에서만 실제로 동작한다.
+ */
 void
 ck_server_admin_msg(void)
 {
@@ -699,6 +761,10 @@ ck_server_admin_msg(void)
 #endif /* SERVER_ADMIN_MSG */
 }
 
+/**
+ * @brief 메일 두루마리를 읽는다(UNIX: 외부 메일 리더 실행 또는 파일 표시).
+ * @param[in] otmp 읽는 메일 두루마리(사용되지 않음).
+ */
 /*ARGSUSED*/
 void
 readmail(struct obj *otmp UNUSED)
@@ -740,6 +806,10 @@ extern struct mail_info *parse_next_broadcast(void);
 
 volatile int broadcasts = 0;
 
+/**
+ * @brief 메일 도착 여부를 확인한다(VMS: 트랩된 브로드캐스트 처리).
+ * @note 한 번에 실제 메시지 하나만 처리한다.
+ */
 void
 ckmailstatus(void)
 {
@@ -759,6 +829,10 @@ ckmailstatus(void)
     }
 }
 
+/**
+ * @brief 메일 두루마리를 읽는다(VMS: 서브프로세스로 메일 리더 실행).
+ * @param[in] otmp 읽는 메일 두루마리.
+ */
 void
 readmail(struct obj *otmp)
 {

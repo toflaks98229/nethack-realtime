@@ -2,6 +2,18 @@
 /* Copyright (c) 2024 by Pasi Kallinen */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file selvar.c
+ * @brief 레벨 좌표 선택(selection) 자료구조 및 도형 연산 라이브러리.
+ *
+ * 맵 전체 크기의 비트맵 형태 선택(@c selectionvar)을 생성·해제·복제하고,
+ * 점 설정/조회, 경계 상자 계산, 필터링, 성장(grow), 플러드필, 타원·선·
+ * 그래디언트 그리기 등 특수 레벨 생성용 도형 연산을 제공한다.
+ *
+ * @note static 헬퍼가 사용 지점 근처에 흩어져 있어 재배치는 적용하지 않고
+ *       정의 위치에서 문서화한다.
+ */
+
 #include "hack.h"
 #include "selvar.h"
 #include "sp_lev.h"
@@ -10,6 +22,11 @@ staticfn boolean sel_flood_havepoint(coordxy, coordxy, coordxy *, coordxy *,
                                     int);
 staticfn long line_dist_coord(long, long, long, long, long, long);
 
+/**
+ * @brief 새 선택(selection) 구조체를 생성하고 전체를 비운 상태로 초기화한다.
+ * @return 새로 할당된 선택 구조체 포인터.
+ * @note 반환물은 @c selection_free() 로 해제해야 한다.
+ */
 /* selection */
 struct selectionvar *
 selection_new(void)
@@ -29,6 +46,11 @@ selection_new(void)
     return tmps;
 }
 
+/**
+ * @brief 선택 구조체의 맵 메모리를 해제한다.
+ * @param[in,out] sel     해제할 선택 구조체.
+ * @param[in]     freesel TRUE 이면 구조체 자체도 free, FALSE 이면 0으로 초기화.
+ */
 void
 selection_free(struct selectionvar *sel, boolean freesel)
 {
@@ -43,6 +65,11 @@ selection_free(struct selectionvar *sel, boolean freesel)
     }
 }
 
+/**
+ * @brief 선택 전체를 지정한 값으로 채운다.
+ * @param[in,out] sel 대상 선택 구조체.
+ * @param[in]     val 채울 값(0=비움, 그 외=전체 선택).
+ */
 /* clear selection, setting all locations to value val */
 void
 selection_clear(struct selectionvar *sel, int val)
@@ -61,6 +88,11 @@ selection_clear(struct selectionvar *sel, int val)
     sel->bounds_dirty = FALSE;
 }
 
+/**
+ * @brief 선택 구조체를 깊은 복사(맵 포함)하여 반환한다.
+ * @param[in] sel 복사할 원본 선택.
+ * @return 새로 할당된 복제본 포인터(호출자가 해제 책임).
+ */
 struct selectionvar *
 selection_clone(struct selectionvar *sel)
 {
@@ -72,6 +104,12 @@ selection_clone(struct selectionvar *sel)
     return tmps;
 }
 
+/**
+ * @brief 선택의 경계 사각형을 구한다.
+ * @param[in]  sel 대상 선택.
+ * @param[out] b   경계 사각형을 저장할 위치.
+ * @note 선택이 비어 있으면 맵 전체 범위를 반환한다.
+ */
 /* get boundary rect of selection sel into b */
 void
 selection_getbounds(struct selectionvar *sel, NhRect *b)
@@ -94,6 +132,10 @@ selection_getbounds(struct selectionvar *sel, NhRect *b)
     }
 }
 
+/**
+ * @brief 필요한 경우 선택의 경계 사각형을 다시 계산한다.
+ * @param[in,out] sel 대상 선택(경계가 dirty 상태일 때만 재계산).
+ */
 /* recalc the boundary of selection, if necessary */
 void
 selection_recalc_bounds(struct selectionvar *sel)
@@ -164,6 +206,12 @@ selection_recalc_bounds(struct selectionvar *sel)
     sel->bounds_dirty = FALSE;
 }
 
+/**
+ * @brief 선택에서 특정 좌표의 값을 조회한다.
+ * @param[in] x,y 조회할 좌표.
+ * @param[in] sel 대상 선택.
+ * @return 해당 좌표의 선택 값(범위 밖이거나 무효면 0).
+ */
 coordxy
 selection_getpoint(
     coordxy x, coordxy y,
@@ -177,6 +225,13 @@ selection_getpoint(
     return (sel->map[sel->wid * y + x] - 1);
 }
 
+/**
+ * @brief 선택에서 특정 좌표의 값을 설정한다.
+ * @param[in] x,y 설정할 좌표.
+ * @param[in,out] sel 대상 선택.
+ * @param[in] c   설정할 값(0=해제, 그 외=선택).
+ * @note 경계 상자를 즉시 확장하거나, 해제 시 경계를 dirty 로 표시한다.
+ */
 void
 selection_setpoint(
     coordxy x, coordxy y,
@@ -207,6 +262,11 @@ selection_setpoint(
     sel->map[sel->wid * y + x] = (char) (c + 1);
 }
 
+/**
+ * @brief 선택을 반전(NOT)시킨다: 선택된 점은 해제, 해제된 점은 선택.
+ * @param[in,out] s 반전할 선택.
+ * @return 제자리에서 반전된 @p s 를 그대로 반환한다.
+ */
 struct selectionvar *
 selection_not(struct selectionvar *s)
 {
@@ -220,6 +280,12 @@ selection_not(struct selectionvar *s)
     return s;
 }
 
+/**
+ * @brief 선택된 점들을 지정 확률로만 남긴 새 선택을 만든다.
+ * @param[in] ov      원본 선택.
+ * @param[in] percent 각 점을 남길 확률(0~100).
+ * @return 필터링된 새 선택(호출자가 해제), @p ov 가 NULL 이면 NULL.
+ */
 struct selectionvar *
 selection_filter_percent(
     struct selectionvar *ov,
@@ -244,6 +310,13 @@ selection_filter_percent(
     return ret;
 }
 
+/**
+ * @brief 선택된 점 중 특정 맵 지형(및 조명 조건)에 맞는 점만 남긴 새 선택을 만든다.
+ * @param[in] ov  원본 선택.
+ * @param[in] typ 대상 맵 지형 타입.
+ * @param[in] lit 조명 조건(-2=무시, -1=무작위, 0/1=해당 조명 상태 일치).
+ * @return 필터링된 새 선택(호출자가 해제), @p ov 가 NULL 이면 NULL.
+ */
 struct selectionvar *
 selection_filter_mapchar(struct selectionvar *ov,  xint16 typ, int lit)
 {
@@ -280,6 +353,13 @@ selection_filter_mapchar(struct selectionvar *ov,  xint16 typ, int lit)
     return ret;
 }
 
+/**
+ * @brief 선택된 점 중 하나를 무작위로 골라 좌표를 반환한다.
+ * @param[in]  ov       대상 선택.
+ * @param[out] x,y      선택된 좌표(없으면 -1,-1).
+ * @param[in]  removeit TRUE 이면 고른 점을 선택에서 제거한다.
+ * @return 좌표를 골랐으면 1, 선택이 비었으면 0.
+ */
 int
 selection_rndcoord(
     struct selectionvar *ov,
@@ -317,6 +397,12 @@ selection_rndcoord(
     return 0;
 }
 
+/**
+ * @brief 선택 영역을 지정한 방향(들)으로 한 칸 확장한다.
+ * @param[in,out] ov  확장할 선택.
+ * @param[in]     dir 확장 방향 마스크(@c W_RANDOM 이면 무작위 방향).
+ * @note 대각선 확장은 인접한 두 직교 방향을 함께 지정해야 한다.
+ */
 void
 selection_do_grow(struct selectionvar *ov, int dir)
 {
@@ -366,14 +452,26 @@ selection_do_grow(struct selectionvar *ov, int dir)
     selection_free(tmp, TRUE);
 }
 
+/** @brief 플러드필 시 각 좌표의 통과 가능 여부를 판정하는 콜백 함수 포인터. */
 staticfn int (*selection_flood_check_func)(coordxy, coordxy);
 
+/**
+ * @brief 플러드필에 사용할 통과 가능 판정 콜백을 설정한다.
+ * @param[in] f 좌표를 받아 통과 가능 여부를 반환하는 함수.
+ */
 void
 set_selection_floodfillchk(int (*f)(coordxy, coordxy))
 {
     selection_flood_check_func = f;
 }
 
+/**
+ * @brief 좌표 <x,y>가 이미 스택 배열(xs[],ys[])에 있는지 확인한다.
+ * @param[in] x,y   확인할 좌표.
+ * @param[in] xs,ys 지금까지 쌓인 좌표 배열.
+ * @param[in] n     배열에 쌓인 좌표 수.
+ * @return 이미 존재하면 TRUE, 아니면 FALSE.
+ */
 /* check whethere <x,y> is already in xs[],ys[] */
 staticfn boolean
 sel_flood_havepoint(
@@ -391,6 +489,14 @@ sel_flood_havepoint(
     return FALSE;
 }
 
+/**
+ * @brief 시작 좌표에서 통과 가능 판정 콜백을 따라 영역을 채운다(플러드필).
+ * @param[in,out] ov        채워 넣을 선택.
+ * @param[in]     x,y       시작 좌표.
+ * @param[in]     diagonals TRUE 이면 대각선 방향도 확산한다.
+ * @note 판정 콜백(@c selection_flood_check_func)이 설정되어 있어야 한다.
+ * @warning 내부 스택이 넘치면 @c panic() 으로 중단한다.
+ */
 void
 selection_floodfill(
     struct selectionvar *ov,
@@ -451,6 +557,14 @@ selection_floodfill(
     selection_free(tmp, TRUE);
 }
 
+/**
+ * @brief 선택에 타원을 그린다(McIlroy 타원 알고리즘).
+ * @param[in,out] ov     그릴 선택.
+ * @param[in]     xc,yc  타원 중심 좌표.
+ * @param[in]     a      가로 반지름.
+ * @param[in]     b      세로 반지름.
+ * @param[in]     filled 0이 아니면 내부를 채운다.
+ */
 /* McIlroy's Ellipse Algorithm */
 void
 selection_do_ellipse(
@@ -537,6 +651,13 @@ selection_do_ellipse(
     }
 }
 
+/**
+ * @brief 선분 (x1,y1)-(x2,y2) 과 점 (x3,y3) 사이 거리의 제곱을 구한다.
+ * @param[in] x1,y1 선분 시작점.
+ * @param[in] x2,y2 선분 끝점.
+ * @param[in] x3,y3 대상 점.
+ * @return 선분과 점 사이 최단 거리의 제곱.
+ */
 /* square of distance from line segment (x1,y1, x2,y2) to point (x3,y3) */
 staticfn long
 line_dist_coord(long x1, long y1, long x2, long y2, long x3, long y3)
@@ -565,6 +686,14 @@ line_dist_coord(long x1, long y1, long x2, long y2, long x3, long y3)
     return distsq;
 }
 
+/**
+ * @brief 선택에 그래디언트(중심에서 거리 기반 확률) 패턴을 그린다.
+ * @param[in,out] ov       그릴 선택.
+ * @param[in]     x,y      그래디언트 기준 선분의 시작점.
+ * @param[in]     x2,y2    그래디언트 기준 선분의 끝점.
+ * @param[in]     gtyp     그래디언트 종류(@c SEL_GRADIENT_RADIAL/SQUARE).
+ * @param[in]     mind,maxd 완전 선택되는 최소 거리와 확률적으로 감소하는 최대 거리.
+ */
 /* guts of l_selection_gradient */
 void
 selection_do_gradient(
@@ -621,6 +750,12 @@ selection_do_gradient(
     } /*switch*/
 }
 
+/**
+ * @brief 두 점을 잇는 직선을 선택에 그린다(브레젠험 알고리즘).
+ * @param[in]     x1,y1 시작 좌표.
+ * @param[in]     x2,y2 끝 좌표.
+ * @param[in,out] ov    그릴 선택.
+ */
 /* bresenham line algo */
 void
 selection_do_line(
@@ -679,6 +814,15 @@ selection_do_line(
     }
 }
 
+/**
+ * @brief 두 점을 잇는 울퉁불퉁한(무작위로 흔들린) 선을 그린다.
+ * @param[in]     x1,y1 시작 좌표.
+ * @param[in]     x2,y2 끝 좌표.
+ * @param[in]     rough 중점 흔들림의 크기.
+ * @param[in]     rec   재귀 분할 깊이.
+ * @param[in,out] ov    그릴 선택.
+ * @note 중점을 무작위로 이동시키며 재귀적으로 세분한다.
+ */
 void
 selection_do_randline(
     coordxy x1, coordxy y1,
@@ -722,6 +866,12 @@ selection_do_randline(
     selection_setpoint(x2, y2, ov, 1);
 }
 
+/**
+ * @brief 선택된 모든 좌표에 대해 콜백 함수를 호출한다.
+ * @param[in] ov   순회할 선택.
+ * @param[in] func 각 선택 좌표에 대해 호출할 콜백.
+ * @param[in] arg  콜백에 전달할 사용자 인자.
+ */
 void
 selection_iterate(
     struct selectionvar *ov,
@@ -742,6 +892,11 @@ selection_iterate(
                 (*func)(x, y, arg);
 }
 
+/**
+ * @brief 선택이 불규칙한지(경계 사각형 내에 빈 칸이 있는지) 판정한다.
+ * @param[in] sel 검사할 선택.
+ * @return 직사각형이 아니거나 구멍이 있으면 TRUE, 완전한 사각형이면 FALSE.
+ */
 /* selection is not rectangular, or has holes in it */
 boolean
 selection_is_irregular(struct selectionvar *sel)
@@ -759,6 +914,12 @@ selection_is_irregular(struct selectionvar *sel)
     return FALSE;
 }
 
+/**
+ * @brief 선택의 크기·형태를 사람이 읽을 수 있는 문자열로 기술한다.
+ * @param[in]  sel 대상 선택.
+ * @param[out] buf 설명 문자열을 저장할 버퍼.
+ * @return 결과가 기록된 @p buf.
+ */
 /* return a description of the selection size */
 char *
 selection_size_description(struct selectionvar *sel, char *buf)
@@ -777,6 +938,11 @@ selection_size_description(struct selectionvar *sel, char *buf)
     return buf;
 }
 
+/**
+ * @brief 방(mkroom)의 내부 칸들로 채워진 새 선택을 만든다.
+ * @param[in] croom 대상 방(NULL 이면 현재 코더의 방을 사용).
+ * @return 방 내부가 선택된 새 선택(호출자가 해제).
+ */
 struct selectionvar *
 selection_from_mkroom(struct mkroom *croom)
 {
@@ -798,6 +964,10 @@ selection_from_mkroom(struct mkroom *croom)
     return sel;
 }
 
+/**
+ * @brief 선택된 모든 좌표의 화면 심볼을 강제로 다시 그린다.
+ * @param[in] sel 대상 선택.
+ */
 void
 selection_force_newsyms(struct selectionvar *sel)
 {

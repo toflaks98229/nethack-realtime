@@ -3,8 +3,18 @@
 /*-Copyright (c) Robert Patrick Rankin, 2008. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file minion.c
+ * @brief 하수인(minion)·악마·천사의 소환, 협상, 수호천사 관련 로직.
+ *
+ * 정렬(alignment)에 따른 하수인/원소/악마/천사 소환, 악마의 통행료 협상
+ * (@c demon_talk, @c bribe), 갈등(Conflict)으로 인한 수호천사 상실/획득,
+ * 악마 군주·왕자 선택 등을 처리한다.
+ */
+
 #include "hack.h"
 
+/** @brief 네 가지 기본 원소 몬스터 목록(재정렬·추가에 영향받지 않게 하기 위함). */
 /* used to pick among the four basic elementals without worrying whether
    they've been reordered (difficulty reassessment?) or any new ones have
    been introduced (hybrid types added to 'E'-class?) */
@@ -13,6 +23,11 @@ static const int elementals[4] = {
     PM_EARTH_ELEMENTAL, PM_WATER_ELEMENTAL
 };
 
+/**
+ * @brief 몬스터에 하수인(emin) 확장 구조체를 할당한다.
+ * @param[in,out] mtmp 대상 몬스터.
+ * @note 이미 할당되어 있으면 아무 동작도 하지 않으며, 부모 몬스터 ID를 기록한다.
+ */
 void
 newemin(struct monst *mtmp)
 {
@@ -25,6 +40,11 @@ newemin(struct monst *mtmp)
     }
 }
 
+/**
+ * @brief 몬스터의 하수인(emin) 확장 구조체를 해제한다.
+ * @param[in,out] mtmp 대상 몬스터.
+ * @note 하수인 플래그(@c isminion)도 함께 해제한다.
+ */
 void
 free_emin(struct monst *mtmp)
 {
@@ -35,6 +55,11 @@ free_emin(struct monst *mtmp)
     mtmp->isminion = 0;
 }
 
+/**
+ * @brief 현재 레벨의 몬스터 수를 센다.
+ * @param[in] spotted TRUE 이면 영웅이 보거나 감지한 몬스터만, FALSE 이면 전부.
+ * @return 조건에 맞는 살아 있는 몬스터의 수.
+ */
 /* count the number of monsters on the level */
 int
 monster_census(boolean spotted) /* seen|sensed vs all */
@@ -52,6 +77,16 @@ monster_census(boolean spotted) /* seen|sensed vs all */
     return count;
 }
 
+/**
+ * @brief 몬스터가 다른 몬스터를 소환한다.
+ *
+ * 소환 주체의 종류·정렬에 따라 악마 왕자/군주/일반 악마, 하수인, 천사, 원소
+ * 등을 결정하여 영웅 위치 부근에 생성한다.
+ *
+ * @param[in] mon 소환 주체 몬스터. NULL 이면 옌더의 마법사가 소환하는 것으로 간주.
+ * @return 새로 늘어난 몬스터의 수(무리 소환 고려).
+ * @note 데몬베인(@c ART_DEMONBANE)을 든 영웅 앞에서는 악마가 소환에 실패한다.
+ */
 /* mon summons a monster */
 int
 msummon(struct monst *mon)
@@ -192,6 +227,11 @@ msummon(struct monst *mon)
     return result;
 }
 
+/**
+ * @brief 지정한 정렬의 하수인을 하나 소환한다(신의 징벌 등).
+ * @param[in] alignment 소환할 하수인의 정렬.
+ * @param[in] talk      TRUE 이면 신의 목소리 및 등장 메시지를 출력한다.
+ */
 void
 summon_minion(aligntyp alignment, boolean talk)
 {
@@ -254,8 +294,18 @@ summon_minion(aligntyp alignment, boolean talk)
     }
 }
 
+/** @brief 악마가 자기 고향(지옥)에 있는지 여부(통행료 협상 강도에 영향). */
 #define Athome (Inhell && (mtmp->cham == NON_PM))
 
+/**
+ * @brief 악마와의 통행료 협상을 처리한다.
+ *
+ * 영웅이 데몬베인/엑스칼리버를 들었거나 뇌물 협상이 결렬되면 전투로 이어지고,
+ * 충분한 뇌물을 지불하거나 악마가 물러나면 사라진다.
+ *
+ * @param[in,out] mtmp 협상 상대 악마.
+ * @return 악마가 공격하지 않고 물러나면 1, 전투로 이어지면 0.
+ */
 /* returns 1 if it won't attack. */
 int
 demon_talk(struct monst *mtmp)
@@ -356,6 +406,12 @@ demon_talk(struct monst *mtmp)
     return 1;
 }
 
+/**
+ * @brief 영웅에게 뇌물 액수를 입력받아 몬스터에게 지불한다.
+ * @param[in,out] mtmp   뇌물을 받을 몬스터.
+ * @param[in]     prompt 입력 프롬프트 문자열.
+ * @return 실제로 지불한 금액(거절 시 0, 소지금 초과 시 소지금 전액).
+ */
 long
 bribe(struct monst *mtmp, const char *prompt)
 {
@@ -386,6 +442,11 @@ bribe(struct monst *mtmp, const char *prompt)
     return offer;
 }
 
+/**
+ * @brief 지정한 정렬에 맞는 악마 왕자(demon prince) 종을 고른다.
+ * @param[in] atyp 원하는 정렬(@c A_NONE 이면 아무 정렬이나 허용).
+ * @return 조건에 맞는 악마 왕자 종 번호. 못 찾으면 @c dlord() 결과로 근사.
+ */
 int
 dprince(aligntyp atyp)
 {
@@ -400,6 +461,11 @@ dprince(aligntyp atyp)
     return dlord(atyp); /* approximate */
 }
 
+/**
+ * @brief 지정한 정렬에 맞는 악마 군주(demon lord) 종을 고른다.
+ * @param[in] atyp 원하는 정렬(@c A_NONE 이면 아무 정렬이나 허용).
+ * @return 조건에 맞는 악마 군주 종 번호. 못 찾으면 @c ndemon() 결과로 근사.
+ */
 int
 dlord(aligntyp atyp)
 {
@@ -414,6 +480,10 @@ dlord(aligntyp atyp)
     return ndemon(atyp); /* approximate */
 }
 
+/**
+ * @brief 질서(선) 진영의 군주를 고른다.
+ * @return 아콘(@c PM_ARCHON) 종 번호. 이미 멸종했으면 @c lminion() 으로 근사.
+ */
 /* create lawful (good) lord */
 int
 llord(void)
@@ -424,6 +494,10 @@ llord(void)
     return lminion(); /* approximate */
 }
 
+/**
+ * @brief 질서 진영의 일반 하수인(천사류, 군주 제외)을 고른다.
+ * @return 조건에 맞는 하수인 종 번호. 못 찾으면 @c NON_PM.
+ */
 int
 lminion(void)
 {
@@ -439,6 +513,11 @@ lminion(void)
     return NON_PM;
 }
 
+/**
+ * @brief 지정한 정렬에 맞는 일반 악마(demon) 종을 고른다.
+ * @param[in] atyp 원하는 정렬(@c A_NONE 이면 아무 정렬이나 허용).
+ * @return 조건에 맞는 악마 종 번호. 못 찾으면 @c NON_PM.
+ */
 int
 ndemon(aligntyp atyp) /* A_NONE is used for 'any alignment' */
 {
@@ -462,6 +541,13 @@ ndemon(aligntyp atyp) /* A_NONE is used for 'any alignment' */
     return (ptr && is_ndemon(ptr)) ? monsndx(ptr) : NON_PM;
 }
 
+/**
+ * @brief 갈등(Conflict)의 영향으로 수호천사가 영웅을 떠나 적대적으로 변한다.
+ *
+ * 기존 수호천사를 사라지게 하고, 그 자리에 2~4마리의 적대적 천사를 만든다.
+ *
+ * @param[in,out] mon 떠나갈 수호천사. NULL 이면 아직 천사가 생성되지 않은 상태.
+ */
 /* guardian angel has been affected by conflict so is abandoning hero */
 void
 lose_guardian_angel(
@@ -492,6 +578,15 @@ lose_guardian_angel(
     }
 }
 
+/**
+ * @brief 아스트랄 평면 진입 시 자격이 있으면 길들여진 수호천사를 받는다.
+ *
+ * 갈등 상태이면 오히려 적대적 천사가 나타나고, 신앙심(record)이 높으면
+ * 강력한 무장을 갖춘 길들여진 천사를 얻는다.
+ *
+ * @note 무애완(petless) 관습을 게임 막판에 깨뜨리지 않도록, 애완동물 관습을
+ *       지켜온 경우에만 천사를 실제로 길들인다.
+ */
 /* just entered the Astral Plane; receive tame guardian angel if worthy */
 void
 gain_guardian_angel(void)

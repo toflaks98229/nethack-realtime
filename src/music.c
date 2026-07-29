@@ -2,6 +2,15 @@
 /*      Copyright (c) 1989 by Jean-Christophe Collet */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file music.c
+ * @brief 악기 연주와 그 효과 처리.
+ *
+ * 플루트(뱀 진정), 마법 플루트(수면), 뿔피리(각성/공포), 화염·냉기 뿔피리
+ * (지팡이 효과), 나팔(병사 각성), 하프(님프 진정/몬스터 매혹), 북(각성),
+ * 지진의 북(구덩이 생성) 등 각 악기의 연주 효과를 구현한다.
+ */
+
 /*
  * This file contains the different functions designed to manipulate the
  * musical instruments and their various effects.
@@ -40,6 +49,11 @@ staticfn const char *generic_lvl_desc(void);
 staticfn int do_improvisation(struct obj *);
 staticfn char *improvised_notes(boolean *);
 
+/**
+ * @brief 몬스터를 깨우고, 필요하면 공포에 빠뜨린다.
+ * @param[in,out] mtmp  대상 몬스터.
+ * @param[in]     scary TRUE 이면 겁을 먹을 수 있게 한다.
+ */
 /* wake up monster, possibly scare it */
 staticfn void
 awaken_scare(struct monst *mtmp, boolean scary)
@@ -63,6 +77,10 @@ awaken_scare(struct monst *mtmp, boolean scary)
  * Wake every monster in range...
  */
 
+/**
+ * @brief 지정 범위 내의 모든 몬스터를 깨운다.
+ * @param[in] distance 효과가 미치는 거리.
+ */
 staticfn void
 awaken_monsters(int distance)
 {
@@ -81,6 +99,10 @@ awaken_monsters(int distance)
  * Make monsters fall asleep.  Note that they may resist the spell.
  */
 
+/**
+ * @brief 지정 범위 내의 몬스터를 잠들게 한다(저항 가능).
+ * @param[in] distance 효과가 미치는 거리.
+ */
 staticfn void
 put_monsters_to_sleep(int distance)
 {
@@ -101,6 +123,11 @@ put_monsters_to_sleep(int distance)
  * Charm snakes in range.  Note that the snakes are NOT tamed.
  */
 
+/**
+ * @brief 지정 범위 내의 뱀을 진정(평화적으로)시킨다.
+ * @param[in] distance 효과가 미치는 거리.
+ * @note 뱀을 길들이지는 않고 평화 상태로만 만든다.
+ */
 staticfn void
 charm_snakes(int distance)
 {
@@ -135,6 +162,10 @@ charm_snakes(int distance)
  * Calm nymphs in range.
  */
 
+/**
+ * @brief 지정 범위 내의 님프를 진정시킨다.
+ * @param[in] distance 효과가 미치는 거리.
+ */
 staticfn void
 calm_nymphs(int distance)
 {
@@ -157,6 +188,10 @@ calm_nymphs(int distance)
     }
 }
 
+/**
+ * @brief 나팔 소리로 레벨 전역의 병사(및 근처 몬스터)를 깨워 전투 태세로 만든다.
+ * @param[in] bugler 나팔을 분 주체(영웅 또는 몬스터).
+ */
 /* Awake soldiers anywhere the level (and any nearby monster). */
 void
 awaken_soldiers(struct monst *bugler  /* monster that played instrument */)
@@ -191,6 +226,11 @@ awaken_soldiers(struct monst *bugler  /* monster that played instrument */)
     }
 }
 
+/**
+ * @brief 지정 범위 내의 몬스터를 매혹하여 길들인다(저항 가능).
+ * @param[in] distance 효과가 미치는 거리.
+ * @note 삼켜진 상태에서는 자신을 삼킨 몬스터만 영향을 받는다.
+ */
 /* Charm monsters in range.  Note that they may resist the spell. */
 staticfn void
 charm_monsters(int distance)
@@ -216,6 +256,11 @@ charm_monsters(int distance)
     }
 }
 
+/**
+ * @brief 지정 좌표에 구덩이(pit)를 만든다(지진 효과의 일부).
+ * @param[in] x,y    구덩이를 만들 좌표.
+ * @param[in] tu_pit 영웅이 이미 구덩이에 있었는지 여부(처리 분기용).
+ */
 /* Try to make a pit. */
 staticfn void
 do_pit(coordxy x, coordxy y, unsigned tu_pit)
@@ -337,6 +382,11 @@ do_pit(coordxy x, coordxy y, unsigned tu_pit)
     }
 }
 
+/**
+ * @brief 지정 강도의 지진을 일으켜 무작위 구덩이(chasm)를 만든다.
+ * @param[in] force 지진 강도(영향 범위와 구덩이 발생 확률에 비례).
+ * @note 분수·싱크대·제단·무덤·왕좌·문 등이 구덩이로 무너질 수 있다.
+ */
 /* Generate earthquake :-) of desired force.
  * That is:  create random chasms (pits).
  */
@@ -474,6 +524,10 @@ do_earthquake(int force)
         }
 }
 
+/**
+ * @brief 현재 레벨 유형을 나타내는 일반 명칭 문자열을 반환한다.
+ * @return "dungeon"/"tower"/"sanctum" 등 레벨 종류 문자열.
+ */
 staticfn const char *
 generic_lvl_desc(void)
 {
@@ -491,11 +545,18 @@ generic_lvl_desc(void)
         return "dungeon";
 }
 
+/** @brief 즉흥 연주 시 무작위로 언급되는 드럼 비트 이름 목록. */
 static const char *beats[] = {
     "stepper", "one drop", "slow two", "triple stroke roll",
     "double shuffle", "half-time shuffle", "second line", "train"
 };
 
+/**
+ * @brief 악기로 즉흥 연주를 시도하여 해당 효과를 발동시킨다.
+ * @param[in] instr 연주하는 악기.
+ * @return 소요 시간 코드(대개 2=한 턴 소모), 오류 시 0.
+ * @note 기절/혼란 상태이면 특수 효과 없이 평범한 소리만 난다.
+ */
 /*
  * The player is trying to extract something from his/her instrument.
  */
@@ -729,6 +790,12 @@ do_improvisation(struct obj *instr)
     return 2; /* That takes time */
 }
 
+/**
+ * @brief 즉흥 연주용 무작위 음표 문자열을 생성한다.
+ * @param[out] same_as_last_time 지난번과 동일한 곡이면 TRUE 로 설정된다.
+ * @return 생성된 음표 문자열(@c svc.context.jingle).
+ * @note Unchanging 상태에서는 이전 곡을 그대로 유지한다.
+ */
 staticfn char *
 improvised_notes(boolean *same_as_last_time)
 {
@@ -752,6 +819,13 @@ improvised_notes(boolean *same_as_last_time)
     return svc.context.jingle;
 }
 
+/**
+ * @brief 악기 연주 명령을 처리한다(#apply 로 악기 사용).
+ * @param[in,out] instr 연주할 악기.
+ * @return 명령 처리 결과 코드.
+ * @note 수중/연주 불가 상태를 검사하고, 특정 곡(패스튜브 등) 입력이나 즉흥
+ *       연주에 따라 문/드로브리지 여닫기 등 다양한 효과를 낸다.
+ */
 /*
  * So you want music...
  */
@@ -898,6 +972,11 @@ do_play_instrument(struct obj *instr)
     return ECMD_OK;
 }
 
+/**
+ * @brief 악기 오브젝트를 사운드 라이브러리의 악기 열거값으로 변환한다.
+ * @param[in] obj 대상 악기 오브젝트.
+ * @return 대응하는 @c enum instruments 값(사운드 라이브러리 미통합 시 무악기).
+ */
 enum instruments
 obj_to_instr(struct obj *obj SOUNDLIBONLY) {
     enum instruments ret_instr = ins_no_instrument;

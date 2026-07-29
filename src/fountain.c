@@ -2,6 +2,15 @@
 /*      Copyright Scott R. Turner, srt@ucla, 10/27/86 */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file fountain.c
+ * @brief 분수(fountain)와 싱크대(sink)에서 마시기·담그기 상호작용.
+ *
+ * 분수/싱크대에서 물을 마시거나 아이템을 담글 때 발생하는 다양한 무작위
+ * 효과(뱀/물의 악마/님프 소환, 보석·반지 발견, 물 분출, 저주/해제, 엑스칼리버
+ * 획득 등)와, 분수 마름·싱크대 파손·역류 처리를 담당한다.
+ */
+
 /* Code for drinking from fountains. */
 
 #include "hack.h"
@@ -15,6 +24,11 @@ staticfn boolean watchman_warn_fountain(struct monst *) NONNULLARG1;
 
 DISABLE_WARNING_FORMAT_NONLITERAL
 
+/**
+ * @brief 공중 부양 중이라 대상에 접근할 수 없음을 알리는 메시지를 출력한다.
+ * @param[in] what 접근하려던 대상의 이름(예: "fountain", "sink").
+ * @note 바닥에 갇힌(TT_INFLOOR/TT_LAVA) 상태에서는 다른 문구로 대체한다.
+ */
 /* used when trying to dip in or drink from fountain or sink or pool while
    levitating above it, or when trying to move downwards in that state */
 void
@@ -33,6 +47,10 @@ floating_above(const char *what)
 
 RESTORE_WARNING_FORMAT_NONLITERAL
 
+/**
+ * @brief 분수에서 물뱀 떼를 쏟아낸다.
+ * @note 물뱀이 멸종했으면 대신 부글거리다 잠잠해진다.
+ */
 /* Fountain of snakes! */
 staticfn void
 dowatersnakes(void)
@@ -59,6 +77,10 @@ dowatersnakes(void)
     }
 }
 
+/**
+ * @brief 분수에서 물의 악마를 불러낸다.
+ * @note 낮은 확률로 물의 악마가 감사의 뜻으로 소원을 들어준다.
+ */
 /* Water demon */
 staticfn void
 dowaterdemon(void)
@@ -89,6 +111,10 @@ dowaterdemon(void)
     }
 }
 
+/**
+ * @brief 분수에서 물의 님프를 불러낸다.
+ * @note 님프가 멸종했으면 큰 거품이 떠올라 터지는 효과만 난다.
+ */
 /* Water Nymph */
 staticfn void
 dowaternymph(void)
@@ -115,6 +141,10 @@ dowaternymph(void)
     }
 }
 
+/**
+ * @brief 영웅 위치에서 시야를 따라 물이 뿜어져 나와 웅덩이를 만든다.
+ * @param[in] drinking 마시는 도중이면 0이 아님(웅덩이가 안 생길 때 메시지 차이).
+ */
 /* Gushing forth along LOS from (u.ux, u.uy) */
 void
 dogushforth(int drinking)
@@ -130,6 +160,12 @@ dogushforth(int drinking)
     }
 }
 
+/**
+ * @brief 한 칸에 물웅덩이를 만드는 @c do_clear_area 콜백(dogushforth 용).
+ * @param[in]     x,y     대상 좌표.
+ * @param[in,out] poolcnt 지금까지 만든 웅덩이 수를 가리키는 int 포인터.
+ * @note 조건(짝수 좌표·거리·지형 등)에 맞을 때만 웅덩이를 생성한다.
+ */
 staticfn void
 gush(coordxy x, coordxy y, genericptr_t poolcnt)
 {
@@ -160,6 +196,10 @@ gush(coordxy x, coordxy y, genericptr_t poolcnt)
         newsym(x, y);
 }
 
+/**
+ * @brief 반짝이는 물속에서 보석을 발견해 바닥에 생성한다.
+ * @note 분수를 약탈됨(looted) 상태로 표시하고 지혜를 단련시킨다.
+ */
 /* Find a gem in the sparkling waters. */
 staticfn void
 dofindgem(void)
@@ -175,6 +215,11 @@ dofindgem(void)
     exercise(A_WIS, TRUE); /* a discovery! */
 }
 
+/**
+ * @brief 근처의 평화적 경비병이 분수 사용을 경고하게 한다(iter 콜백).
+ * @param[in] mtmp 검사할 몬스터.
+ * @return 경비병이 경고했으면 TRUE, 아니면 FALSE.
+ */
 staticfn boolean
 watchman_warn_fountain(struct monst *mtmp)
 {
@@ -197,6 +242,13 @@ watchman_warn_fountain(struct monst *mtmp)
     return FALSE;
 }
 
+/**
+ * @brief 분수를 일정 확률로 마르게 하여 일반 바닥으로 바꾼다.
+ * @param[in] x,y   대상 분수 좌표.
+ * @param[in] isyou 영웅의 행동으로 인한 것이면 TRUE.
+ * @note 마을에서 처음 사용 시 경비병이 경고하며, 마을에서 마르게 하면
+ *       경비병이 분노할 수 있다.
+ */
 void
 dryup(coordxy x, coordxy y, boolean isyou)
 {
@@ -238,6 +290,11 @@ dryup(coordxy x, coordxy y, boolean isyou)
     }
 }
 
+/**
+ * @brief 분수 위에 서서 물을 마신다(#quaff).
+ * @note 축복받은 분수의 특별 효과부터 30가지 무작위 운명(회복, 저주, 소환,
+ *       투명 감지, 보석 발견 등)까지 처리하며, 마신 뒤 분수가 마를 수 있다.
+ */
 /* quaff from a fountain when standing on its location */
 void
 drinkfountain(void)
@@ -389,6 +446,12 @@ drinkfountain(void)
     dryup(u.ux, u.uy, TRUE);
 }
 
+/**
+ * @brief 분수 위에 서서 아이템을 담근다(#dip).
+ * @param[in,out] obj 담글 아이템.
+ * @note 조건이 맞으면 롱소드가 엑스칼리버가 되며(질서 정렬), 그 외에는 저주/
+ *       해제, 소환, 보석/금화 발견 등 무작위 효과가 발생한다.
+ */
 /* dip an object into a fountain when standing on its location */
 void
 dipfountain(struct obj *obj)
@@ -553,6 +616,11 @@ dipfountain(struct obj *obj)
     dryup(u.ux, u.uy, TRUE);
 }
 
+/**
+ * @brief 분수/웅덩이/싱크대에서 맨손(또는 장갑)을 씻는다.
+ * @return 물에 의한 처리 결과 코드(@c ER_NOTHING, @c ER_GREASED 등).
+ * @note 미끄러움(Glib)을 제거하며, 장갑을 낀 경우 물 피해를 적용한다.
+ */
 /* dipping '-' in fountain, pool, or sink */
 int
 wash_hands(void)
@@ -576,6 +644,10 @@ wash_hands(void)
     return res;
 }
 
+/**
+ * @brief 싱크대를 파손하여 분수로 바꾼다.
+ * @param[in] x,y 대상 싱크대 좌표.
+ */
 /* convert a sink into a fountain */
 void
 breaksink(coordxy x, coordxy y)
@@ -590,6 +662,11 @@ breaksink(coordxy x, coordxy y)
     newsym(x, y);
 }
 
+/**
+ * @brief 싱크대 위에 서서 물을 마신다(#quaff).
+ * @note 20가지 무작위 효과(온도 차이, 하수구 쥐, 무작위 물약, 반지 발견,
+ *       싱크대 파손, 물 정령, 변신, 독가스 등)를 처리한다.
+ */
 /* quaff from a sink while standing on its location */
 void
 drinksink(void)
@@ -711,6 +788,11 @@ drinksink(void)
     }
 }
 
+/**
+ * @brief 싱크대 위에 서서 아이템(주로 물약)을 배수구에 붓는다(#dip).
+ * @param[in,out] obj 담그거나 붓는 아이템.
+ * @note 일정 확률로 싱크대가 파손되며, 물약 종류에 따라 다양한 효과가 난다.
+ */
 /* for #dip(potion.c) when standing on a sink */
 void
 dipsink(struct obj *obj)
@@ -800,6 +882,11 @@ dipsink(struct obj *obj)
     useup(obj);
 }
 
+/**
+ * @brief 싱크대 배수구가 역류하며 반지를 드러낸다.
+ * @param[in] x,y 대상 싱크대 좌표.
+ * @note 싱크대당 한 번만 반지를 생성한다.
+ */
 /* find a ring in a sink */
 void
 sink_backs_up(coordxy x, coordxy y)

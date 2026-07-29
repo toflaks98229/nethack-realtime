@@ -2,21 +2,39 @@
 /*      Copyright 1988, 1989 by Ken Arromdee                      */
 /* NetHack may be freely redistributed.  See license for details. */
 
-/*
- * Support code for "rogue"-style level.
+/**
+ * @file extralev.c
+ * @brief "로그(Rogue)" 스타일 레벨 생성 지원 코드.
+ *
+ * 레벨을 3x3 격자로 나눠 각 칸에 방 또는 교차로를 배치하고, 미로형 알고리즘
+ * (@c miniwalk)으로 칸들을 연결한 뒤 복도(@c roguecorr, @c roguejoin)를
+ * 그린다. 로그 레벨 특유의 유령(ghost)과 유품 배치도 담당한다.
+ *
+ * @note 서로 강하게 결합된 static 헬퍼 블록이므로 선언 재배치는 적용하지 않고
+ *       정의 위치에서 문서화한다.
  */
 
 #include "hack.h"
 
+/** @brief 인접 칸 연결 방향 비트: 위쪽. */
 #define XL_UP 1
+/** @brief 인접 칸 연결 방향 비트: 아래쪽. */
 #define XL_DOWN 2
+/** @brief 인접 칸 연결 방향 비트: 왼쪽. */
 #define XL_LEFT 4
+/** @brief 인접 칸 연결 방향 비트: 오른쪽. */
 #define XL_RIGHT 8
 
 staticfn void roguejoin(coordxy, coordxy, coordxy, coordxy, int);
 staticfn void roguecorr(coordxy, coordxy, int);
 staticfn void miniwalk(coordxy, coordxy);
 
+/**
+ * @brief 두 지점을 ㄷ자(꺾인) 복도로 잇는다.
+ * @param[in] x1,y1 시작 지점 좌표.
+ * @param[in] x2,y2 도착 지점 좌표.
+ * @param[in] horiz TRUE 이면 수평 우선, FALSE 이면 수직 우선으로 꺾는다.
+ */
 staticfn void
 roguejoin(coordxy x1, coordxy y1, coordxy x2, coordxy y2, int horiz)
 {
@@ -41,6 +59,12 @@ roguejoin(coordxy x1, coordxy y1, coordxy x2, coordxy y2, int horiz)
     }
 }
 
+/**
+ * @brief 지정한 칸에서 인접 칸으로 이어지는 복도(문 포함)를 뚫는다.
+ * @param[in] x,y 시작 칸의 격자 좌표.
+ * @param[in] dir 연결 방향(@c XL_DOWN 또는 @c XL_RIGHT).
+ * @warning @p dir 이 @c XL_DOWN/XL_RIGHT 가 아니면 @c impossible() 경고를 낸다.
+ */
 staticfn void
 roguecorr(coordxy x, coordxy y, int dir)
 {
@@ -134,6 +158,12 @@ roguecorr(coordxy x, coordxy y, int dir)
         impossible("corridor in direction %d?", dir);
 }
 
+/**
+ * @brief 3x3 격자를 미로처럼 탐색하며 칸들 사이의 연결(문)을 만든다.
+ * @param[in] x,y 탐색을 시작할 격자 좌표.
+ * @note @c mkmaze.c 의 @c walkfrom() 을 변형한 것으로, 재귀적으로 동작하며
+ *       1/10 확률로 여분의 연결을 추가한다.
+ */
 /* Modified walkfrom() from mkmaze.c */
 staticfn void
 miniwalk(coordxy x, coordxy y)
@@ -189,6 +219,12 @@ miniwalk(coordxy x, coordxy y)
 #undef doorhere
 }
 
+/**
+ * @brief 로그 스타일 레벨의 방과 연결 복도를 생성한다.
+ *
+ * 3x3 격자 각 칸에 실제 방 또는 더미(교차로)를 배치하고, 미로 탐색으로 칸을
+ * 연결한 뒤 실제 방을 만들고 방 사이를 복도로 잇는다.
+ */
 void
 makeroguerooms(void)
 {
@@ -274,6 +310,11 @@ makeroguerooms(void)
 #undef here
 }
 
+/**
+ * @brief 지정한 좌표를 복도 칸으로 만든다(드물게 숨은 복도).
+ * @param[in] x,y 복도로 만들 좌표.
+ * @note 50분의 1 확률로 일반 복도(@c CORR) 대신 숨은 복도(@c SCORR)가 된다.
+ */
 void
 corr(coordxy x, coordxy y)
 {
@@ -284,6 +325,14 @@ corr(coordxy x, coordxy y)
     }
 }
 
+/**
+ * @brief 로그 레벨에 잠자는 유령과 그 유품 아이템들을 배치한다.
+ *
+ * 무작위 방에 유령을 만들어 이름을 부여하고, 무기·방어구·식량·부적 등을
+ * 무작위로 함께 놓는다.
+ *
+ * @note 방이 하나도 없으면(정상적으로는 발생하지 않음) 아무 동작도 하지 않는다.
+ */
 void
 makerogueghost(void)
 {

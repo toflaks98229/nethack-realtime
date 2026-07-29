@@ -3,6 +3,18 @@
 /*-Copyright (c) David Cohrs, 2006. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file ball.c
+ * @brief 처벌(Punishment)로 부여되는 쇠구슬과 사슬(ball & chain) 처리.
+ *
+ * 쇠구슬/사슬의 배치·제거, 이동에 따른 끌림 처리(맹인 상태에서의 "느낌"
+ * 관리 포함), 계단으로 끌려 내려가기, 소지품 흘리기, 정합성 검사 등을
+ * 담당한다. 관련 상태 변수는 대부분 맹인일 때만 유효하다.
+ *
+ * @note static 헬퍼가 공개 함수와 뒤섞여 있고 @c BREADCRUMBS 조건부 변형이
+ *       있어 재배치는 적용하지 않고 정의 위치에서 문서화한다.
+ */
+
 /* Ball & Chain
  * =============================================================*/
 
@@ -14,11 +26,18 @@ staticfn void placebc_core(void);
 staticfn void unplacebc_core(void);
 staticfn boolean check_restriction(int);
 
+/** @brief 쇠구슬/사슬 배치를 제한하는 토큰(0=제한 없음). */
 static int bcrestriction = 0;
 #ifdef BREADCRUMBS
+/** @brief 마지막 배치(place)/제거(unplace) 호출 위치 추적용 정보. */
 static struct breadcrumbs bcpbreadcrumbs = {0}, bcubreadcrumbs = {0};
 #endif
 
+/**
+ * @brief 들고 있던 쇠구슬을 놓아 인벤토리에서 제거한다.
+ * @param[in] showmsg TRUE 이면 "놀라서 떨어뜨린다" 메시지를 출력한다.
+ * @note 용접(welded)되어 있지 않은 경우에만 동작하며, 바닥에 놓지는 않는다.
+ */
 void
 ballrelease(boolean showmsg)
 {
@@ -38,6 +57,10 @@ ballrelease(boolean showmsg)
     }
 }
 
+/**
+ * @brief 함정문으로 떨어질 때 쇠구슬이 영웅을 맞힐 수 있다.
+ * @note 일정 확률로 머리에 떨어져 피해를 주며, 단단한 투구는 피해를 줄인다.
+ */
 /* ball&chain might hit hero when falling through a trap door */
 void
 ballfall(void)
@@ -108,6 +131,11 @@ ballfall(void)
 #define BCPOS_CHAIN 1  /* chain on top of ball */
 #define BCPOS_BALL 2   /* ball on top of chain */
 
+/**
+ * @brief 쇠구슬과 사슬을 영웅 발밑에 배치하는 실제 구현.
+ * @note 호출 시점에 쇠구슬/사슬이 오브젝트 목록에 붙어 있지 않다고 가정한다.
+ *       삼켜진 상태에서는 (수면 레벨 제외) 호출해서는 안 된다.
+ */
 /*
  *  Place the ball & chain under the hero.  Make sure that the ball & chain
  *  variables are set (actually only needed when blind, but what the heck).
@@ -143,6 +171,11 @@ placebc_core(void)
     bcrestriction = 0;
 }
 
+/**
+ * @brief 쇠구슬과 사슬을 바닥/오브젝트 목록에서 떼어내는 실제 구현.
+ * @note 삼켜진 상태에서는 (수면 레벨의 특수 처리 외) 실제로 떼어내지 않는다.
+ *       맹인일 때 "느끼던" 위치의 글리프를 복원한다.
+ */
 staticfn void
 unplacebc_core(void)
 {
@@ -176,6 +209,11 @@ unplacebc_core(void)
     u.bc_felt = 0; /* feel nothing */
 }
 
+/**
+ * @brief 현재 배치 제한 토큰과 주어진 토큰이 맞는지 검사한다.
+ * @param[in] restriction 검사할 제한 토큰.
+ * @return 제한이 없거나 토큰이 일치(또는 override)하면 TRUE, 아니면 FALSE.
+ */
 staticfn boolean
 check_restriction(int restriction)
 {
@@ -188,6 +226,10 @@ check_restriction(int restriction)
     return ret;
 }
 
+/**
+ * @brief 쇠구슬과 사슬을 배치한다(비-BREADCRUMBS 빌드).
+ * @note 배치 제한이 걸려 있으면 배치하지 않는다.
+ */
 #ifndef BREADCRUMBS
 void
 placebc(void)
@@ -208,6 +250,10 @@ placebc(void)
     placebc_core();
 }
 
+/**
+ * @brief 쇠구슬과 사슬을 떼어낸다(비-BREADCRUMBS 빌드).
+ * @note 배치 제한이 걸려 있으면 경고를 내고 떼어내지 않는다.
+ */
 void
 unplacebc(void)
 {
@@ -218,6 +264,11 @@ unplacebc(void)
     unplacebc_core();
 }
 
+/**
+ * @brief 쇠구슬/사슬을 떼어내면서 이후 재배치를 위한 제한 토큰을 획득한다.
+ * @return 발급된 제한 토큰(이미 제한 중이면 0).
+ * @note 이후 @c lift_covet_and_placebc() 에 이 토큰을 넘겨야 재배치할 수 있다.
+ */
 int
 unplacebc_and_covet_placebc(void)
 {
@@ -232,6 +283,11 @@ unplacebc_and_covet_placebc(void)
     return restriction;
 }
 
+/**
+ * @brief 제한 토큰을 해제하고 쇠구슬/사슬을 재배치한다(비-BREADCRUMBS 빌드).
+ * @param[in] pin @c unplacebc_and_covet_placebc() 가 발급한 제한 토큰.
+ * @note 토큰이 일치하지 않으면 재배치하지 않는다.
+ */
 void
 lift_covet_and_placebc(int pin)
 {
@@ -255,6 +311,11 @@ lift_covet_and_placebc(int pin)
 
 #else  /* BREADCRUMBS */
 
+/**
+ * @brief 쇠구슬/사슬을 배치한다(BREADCRUMBS 빌드; 호출 위치 추적).
+ * @param[in] funcnm  호출한 함수 이름.
+ * @param[in] linenum 호출 위치의 라인 번호.
+ */
 void
 Placebc(const char *funcnm, int linenum)
 {
@@ -283,6 +344,11 @@ Placebc(const char *funcnm, int linenum)
     placebc_core();
 }
 
+/**
+ * @brief 쇠구슬/사슬을 떼어낸다(BREADCRUMBS 빌드; 호출 위치 추적).
+ * @param[in] funcnm  호출한 함수 이름.
+ * @param[in] linenum 호출 위치의 라인 번호.
+ */
 void
 Unplacebc(const char *funcnm, int linenum)
 {
@@ -302,6 +368,12 @@ Unplacebc(const char *funcnm, int linenum)
     unplacebc_core();
 }
 
+/**
+ * @brief 쇠구슬/사슬을 떼어내며 재배치용 제한 토큰을 획득한다(BREADCRUMBS 빌드).
+ * @param[in] funcnm  호출한 함수 이름.
+ * @param[in] linenum 호출 위치의 라인 번호.
+ * @return 발급된 제한 토큰(이미 제한 중이면 0).
+ */
 int
 Unplacebc_and_covet_placebc(const char *funcnm, int linenum)
 {
@@ -323,6 +395,12 @@ Unplacebc_and_covet_placebc(const char *funcnm, int linenum)
     return restriction;
 }
 
+/**
+ * @brief 제한 토큰을 해제하고 쇠구슬/사슬을 재배치한다(BREADCRUMBS 빌드).
+ * @param[in] pin     발급받은 제한 토큰.
+ * @param[in] funcnm  호출한 함수 이름.
+ * @param[in] linenum 호출 위치의 라인 번호.
+ */
 void
 Lift_covet_and_placebc(int pin, char *funcnm, int linenum)
 {
@@ -346,6 +424,12 @@ Lift_covet_and_placebc(int pin, char *funcnm, int linenum)
 }
 #endif /* BREADCRUMBS */
 
+/**
+ * @brief 쇠구슬과 사슬의 쌓임(stacking) 순서를 반환한다.
+ * @return @c BCPOS_DIFFER(다른 위치), @c BCPOS_CHAIN(사슬이 위),
+ *         @c BCPOS_BALL(구슬이 위) 중 하나.
+ * @note 영웅이 처벌 상태임을 전제로 한다.
+ */
 /*
  *  Return the stacking of the hero's ball & chain.  This assumes that the
  *  hero is being punished.
@@ -370,6 +454,12 @@ bc_order(void)
     return BCPOS_DIFFER;
 }
 
+/**
+ * @brief 맹인 상태에서 쇠구슬/사슬을 "느끼도록" 관련 변수를 설정한다.
+ * @param[in] already_blind 이미 맹인이면 0이 아님, 이제 막 맹인이 되면 0.
+ * @note 아직 볼 수 있는 경우, 구슬/사슬 아래 글리프를 파악하기 위해 잠시
+ *       제거했다가 다시 배치한다.
+ */
 /*
  *  set_bc()
  *
@@ -423,6 +513,19 @@ set_bc(int already_blind)
     }
 }
 
+/**
+ * @brief 쇠구슬과 사슬을 이동시킨다.
+ *
+ * 매 이동마다 두 번 호출된다: 이동 전(구슬/사슬 집어 올리기)과 이동 후
+ * (새 위치에 배치). 맹인 여부에 따라 "느낌" 처리와 글리프 갱신이 달라진다.
+ *
+ * @param[in] before  0이 아니면 이동 전 단계, 0이면 이동 후 단계.
+ * @param[in] control 이번에 움직이는 대상 마스크(@c BC_BALL/@c BC_CHAIN).
+ * @param[in] ballx,bally   구슬의 목표 좌표.
+ * @param[in] chainx,chainy 사슬의 목표 좌표.
+ * @note 구슬을 들고 있으면 @p control 에 @c BC_BALL 이 포함되어서는 안 된다.
+ *       삼켜진 상태에서는 호출하면 안 된다.
+ */
 /*
  *  move_bc()
  *
@@ -555,6 +658,21 @@ move_bc(int before, int control, coordxy ballx, coordxy bally,
     }
 }
 
+/**
+ * @brief 영웅이 목표 지점으로 이동할 때 쇠구슬/사슬의 끌림을 계산한다.
+ *
+ * 사슬만 옮기면 되는지, 구슬까지 끌어야 하는지, 바위/함정/물 때문에 끌기가
+ * 막히는지 등을 판정하고, 필요한 이동 대상과 목표 좌표를 채워 준다.
+ *
+ * @param[in]  x,y         영웅의 목표 좌표.
+ * @param[out] bc_control  이동해야 할 대상 마스크.
+ * @param[out] ballx,bally 구슬의 결정된 목표 좌표.
+ * @param[out] chainx,chainy 사슬의 결정된 목표 좌표.
+ * @param[out] cause_delay  끌기로 인해 이동 지연이 필요한지 여부.
+ * @param[in]  allow_drag  텔레포트가 아닌 통상 이동에서 끌기를 허용하는지.
+ * @return 호출자가 구슬/사슬을 다시 배치해야 하면 TRUE, 아니면 FALSE.
+ * @note 삼켜진 상태에서는 호출하면 안 되며, 이동 이전에 호출해야 한다.
+ */
 /* return TRUE if the caller needs to place the ball and chain down again */
 boolean
 drag_ball(coordxy x, coordxy y, int *bc_control,
@@ -873,6 +991,13 @@ drag_ball(coordxy x, coordxy y, int *bc_control,
     return TRUE;
 }
 
+/**
+ * @brief 처벌 중인 영웅이 쇠구슬을 떨어뜨리거나 던진다.
+ * @param[in] x,y 구슬이 놓이는 좌표.
+ * @note 구슬은 이미 배치되어 있다고 가정한다. 함정에서 끌려나오는 등의
+ *       부수 효과를 처리하며, 맹인일 때는 순서/글리프를 재설정한다.
+ *       삼켜진 상태에서는 호출하면 안 된다.
+ */
 /*
  *  drop_ball()
  *
@@ -965,6 +1090,10 @@ drop_ball(coordxy x, coordxy y)
     }
 }
 
+/**
+ * @brief 계단으로 끌려 내려갈 때 소지품 일부를 무작위로 흘린다.
+ * @note 무거운 물건일수록 흘릴 확률이 높으며, 쇠구슬 자체는 제외된다.
+ */
 /* ball&chain cause hero to randomly lose stuff from inventory */
 staticfn void
 litter(void)
@@ -987,6 +1116,11 @@ litter(void)
     }
 }
 
+/**
+ * @brief 계단을 내려갈 때 쇠구슬이 영웅을 끌어내리는 상황을 처리한다.
+ * @note 구슬이 앞으로 떨어지는지에 따라 끌려 내려가거나 충돌 피해를 입으며,
+ *       그 과정에서 소지품을 흘릴 수 있다(@c litter).
+ */
 void
 drag_down(void)
 {
@@ -1035,6 +1169,12 @@ drag_down(void)
     }
 }
 
+/**
+ * @brief 쇠구슬/사슬 상태의 정합성을 검사한다(디버그용).
+ * @note 처벌 여부와 구슬/사슬 존재의 일치, 오브젝트 타입·위치·착용 마스크,
+ *       그리고 영웅-사슬-구슬 사이 거리 등을 확인하여 이상 시 @c impossible()
+ *       경고를 낸다.
+ */
 void
 bc_sanity_check(void)
 {

@@ -2,11 +2,24 @@
 /*      Copyright 1991, M. Stephenson                             */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file questpgr.c
+ * @brief 퀘스트 전용 텍스트(대사) 로딩·치환·출력 루틴.
+ *
+ * @c quest.lua 에서 직업별/공통 퀘스트 텍스트를 읽어, @c %p, @c %l, @c %n 등의
+ * 서식 지정자를 플레이어·리더·네메시스·아티팩트 이름과 대명사/소유격 등으로
+ * 치환한 뒤 pline 또는 창(window)으로 전달한다.
+ *
+ * @note static 헬퍼가 공개 함수와 뒤섞여 있어 재배치는 적용하지 않고 정의
+ *       위치에서 문서화한다.
+ */
+
 #include "hack.h"
 #include "dlb.h"
 
 /*  quest-specific pager routines. */
 
+/** @brief 퀘스트 텍스트를 담고 있는 Lua 데이터 파일 이름. */
 #define QTEXT_FILE "quest.lua"
 
 #ifdef TTY_GRAPHICS
@@ -27,6 +40,12 @@ staticfn void deliver_by_window(const char *, int);
 staticfn boolean skip_pager(boolean);
 staticfn boolean com_pager_core(const char *, const char *, boolean, char **);
 
+/**
+ * @brief 현재 직업의 퀘스트 관련 종/아티팩트 번호를 조회한다.
+ * @param[in] typ 조회 항목(0=아티팩트, @c MS_LEADER/MS_NEMESIS/MS_GUARDIAN=각 종).
+ * @return 해당 항목의 번호.
+ * @warning 알 수 없는 @p typ 이면 @c impossible() 경고를 내고 0을 반환한다.
+ */
 short
 quest_info(int typ)
 {
@@ -45,6 +64,10 @@ quest_info(int typ)
     return 0;
 }
 
+/**
+ * @brief 현재 직업의 퀘스트 리더 이름을 반환한다.
+ * @return 리더 이름 문자열(정적 버퍼 @c gn.nambuf).
+ */
 /* return your role leader's name */
 const char *
 ldrname(void)
@@ -56,6 +79,10 @@ ldrname(void)
     return gn.nambuf;
 }
 
+/**
+ * @brief 현재 직업의 중간 목표(intermediate) 이름 문자열을 반환한다.
+ * @return 중간 목표 문자열.
+ */
 /* return your intermediate target string */
 staticfn const char *
 intermed(void)
@@ -63,12 +90,22 @@ intermed(void)
     return gu.urole.intermed;
 }
 
+/**
+ * @brief 주어진 오브젝트가 이 직업의 퀘스트 아티팩트인지 판별한다.
+ * @param[in] otmp 검사할 오브젝트.
+ * @return 퀘스트 아티팩트이면 TRUE, 아니면 FALSE.
+ */
 boolean
 is_quest_artifact(struct obj *otmp)
 {
     return (boolean) (otmp->oartifact == gu.urole.questarti);
 }
 
+/**
+ * @brief 오브젝트 체인(및 컨테이너 내부)에서 퀘스트 아티팩트를 재귀 검색한다.
+ * @param[in] ochain 검색 시작 오브젝트 체인(NULL 가능).
+ * @return 찾은 퀘스트 아티팩트 포인터, 없으면 NULL.
+ */
 staticfn struct obj *
 find_qarti(struct obj *ochain)
 {
@@ -83,6 +120,11 @@ find_qarti(struct obj *ochain)
     return (struct obj *) 0;
 }
 
+/**
+ * @brief 지정한 오브젝트 체인들에서 퀘스트 아티팩트의 존재를 확인한다.
+ * @param[in] whichchains 검색할 체인들의 비트마스크(인벤토리/바닥/몬스터 등).
+ * @return 찾은 퀘스트 아티팩트 포인터, 없으면 NULL.
+ */
 /* check several object chains for the quest artifact to determine
    whether it is present on the current level */
 struct obj *
@@ -119,6 +161,10 @@ find_quest_artifact(unsigned whichchains)
     return qarti;
 }
 
+/**
+ * @brief 현재 직업의 퀘스트 네메시스 이름을 반환한다.
+ * @return 네메시스 이름 문자열(정적 버퍼 @c gn.nambuf).
+ */
 /* return your role nemesis' name */
 staticfn const char *
 neminame(void)
@@ -130,6 +176,10 @@ neminame(void)
     return gn.nambuf;
 }
 
+/**
+ * @brief 현재 직업의 퀘스트 수호자(guardian) 몬스터 이름을 반환한다.
+ * @return 수호자 이름 문자열.
+ */
 staticfn const char *
 guardname(void) /* return your role leader's guard monster name */
 {
@@ -138,12 +188,22 @@ guardname(void) /* return your role leader's guard monster name */
     return mons[i].pmnames[NEUTRAL];
 }
 
+/**
+ * @brief 현재 직업 리더의 본거지(homebase) 이름을 반환한다.
+ * @return 본거지 문자열.
+ */
 staticfn const char *
 homebase(void) /* return your role leader's location */
 {
     return gu.urole.homebase;
 }
 
+/**
+ * @brief 네메시스의 사망 텍스트가 유독 가스를 언급하는지 판정한다.
+ * @param[in] mon 죽은 네메시스 몬스터.
+ * @return 유독 가스/증기를 언급하면 1, 아니면 0.
+ * @note 메시지를 화면에 출력하지는 않는다.
+ */
 /* returns 1 if nemesis death message mentions noxious fumes, otherwise 0;
    does not display the message */
 int
@@ -193,6 +253,12 @@ stinky_nemesis(struct monst *mon)
     return res;
 }
 
+/**
+ * @brief 신/리더/네메시스/아티팩트 이름을 해당 대명사로 치환한다.
+ * @param[in] who   대상('d'=신, 'l'=리더, 'n'=네메시스, 'o'=아티팩트).
+ * @param[in] which 대명사 종류('h/H'=주격, 'i/I'=목적격, 'j/J'=소유격).
+ * @note 결과는 @c gc.cvt_buf[] 에 기록되며, 대문자 형태이면 첫 글자를 대문자화한다.
+ */
 /* replace deity, leader, nemesis, or artifact name with pronoun;
    overwrites cvt_buf[] */
 staticfn void
@@ -232,6 +298,11 @@ qtext_pronoun(
     return;
 }
 
+/**
+ * @brief 퀘스트 텍스트의 서식 인자 문자를 해당 문자열로 변환한다.
+ * @param[in] c 서식 인자 문자(예: 'p'=플레이어명, 'l'=리더, 'n'=네메시스 등).
+ * @note 변환 결과는 @c gc.cvt_buf[] 에 기록된다.
+ */
 staticfn void
 convert_arg(char c)
 {
@@ -324,6 +395,16 @@ convert_arg(char c)
     Strcpy(gc.cvt_buf, str);
 }
 
+/**
+ * @brief 퀘스트 텍스트 한 줄의 서식 지정자를 모두 치환하여 출력 줄을 만든다.
+ *
+ * @c %<인자>에 이어지는 수식자(대문자화, 관사, 복수화, 소유격, 대명사,
+ * "the" 제거 등)를 처리한다.
+ *
+ * @param[in]  in_line  원본 텍스트 한 줄.
+ * @param[out] out_line 변환된 텍스트를 저장할 버퍼(@c BUFSZ 크기).
+ * @warning 결과가 @c BUFSZ 를 초과하면 @c panic() 으로 중단한다.
+ */
 staticfn void
 convert_line(char *in_line, char *out_line)
 {
@@ -419,6 +500,10 @@ convert_line(char *in_line, char *out_line)
     return;
 }
 
+/**
+ * @brief 퀘스트 텍스트를 줄 단위로 변환하여 pline 으로 출력한다.
+ * @param[in] str 출력할 퀘스트 텍스트(개행으로 구분된 여러 줄 가능).
+ */
 staticfn void
 deliver_by_pline(const char *str)
 {
@@ -435,6 +520,11 @@ deliver_by_pline(const char *str)
     }
 }
 
+/**
+ * @brief 퀘스트 텍스트를 변환하여 별도의 창(window)에 표시한다.
+ * @param[in] msg 표시할 퀘스트 텍스트.
+ * @param[in] how 창 종류(@c NHW_TEXT 또는 @c NHW_MENU).
+ */
 staticfn void
 deliver_by_window(const char *msg, int how)
 {
@@ -455,6 +545,12 @@ deliver_by_window(const char *msg, int how)
     destroy_nhwindow(datawin);
 }
 
+/**
+ * @brief 퀘스트 텍스트 출력을 건너뛸지 판정한다.
+ * @param[in] common 공통 텍스트 여부(사용되지 않음).
+ * @return 건너뛰어야 하면 TRUE, 아니면 FALSE.
+ * @note WIZKIT 으로 퀘스트 아티팩트를 들고 시작하는 경우 플롯 피드백을 억제한다.
+ */
 staticfn boolean
 skip_pager(boolean common UNUSED)
 {
@@ -464,6 +560,18 @@ skip_pager(boolean common UNUSED)
     return FALSE;
 }
 
+/**
+ * @brief @c quest.lua 에서 지정한 퀘스트 텍스트를 찾아 변환·전달하는 핵심 루틴.
+ *
+ * Lua 테이블 questtext[section][msgid] 에서 텍스트를 읽어(필요 시 대체 msgid로
+ * 폴백) 출력 방식(pline/window/menu)을 결정한 뒤 전달한다.
+ *
+ * @param[in]  section  텍스트 구획(직업 코드 또는 "common").
+ * @param[in]  msgid    메시지 식별자.
+ * @param[in]  showerror TRUE 이면 오류 상황에서 @c impossible() 경고를 낸다.
+ * @param[out] rawtext  NULL 이 아니면 변환하지 않은 원문을 복제해 넘기고 반환한다.
+ * @return 텍스트를 찾아 처리했으면 TRUE, 실패하면 FALSE.
+ */
 staticfn boolean
 com_pager_core(
     const char *section,
@@ -620,12 +728,20 @@ com_pager_core(
     return res;
 }
 
+/**
+ * @brief 공통(common) 구획의 퀘스트 텍스트를 출력한다.
+ * @param[in] msgid 출력할 메시지 식별자.
+ */
 void
 com_pager(const char *msgid)
 {
     (void) com_pager_core("common", msgid, TRUE, (char **) 0);
 }
 
+/**
+ * @brief 현재 직업의 퀘스트 텍스트를 출력한다(없으면 공통 구획으로 폴백).
+ * @param[in] msgid 출력할 메시지 식별자.
+ */
 void
 qt_pager(const char *msgid)
 {
@@ -633,6 +749,11 @@ qt_pager(const char *msgid)
         (void) com_pager_core("common", msgid, TRUE, (char **) 0);
 }
 
+/**
+ * @brief 퀘스트에 어울리는 적 몬스터 종류를 무작위로 고른다.
+ * @return 선택된 몬스터 종 데이터 포인터.
+ * @note 직업별 주요 적(enemy1)과 부차 적(enemy2) 및 해당 심볼 클래스에서 고른다.
+ */
 struct permonst *
 qt_montype(void)
 {
@@ -650,6 +771,10 @@ qt_montype(void)
     return mkclass(gu.urole.enemy2sym, 0);
 }
 
+/**
+ * @brief 특수 레벨의 커스텀 도착 메시지가 있으면 출력한다.
+ * @note 출력 후 해당 메시지 버퍼를 해제한다.
+ */
 /* special levels can include a custom arrival message; display it */
 void
 deliver_splev_message(void)

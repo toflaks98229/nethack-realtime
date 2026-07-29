@@ -2,16 +2,32 @@
 /* Copyright (c) Izchak Miller, Steve Linhart, 1989.              */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file priest.c
+ * @brief 신전 사제(temple priest) 및 정렬 성직자/천사(roamer) 관련 로직.
+ *
+ * 사제의 이동, 신전/제단 판정, 사제 생성(priestini)과 이름 표기, 사제와의 대화·
+ * 헌금, 신전 침입 처리, 성역(sanctuary) 판정, 신의 응징(ghod_hitsu), 사제 분노
+ * 등을 담당한다.
+ */
+
 #include "hack.h"
 #include "mfndpos.h"
 
 /* these match the categorizations shown by enlightenment */
+/** @brief 정렬 점수: "죄지음"(strayed -1..-3 보다 나쁨) 경계값. */
 #define ALGN_SINNED (-4) /* worse than strayed (-1..-3) */
+/** @brief 정렬 점수: "독실함"(fervent 9..13 보다 좋음) 경계값. */
 #define ALGN_DEVOUT 14   /* better than fervent (9..13) */
 
 staticfn boolean histemple_at(struct monst *, coordxy, coordxy);
 staticfn boolean has_shrine(struct monst *);
 
+/**
+ * @brief 몬스터에 사제(epri) 확장 구조체를 할당한다.
+ * @param[in,out] mtmp 대상 몬스터.
+ * @note 이미 할당되어 있으면 아무 동작도 하지 않는다.
+ */
 void
 newepri(struct monst *mtmp)
 {
@@ -24,6 +40,11 @@ newepri(struct monst *mtmp)
     }
 }
 
+/**
+ * @brief 몬스터의 사제(epri) 확장 구조체를 해제한다.
+ * @param[in,out] mtmp 대상 몬스터.
+ * @note 사제 플래그(@c ispriest)도 함께 해제한다.
+ */
 void
 free_epri(struct monst *mtmp)
 {
@@ -34,6 +55,20 @@ free_epri(struct monst *mtmp)
     mtmp->ispriest = 0;
 }
 
+/**
+ * @brief 사제와 상점 주인의 공통 이동 로직(목표 지점을 향해 이동).
+ * @param[in,out] mtmp        이동하는 몬스터.
+ * @param[in]     in_his_shop 상점 주인이 자기 가게 안에 있는지.
+ * @param[in]     appr        접근 성향(양수=접근, 음수=회피).
+ * @param[in]     uondoor     영웅이 문 위에 있는지.
+ * @param[in]     avoid       영웅을 피할지 여부.
+ * @param[in]     omx,omy     현재 위치.
+ * @param[in]     ggx,ggy     목표 위치.
+ * @retval 1  이동했다.
+ * @retval 0  이동하지 않았다.
+ * @retval -1 일반 이동(@c m_move)에 맡긴다.
+ * @retval -2 죽었다.
+ */
 /*
  * Move for priests and shopkeepers.  Called from shk_move() and pri_move().
  * Valid returns are  1: moved  0: didn't  -1: let m_move do it  -2: died.
@@ -138,6 +173,11 @@ move_special(struct monst *mtmp, boolean in_his_shop, schar appr,
     return 0;
 }
 
+/**
+ * @brief 방 목록 중 신전(temple)에 해당하는 방 문자를 찾는다.
+ * @param[in] array 방 문자 배열(예: @c u.urooms).
+ * @return 신전 방 문자, 없으면 '\0'.
+ */
 char
 temple_occupied(char *array)
 {
@@ -149,6 +189,12 @@ temple_occupied(char *array)
     return '\0';
 }
 
+/**
+ * @brief 지정 좌표가 이 사제의 신전(같은 레벨·같은 방)인지 판정한다.
+ * @param[in] priest 대상 사제.
+ * @param[in] x,y    확인할 좌표.
+ * @return 사제의 신전 위치이면 TRUE, 아니면 FALSE.
+ */
 staticfn boolean
 histemple_at(struct monst *priest, coordxy x, coordxy y)
 {
@@ -157,6 +203,11 @@ histemple_at(struct monst *priest, coordxy x, coordxy y)
                       && on_level(&(EPRI(priest)->shrlevel), &u.uz));
 }
 
+/**
+ * @brief 사제가 자신의 신전 안(정렬 맞는 제단이 있는)에 있는지 판정한다.
+ * @param[in] priest 대상 사제.
+ * @return 자신의 온전한 신전 안에 있으면 TRUE, 아니면 FALSE.
+ */
 boolean
 inhistemple(struct monst *priest)
 {
@@ -170,6 +221,15 @@ inhistemple(struct monst *priest)
     return has_shrine(priest);
 }
 
+/**
+ * @brief 신전 사제의 한 턴 이동을 처리한다.
+ * @param[in,out] priest 대상 사제.
+ * @retval 1  이동했다.
+ * @retval 0  이동하지 않았다(또는 공격했다).
+ * @retval -1 일반 이동(@c m_move)에 맡긴다.
+ * @retval -2 죽었다.
+ * @note 평상시엔 제단 주변을 배회하고, 적대적이면 영웅을 추격/공격한다.
+ */
 /*
  * pri_move: return 1: moved  0: didn't  -1: let m_move do it  -2: died
  */
@@ -215,6 +275,15 @@ pri_move(struct monst *priest)
     return move_special(priest, FALSE, TRUE, FALSE, avoid, omx, omy, ggx, ggy);
 }
 
+/**
+ * @brief 신전 생성 시 제단을 지키는 사제를 만든다(mktemple 전용).
+ * @param[in] lvl     신전이 위치한 던전 레벨.
+ * @param[in] sroom   신전 방.
+ * @param[in] sx,sy   제단 좌표.
+ * @param[in] sanctum TRUE 이면 대사제(성소)의 자리.
+ * @note 사제에게 주문서·로브 등을 지급하며, 성소의 무정렬 제단이면 옌더의 부적을
+ *       준다.
+ */
 /* exclusively for mktemple() */
 void
 priestini(
@@ -275,6 +344,11 @@ priestini(
     }
 }
 
+/**
+ * @brief 몬스터의 정렬 유형을 반환한다(사제/하수인/일반 구분 없이).
+ * @param[in] mon 대상 몬스터.
+ * @return @c A_LAWFUL / @c A_NEUTRAL / @c A_CHAOTIC / @c A_NONE.
+ */
 /* get a monster's alignment type without caller needing EPRI & EMIN */
 aligntyp
 mon_aligntyp(struct monst *mon)
@@ -297,6 +371,14 @@ mon_aligntyp(struct monst *mon)
  *      - minions do not have ispriest but have isminion and emin
  *      - caller needs to inhibit Hallucination if it wants to force
  *              the true name even when under that influence
+ */
+/**
+ * @brief 사제·성직자·천사 등의 정렬을 반영한 이름 문자열을 만든다.
+ * @param[in]  mon                 대상 몬스터.
+ * @param[in]  article             붙일 관사(@c ARTICLE_THE 등).
+ * @param[in]  reveal_high_priest  TRUE 이면 대사제의 정체(신 이름)를 드러낸다.
+ * @param[out] pname               결과를 저장할 버퍼.
+ * @return 결과가 기록된 @p pname.
  */
 char *
 priestname(
@@ -366,12 +448,22 @@ priestname(
     return pname;
 }
 
+/**
+ * @brief 사제가 영웅과 같은 정렬인지 판정한다.
+ * @param[in] priest 대상 사제.
+ * @return 같은 정렬이면 TRUE, 아니면 FALSE.
+ */
 boolean
 p_coaligned(struct monst *priest)
 {
     return (boolean) (u.ualign.type == mon_aligntyp(priest));
 }
 
+/**
+ * @brief 사제의 제단이 온전한 성소(shrine)로 남아 있는지 판정한다.
+ * @param[in] pri 대상 사제.
+ * @return 정렬이 맞는 성소 제단이 있으면 TRUE, 아니면 FALSE.
+ */
 staticfn boolean
 has_shrine(struct monst *pri)
 {
@@ -388,6 +480,11 @@ has_shrine(struct monst *pri)
                       == (Amask2align(lev->altarmask & ~AM_SHRINE)));
 }
 
+/**
+ * @brief 지정한 방 번호의 신전을 지키는 사제를 찾는다.
+ * @param[in] roomno 신전 방 번호.
+ * @return 해당 신전의 사제, 없으면 NULL.
+ */
 struct monst *
 findpriest(char roomno)
 {
@@ -405,6 +502,11 @@ findpriest(char roomno)
 
 DISABLE_WARNING_FORMAT_NONLITERAL
 
+/**
+ * @brief 영웅이 신전 방에 들어왔을 때의 반응을 처리한다.
+ * @param[in] roomno 진입한 신전 방 번호.
+ * @note 사제의 인사·경고 등을 정렬/신앙 상태에 따라 출력한다.
+ */
 /* called from check_special_room() when the player enters the temple room */
 void
 intemple(int roomno)
@@ -541,6 +643,11 @@ RESTORE_WARNING_FORMAT_NONLITERAL
 
 /* reset the move counters used to limit temple entry feedback;
    leaving the level and then returning yields a fresh start */
+/**
+ * @brief 사제의 신전 진입 관련 타이머 기록을 초기화한다.
+ * @param[in,out] priest 대상 사제.
+ * @note 레벨을 떠났다 돌아오면 신전 반응이 새로 시작되도록 한다.
+ */
 void
 forget_temple_entry(struct monst *priest)
 {
@@ -554,6 +661,11 @@ forget_temple_entry(struct monst *priest)
         epri_p->hostile_time = 0L;
 }
 
+/**
+ * @brief 영웅이 사제에게 말을 걸었을 때(#chat)의 대화를 처리한다.
+ * @param[in,out] priest 대화 상대 사제.
+ * @note 헌금 요청, 정렬/신앙 상태에 따른 반응, 축복/저주 등을 다룬다.
+ */
 void
 priest_talk(struct monst *priest)
 {
@@ -720,6 +832,14 @@ priest_talk(struct monst *priest)
     }
 }
 
+/**
+ * @brief 배회하는 성직자/천사(roamer) 몬스터를 생성한다.
+ * @param[in] ptr       생성할 종 데이터(정렬 성직자/천사 등).
+ * @param[in] alignment 생성될 몬스터의 정렬.
+ * @param[in] x,y       생성 위치.
+ * @param[in] peaceful  TRUE 이면 평화적으로 생성한다.
+ * @return 생성된 몬스터, 실패 시 NULL.
+ */
 struct monst *
 mk_roamer(struct permonst *ptr, aligntyp alignment, coordxy x, coordxy y,
           boolean peaceful)
@@ -751,6 +871,11 @@ mk_roamer(struct permonst *ptr, aligntyp alignment, coordxy x, coordxy y,
     return roamer;
 }
 
+/**
+ * @brief 배회자(roamer)의 적대 여부를 영웅 정렬 변화에 맞춰 재설정한다.
+ * @param[in,out] roamer 대상 배회자(성직자/천사).
+ * @note 정렬이 영웅과 달라지면 적대적으로 바뀐다.
+ */
 void
 reset_hostility(struct monst *roamer)
 {
@@ -767,6 +892,13 @@ reset_hostility(struct monst *roamer)
     newsym(roamer->mx, roamer->my);
 }
 
+/**
+ * @brief 지정 위치가 영웅에게 우호적인 성역(sanctuary)인지 판정한다.
+ * @param[in] mon NULL 이 아니면 이 몬스터의 위치로 @p x,y 를 대체.
+ * @param[in] x,y 확인할 좌표.
+ * @return 우호적 성역(정렬 맞는 평화적 사제의 온전한 성소)이면 TRUE.
+ * @note 영웅이 죄를 지은 상태이면 성역으로 인정되지 않는다.
+ */
 boolean
 in_your_sanctuary(
     struct monst *mon, /* if non-null, <mx,my> overrides <x,y> */
@@ -791,6 +923,11 @@ in_your_sanctuary(
                       && priest->mpeaceful);
 }
 
+/**
+ * @brief 신전 안에서 사제를 공격했을 때 신의 응징을 내린다.
+ * @param[in] priest 공격받은 사제.
+ * @note 제단 부근에서 벼락 등 신성한 공격이 영웅을 향해 발동한다.
+ */
 /* when attacking "priest" in his temple */
 void
 ghod_hitsu(struct monst *priest)
@@ -873,6 +1010,10 @@ ghod_hitsu(struct monst *priest)
     exercise(A_WIS, FALSE);
 }
 
+/**
+ * @brief 현재 신전의 사제를 분노시킨다(적대화).
+ * @note 제단이 파괴/개종되었으면 사제는 신전을 떠나 배회 하수인이 된다.
+ */
 void
 angry_priest(void)
 {
@@ -910,6 +1051,10 @@ angry_priest(void)
     }
 }
 
+/**
+ * @brief bones 저장 시 자신의 성소 레벨에 없는 사제들을 제거한다.
+ * @note bones 복원 시의 문제를 방지하기 위한 정리 작업이다.
+ */
 /*
  * When saving bones, find priests that aren't on their shrine level,
  * and remove them.  This avoids big problems when restoring bones.
@@ -928,6 +1073,11 @@ clearpriests(void)
     }
 }
 
+/**
+ * @brief 복원 시 사제 고유 구조체(성소 레벨 등)를 보정한다.
+ * @param[in,out] mtmp    복원 중인 사제.
+ * @param[in]     ghostly bones 파일에서 복원하는 경우 TRUE.
+ */
 /* munge priest-specific structure when restoring -dlc */
 void
 restpriest(struct monst *mtmp, boolean ghostly)

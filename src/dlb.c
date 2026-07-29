@@ -2,6 +2,18 @@
 /* Copyright (c) Kenneth Lorber, Bethesda, Maryland, 1993. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file dlb.c
+ * @brief 데이터 라이브러리언(Data Librarian): 데이터 아카이브 접근 계층.
+ *
+ * 하나 이상의 "데이터 라이브러리"(아카이브 파일)를 다중화하여 NetHack 에
+ * STDIO 유사 인터페이스(@c dlb_fopen/fread/fseek/fgets/fgetc/ftell)를
+ * 제공한다. 라이브러리 내부에서 파일을 찾지 못하면 라이브러리 바깥의 실제
+ * 파일을 찾는다. 백엔드는 @c #ifdef(@c DLBLIB, @c DLBRSRC)로 선택된다.
+ *
+ * @note 선언 순서가 조건부 컴파일에 의해 규정되므로 재배치하지 않는다.
+ */
+
 #include "config.h"
 #include "dlb.h"
 
@@ -18,6 +30,7 @@
  * in a given library, look for it outside the libraries.
  */
 
+/** @brief DLB 백엔드 구현이 제공해야 하는 함수 포인터 집합. */
 typedef struct dlb_procs {
     boolean (*dlb_init_proc)(void);
     void (*dlb_cleanup_proc)(void);
@@ -123,6 +136,12 @@ extern char *eos(char *);
  *
  * Return TRUE on success, FALSE on failure.
  */
+/**
+ * @brief 라이브러리 파일에서 디렉터리(목차)를 읽어 구조체를 채운다.
+ * @param[in,out] lp 채워 넣을 라이브러리 포인터.
+ * @return 성공 시 TRUE, 실패 시 FALSE(할당물은 모두 정리됨).
+ * @note 성공 후 파일 포인터를 위치 0으로 되돌린다.
+ */
 staticfn boolean
 readlibdir(library *lp) /* library pointer to fill in */
 {
@@ -171,6 +190,14 @@ readlibdir(library *lp) /* library pointer to fill in */
  * Look for the file in our directory structure.  Return 1 if successful,
  * 0 if not found.  Fill in the size and starting position.
  */
+/**
+ * @brief 열린 라이브러리들의 디렉터리에서 파일을 찾는다.
+ * @param[in]  name   찾을 파일 이름.
+ * @param[out] lib    파일을 포함한 라이브러리 포인터(없으면 NULL).
+ * @param[out] startp 아카이브 내 파일 시작 오프셋.
+ * @param[out] sizep  파일 크기.
+ * @return 찾으면 TRUE, 없으면 FALSE.
+ */
 staticfn boolean
 find_file(const char *name, library **lib, long *startp, long *sizep)
 {
@@ -193,6 +220,13 @@ find_file(const char *name, library **lib, long *startp, long *sizep)
     return FALSE;
 }
 
+/**
+ * @brief 지정한 이름의 라이브러리 파일을 열고 디렉터리를 읽어 들인다.
+ * @param[in]  lib_name 라이브러리 파일 이름.
+ * @param[out] lp       채워 넣을 라이브러리 구조체.
+ * @return 성공 시 TRUE, 실패 시 FALSE.
+ * @note @c dlb_main.c 와 공유되므로 static 이 아니다.
+ */
 /*
  * Open the library of the given name and fill in the given library
  * structure.  Return TRUE if successful, FALSE otherwise.
@@ -214,6 +248,11 @@ open_library(const char *lib_name, library *lp)
     return status;
 }
 
+/**
+ * @brief 라이브러리 파일을 닫고 관련 메모리를 해제한다.
+ * @param[in,out] lp 닫을 라이브러리 구조체(호출 후 0으로 초기화됨).
+ * @note @c dlb_main.c 와 공유되므로 static 이 아니다.
+ */
 void
 close_library(library *lp)
 {
@@ -224,6 +263,10 @@ close_library(library *lp)
     (void) memset((char *) lp, 0, sizeof(library));
 }
 
+/**
+ * @brief DLBLIB 백엔드 초기화: 라이브러리 파일(들)을 열어 둔다.
+ * @return 성공 시 TRUE, 하나라도 실패하면 FALSE.
+ */
 /*
  * Open the library file once using stdio.  Keep it open, but
  * keep track of the file position.
@@ -248,6 +291,9 @@ lib_dlb_init(void)
     return TRUE;
 }
 
+/**
+ * @brief DLBLIB 백엔드 정리: 열려 있는 데이터 파일(들)을 닫는다.
+ */
 staticfn void
 lib_dlb_cleanup(void)
 {
@@ -258,6 +304,11 @@ lib_dlb_cleanup(void)
         close_library(&dlb_libs[i]);
 }
 
+/**
+ * @brief 버전 번호가 포함된 DLB 파일 이름을 구성한다.
+ * @param[in] lf 기본 이름(NULL 이면 @c DLBBASENAME 사용).
+ * @return 구성된 파일 이름(정적 버퍼 @c dlbfilename).
+ */
 #ifdef VERSION_IN_DLB_FILENAME
 char *
 build_dlb_filename(const char *lf)
@@ -268,6 +319,13 @@ build_dlb_filename(const char *lf)
 }
 #endif
 
+/**
+ * @brief DLBLIB 백엔드: 라이브러리 내 파일을 연다(디스크립터 채우기).
+ * @param[out] dp   채워 넣을 dlb 디스크립터.
+ * @param[in]  name 열 파일 이름.
+ * @param[in]  mode 모드(사용되지 않음).
+ * @return 찾아서 열면 TRUE, 없으면 FALSE.
+ */
 /*ARGSUSED*/
 staticfn boolean
 lib_dlb_fopen(dlb *dp, const char *name, const char *mode UNUSED)
@@ -287,6 +345,11 @@ lib_dlb_fopen(dlb *dp, const char *name, const char *mode UNUSED)
     return FALSE; /* failed */
 }
 
+/**
+ * @brief DLBLIB 백엔드: 라이브러리 내 파일을 닫는다(할 일 없음).
+ * @param[in] dp dlb 디스크립터(사용되지 않음).
+ * @return 항상 0.
+ */
 /*ARGUSED*/
 staticfn int
 lib_dlb_fclose(dlb *dp UNUSED)
@@ -295,6 +358,15 @@ lib_dlb_fclose(dlb *dp UNUSED)
     return 0;
 }
 
+/**
+ * @brief DLBLIB 백엔드: 라이브러리 내 파일에서 데이터를 읽는다.
+ * @param[out] buf  읽어들일 버퍼.
+ * @param[in]  size 항목 하나의 바이트 크기.
+ * @param[in]  quan 읽을 항목 수.
+ * @param[in,out] dp dlb 디스크립터(파일 마크가 갱신됨).
+ * @return 실제로 읽은 항목 수.
+ * @note 다음 파일 영역을 침범하지 않도록 읽기 수량을 제한한다.
+ */
 staticfn int
 lib_dlb_fread(char *buf, int size, int quan, dlb *dp)
 {
@@ -320,6 +392,14 @@ lib_dlb_fread(char *buf, int size, int quan, dlb *dp)
     return (int) nread;
 }
 
+/**
+ * @brief DLBLIB 백엔드: 라이브러리 내 파일의 읽기 위치를 이동한다.
+ * @param[in,out] dp     dlb 디스크립터.
+ * @param[in]     pos    이동량/위치.
+ * @param[in]     whence 기준(@c SEEK_CUR/SEEK_END/SEEK_SET).
+ * @return 항상 0.
+ * @note 위치는 파일 경계(0 ~ size) 내로 제한된다.
+ */
 staticfn int
 lib_dlb_fseek(dlb *dp, long pos, int whence)
 {
@@ -345,6 +425,13 @@ lib_dlb_fseek(dlb *dp, long pos, int whence)
     return 0;
 }
 
+/**
+ * @brief DLBLIB 백엔드: 라이브러리 내 파일에서 한 줄을 읽는다.
+ * @param[out]    buf 읽어들일 버퍼.
+ * @param[in]     len 버퍼 크기.
+ * @param[in,out] dp  dlb 디스크립터.
+ * @return @p buf, EOF 이면 NULL.
+ */
 staticfn char *
 lib_dlb_fgets(char *buf, int len, dlb *dp)
 {
@@ -377,6 +464,11 @@ lib_dlb_fgets(char *buf, int len, dlb *dp)
     return buf;
 }
 
+/**
+ * @brief DLBLIB 백엔드: 라이브러리 내 파일에서 한 문자를 읽는다.
+ * @param[in,out] dp dlb 디스크립터.
+ * @return 읽은 문자, EOF 이면 @c EOF.
+ */
 staticfn int
 lib_dlb_fgetc(dlb *dp)
 {
@@ -387,12 +479,18 @@ lib_dlb_fgetc(dlb *dp)
     return (int) c;
 }
 
+/**
+ * @brief DLBLIB 백엔드: 라이브러리 내 파일의 현재 읽기 위치를 반환한다.
+ * @param[in] dp dlb 디스크립터.
+ * @return 파일 내 현재 위치.
+ */
 staticfn long
 lib_dlb_ftell(dlb *dp)
 {
     return dp->mark;
 }
 
+/** @brief DLBLIB 백엔드의 함수 포인터 테이블. */
 static const dlb_procs_t lib_dlb_procs = { lib_dlb_init,  lib_dlb_cleanup,
                                     lib_dlb_fopen, lib_dlb_fclose,
                                     lib_dlb_fread, lib_dlb_fseek,
@@ -422,9 +520,15 @@ static const dlb_procs_t rsrc_dlb_procs = { rsrc_dlb_init,  rsrc_dlb_cleanup,
 #define do_dlb_fgetc (*dlb_procs->dlb_fgetc_proc)
 #define do_dlb_ftell (*dlb_procs->dlb_ftell_proc)
 
+/** @brief 현재 선택된 DLB 백엔드의 함수 포인터 테이블. */
 static const dlb_procs_t *dlb_procs;
+/** @brief DLB 하위 시스템 초기화 완료 여부. */
 static boolean dlb_initialized = FALSE;
 
+/**
+ * @brief DLB 하위 시스템을 초기화한다.
+ * @return 초기화 성공(또는 이미 초기화됨) 시 TRUE, 실패 시 FALSE.
+ */
 boolean
 dlb_init(void)
 {
@@ -443,6 +547,9 @@ dlb_init(void)
     return dlb_initialized;
 }
 
+/**
+ * @brief DLB 하위 시스템을 정리하고 자원을 해제한다.
+ */
 void
 dlb_cleanup(void)
 {
@@ -452,6 +559,13 @@ dlb_cleanup(void)
     }
 }
 
+/**
+ * @brief 데이터 파일을 연다(라이브러리 내부 우선, 없으면 외부 실제 파일).
+ * @param[in] name 열 파일 이름.
+ * @param[in] mode 열기 모드(읽기 전용만 지원).
+ * @return dlb 디스크립터, 실패하면 NULL.
+ * @note 반환된 디스크립터는 @c dlb_fclose() 로 닫아야 한다.
+ */
 dlb *
 dlb_fopen(const char *name, const char *mode)
 {
@@ -479,6 +593,11 @@ dlb_fopen(const char *name, const char *mode)
     return dp;
 }
 
+/**
+ * @brief @c dlb_fopen() 으로 연 데이터 파일을 닫는다.
+ * @param[in,out] dp 닫을 dlb 디스크립터(해제됨).
+ * @return 닫기 결과 코드.
+ */
 int
 dlb_fclose(dlb *dp)
 {
@@ -495,6 +614,14 @@ dlb_fclose(dlb *dp)
     return ret;
 }
 
+/**
+ * @brief 데이터 파일에서 데이터를 읽는다.
+ * @param[out]    buf  읽어들일 버퍼.
+ * @param[in]     size 항목 하나의 바이트 크기.
+ * @param[in]     quan 읽을 항목 수.
+ * @param[in,out] dp   dlb 디스크립터.
+ * @return 실제로 읽은 항목 수.
+ */
 int
 dlb_fread(char *buf, int size, int quan, dlb *dp)
 {
@@ -505,6 +632,13 @@ dlb_fread(char *buf, int size, int quan, dlb *dp)
     return do_dlb_fread(buf, size, quan, dp);
 }
 
+/**
+ * @brief 데이터 파일의 읽기 위치를 이동한다.
+ * @param[in,out] dp     dlb 디스크립터.
+ * @param[in]     pos    이동량/위치.
+ * @param[in]     whence 기준(@c SEEK_CUR/SEEK_END/SEEK_SET).
+ * @return 성공 시 0, 미초기화 시 @c EOF.
+ */
 int
 dlb_fseek(dlb *dp, long pos, int whence)
 {
@@ -515,6 +649,13 @@ dlb_fseek(dlb *dp, long pos, int whence)
     return do_dlb_fseek(dp, pos, whence);
 }
 
+/**
+ * @brief 데이터 파일에서 한 줄을 읽는다.
+ * @param[out]    buf 읽어들일 버퍼.
+ * @param[in]     len 버퍼 크기.
+ * @param[in,out] dp  dlb 디스크립터.
+ * @return @p buf, EOF/미초기화 시 NULL.
+ */
 char *
 dlb_fgets(char *buf, int len, dlb *dp)
 {
@@ -525,6 +666,11 @@ dlb_fgets(char *buf, int len, dlb *dp)
     return do_dlb_fgets(buf, len, dp);
 }
 
+/**
+ * @brief 데이터 파일에서 한 문자를 읽는다.
+ * @param[in,out] dp dlb 디스크립터.
+ * @return 읽은 문자, EOF/미초기화 시 @c EOF.
+ */
 int
 dlb_fgetc(dlb *dp)
 {
@@ -535,6 +681,11 @@ dlb_fgetc(dlb *dp)
     return do_dlb_fgetc(dp);
 }
 
+/**
+ * @brief 데이터 파일의 현재 읽기 위치를 반환한다.
+ * @param[in] dp dlb 디스크립터.
+ * @return 파일 내 현재 위치, 미초기화 시 0.
+ */
 long
 dlb_ftell(dlb *dp)
 {

@@ -3,8 +3,26 @@
 /*-Copyright (c) Robert Patrick Rankin, 2011. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file were.c
+ * @brief 라이칸스로프(were-creature)의 변신 및 소환 관련 로직.
+ *
+ * 늑대인간/자칼인간/쥐인간 등의 인간 형태와 짐승 형태 사이의 변신, 짐승
+ * 무리 소환, 그리고 영웅 자신의 라이칸스로프 상태 변화를 처리한다.
+ * 변신 확률은 밤/보름달 여부 및 형태 변경 방지(Protection) 여부에 좌우된다.
+ */
+
 #include "hack.h"
 
+/**
+ * @brief 라이칸스로프 몬스터의 주기적 변신 시도를 처리한다.
+ *
+ * 인간 형태이면 밤/보름달 등에 따른 확률로 짐승 형태로 변하고, 짐승 형태이면
+ * 낮은 확률로 인간 형태로 되돌아간다. 근처에 있으면 울음소리를 들려준다.
+ *
+ * @param[in,out] mon 변신을 시도할 몬스터.
+ * @note 라이칸스로프가 아닌 몬스터에게는 아무 동작도 하지 않는다.
+ */
 void
 were_change(struct monst *mon)
 {
@@ -44,6 +62,15 @@ were_change(struct monst *mon)
     }
 }
 
+/**
+ * @brief 라이칸스로프의 반대(짝) 형태 종 번호를 반환한다.
+ *
+ * 짐승 형태는 대응하는 인간 형태로, 인간 형태는 대응하는 짐승 형태로 매핑한다.
+ *
+ * @param[in] pm 현재 형태의 몬스터 종 번호.
+ * @return 반대 형태의 종 번호.
+ * @retval NON_PM 라이칸스로프 형태가 아닐 경우.
+ */
 int
 counter_were(int pm)
 {
@@ -65,6 +92,15 @@ counter_were(int pm)
     }
 }
 
+/**
+ * @brief 라이칸스로프와 유사한 몬스터를 대응하는 were-짐승 종으로 변환한다.
+ *
+ * 예: 하수구 쥐/거대 쥐 → 쥐인간, 자칼/여우 → 자칼인간, 늑대/워그 → 늑대인간.
+ *
+ * @param[in] pm 변환할 몬스터 종 번호.
+ * @return 대응하는 were-짐승 종 번호.
+ * @retval NON_PM 대응하는 were-짐승이 없을 경우.
+ */
 /* convert monsters similar to werecritters into appropriate werebeast */
 int
 were_beastie(int pm)
@@ -92,6 +128,17 @@ were_beastie(int pm)
     return NON_PM;
 }
 
+/**
+ * @brief 라이칸스로프 몬스터를 반대 형태로 실제 변신시킨다.
+ *
+ * 종 데이터를 교체하고, 변신에 따른 각성/체력 일부 회복/장비 파손/무장 해제
+ * 등을 처리하며 화면을 갱신한다.
+ *
+ * @param[in,out] mon 변신시킬 몬스터.
+ * @note 형태 변경 방지(Protection_from_shape_changers) 상태에서 인간 형태인
+ *       경우에는 변신하지 않는다.
+ * @warning 알 수 없는 라이칸스로프이면 @c impossible() 경고를 낸다.
+ */
 void
 new_were(struct monst *mon)
 {
@@ -137,6 +184,18 @@ new_were(struct monst *mon)
         monflee(mon, rn1(9, 2), TRUE, TRUE); /* 2..10 turns */
 }
 
+/**
+ * @brief 라이칸스로프(영웅 포함)가 짐승 무리를 소환한다.
+ *
+ * 종류에 따라 쥐/자칼/늑대 계열 몬스터를 무작위 수만큼 생성한다.
+ *
+ * @param[in]  ptr     소환 주체의 종 데이터.
+ * @param[in]  yours   TRUE 이면 소환된 짐승이 영웅의 애완동물이 된다.
+ * @param[out] visible 생성된 몬스터 중 눈에 보이는 수를 저장한다.
+ * @param[out] genbuf  NULL 이 아니면 소환된 무리의 종류 이름을 기록한다.
+ * @return 실제로 생성된 몬스터의 총 수.
+ * @note 형태 변경 방지 상태이고 영웅의 소환이 아니면 아무것도 소환하지 않는다.
+ */
 /* were-creature (even you) summons a horde */
 int
 were_summon(
@@ -188,6 +247,15 @@ were_summon(
     return total;
 }
 
+/**
+ * @brief 영웅이 라이칸스로프 짐승 형태로 변신한다.
+ *
+ * 변신 제어(Polymorph_control)가 가능하면 변신 여부를 묻고, 그렇지 않으면
+ * 근처에 몬스터가 없을 때 자동으로 변신한다.
+ *
+ * @note 변신 불가(Unchanging) 상태이거나 이미 짐승 형태이면 아무 동작도 하지
+ *       않는다.
+ */
 void
 you_were(void)
 {
@@ -209,6 +277,13 @@ you_were(void)
     (void) polymon(u.ulycn);
 }
 
+/**
+ * @brief 영웅을 짐승 형태에서 인간 형태로 되돌리거나 라이칸스로프를 치유한다.
+ *
+ * @param[in] purify TRUE 이면 라이칸스로프 자체를 치유한다(정화).
+ * @note 변신 제어가 가능하면 짐승 형태 유지 여부를 물을 수 있으며, 되돌리지
+ *       않을 경우 다음 변신까지의 타이머를 설정한다.
+ */
 void
 you_unwere(boolean purify)
 {
@@ -227,6 +302,14 @@ you_unwere(boolean purify)
         u.mtimedone = rn1(200, 200); /* 40% of initial were change */
 }
 
+/**
+ * @brief 영웅의 라이칸스로프 종류를 설정하고 내재 능력을 갱신한다.
+ *
+ * 형태 변화 없이 라이칸스로피에 걸리거나 치유될 때 호출된다.
+ *
+ * @param[in] which 새 라이칸스로프 종 번호(치유 시 @c NON_PM).
+ * @note 라이칸스로프의 내재 내성(Drain_resistance)을 추가/제거한다.
+ */
 /* lycanthropy is being caught or cured, but no shape change is involved */
 void
 set_ulycn(int which)

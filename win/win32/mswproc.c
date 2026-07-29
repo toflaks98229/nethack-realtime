@@ -1,6 +1,9 @@
 /* NetHack 5.0	mswproc.c	$NHDT-Date: 1781973107 2026/06/20 16:31:47 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.208 $ */
 /* Copyright (C) 2001 by Alex Kompel */
 /* NetHack may be freely redistributed.  See license for details. */
+/* MODIFIED 2026-07 (real-time fork): the tile/GUI command input paces to the
+   shared real-time world clock (REALTIME_PROTO); see MODIFICATIONS.md.  This
+   file differs from the upstream NetHack distribution. */
 
 /*
  * This file implements the interface between the window port specific
@@ -1451,6 +1454,40 @@ int nhgetch()   -- Returns a single character input from the user.
                    will be the routine the OS provides to read a character.
                    Returned character _must_ be non-zero.
 */
+#ifdef REALTIME_PROTO
+/*
+ * Stage-2 real-time pump for the tile/GUI port.
+ *
+ * Service Windows messages (and keep the map redrawn) until the shared world
+ * clock -- the very same rt_world_tick_ready() the console path uses -- says
+ * the next game turn is due.  Any keystrokes the player makes meanwhile land
+ * in the mswin input queue and are consumed on the tick.  This gives the GUI
+ * build the same constant, input-independent pace as the console build.
+ */
+#define RT_REST_KEY 's' /* synthetic 'wait one turn' (search) when idle */
+
+static void
+mswin_rt_wait_for_tick(void)
+{
+    MSG msg;
+
+    while (!rt_world_tick_ready()) {
+        mswin_map_update(mswin_hwnd_from_winid(WIN_MAP));
+
+        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+            if (GetNHApp()->regNetHackMode
+                || !TranslateAccelerator(msg.hwnd, GetNHApp()->hAccelTable,
+                                         &msg)) {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
+        } else {
+            Sleep(RT_POLL_MS); /* nothing pending: yield the CPU */
+        }
+    }
+}
+#endif /* REALTIME_PROTO */
+
 int
 mswin_nhgetch(void)
 {
@@ -1488,6 +1525,20 @@ mswin_nh_poskey(coordxy *x, coordxy *y, int *mod)
     int key;
 
     logDebug("mswin_nh_poskey()\n");
+
+#ifdef REALTIME_PROTO
+    /* real-time only at the command prompt; menus/getpos/prompts still
+       block normally (they don't set input_state to commandInp) */
+    if (program_state.input_state == commandInp) {
+        mswin_rt_wait_for_tick(); /* pace to the shared world clock */
+        if (!mswin_have_input()) {
+            /* tick arrived with nothing buffered: hero waits this turn */
+            *x = u.ux, *y = u.uy, *mod = 0;
+            return RT_REST_KEY;
+        }
+        /* else: a buffered event is waiting; fall through to pop it */
+    }
+#endif
 
     while ((event = mswin_input_pop()) == NULL)
         mswin_main_loop();

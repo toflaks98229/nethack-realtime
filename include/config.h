@@ -2,9 +2,28 @@
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2016. */
 /* NetHack may be freely redistributed.  See license for details. */
+/* MODIFIED 2026-07 (real-time fork): added the REALTIME_PROTO / RT_TURN_MS
+   real-time build switch; see MODIFICATIONS.md.  This file differs from the
+   upstream NetHack distribution. */
 
 #ifndef CONFIG_H /* make sure the compiler does not see the typedefs twice */
 #define CONFIG_H
+
+/*
+ * Real-time prototype switch (turn-based -> real-time conversion).
+ * When defined, the hero no longer freezes the world while waiting for
+ * input.  A shared wall-clock (rt_world_tick_ready) advances the world one
+ * game turn every RT_TURN_MS of real time, regardless of input, so monsters
+ * and timeouts keep running and the pace stays constant no matter how fast
+ * keys are pressed.  Handled in allmain.c (console) and mswproc.c (win32
+ * tile/GUI port).  Comment out to restore stock turn-based play.
+ */
+#define REALTIME_PROTO
+#ifdef REALTIME_PROTO
+#define RT_TURN_MS 150 /* real milliseconds per game turn at normal speed;
+                        * smaller = faster action, larger = calmer pace */
+#define RT_POLL_MS 10  /* input-poll / CPU-yield granularity while waiting */
+#endif
 
 /*
  * Section 1:   Operating and window systems selection.

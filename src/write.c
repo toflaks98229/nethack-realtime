@@ -1,74 +1,30 @@
 /* NetHack 5.0	write.c	$NHDT-Date: 1781973075 2026/06/20 16:31:15 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.54 $ */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file write.c
+ * @brief 마법 마커(펜)로 두루마리·주문서를 작성하는 로직.
+ *
+ * 빈 두루마리/주문서에 원하는 종류를 이름 또는 설명으로 지정하여 작성하는
+ * @c dowrite() 명령을 구현한다. 잉크 소모, 성공/실패 판정(지식·행운·시각
+ * 상태), 필사 비용 계산 등을 처리한다.
+ */
+
 #include "hack.h"
 
 staticfn int cost(struct obj *) NONNULLARG1;
 staticfn int write_ok(struct obj *) NO_NNARGS;
 staticfn char *new_book_description(int, char *) NONNULL NONNULLPTRS;
 
-/*
- * returns base cost of a scroll or a spellbook
+/**
+ * @brief 마법 마커를 적용하여 두루마리/주문서를 작성한다(#write 명령).
+ *
+ * 작성 대상 빈 종이를 고르고 작성할 종류를 입력받아, 지식/행운/시각 상태와
+ * 잉크량에 따라 성공 여부를 판정한다. 성공 시 해당 아이템을 생성해 손에 든다.
+ *
+ * @param[in] pen 사용하는 마법 마커.
+ * @return 명령 처리 결과 코드(@c ECMD_OK, @c ECMD_TIME, @c ECMD_CANCEL 등).
  */
-staticfn int
-cost(struct obj *otmp)
-{
-    if (otmp->oclass == SPBOOK_CLASS)
-        return (10 * objects[otmp->otyp].oc_level);
-
-    switch (otmp->otyp) {
-#ifdef MAIL_STRUCTURES
-    case SCR_MAIL:
-        return 2;
-#endif
-    case SCR_LIGHT:
-    case SCR_GOLD_DETECTION:
-    case SCR_FOOD_DETECTION:
-    case SCR_MAGIC_MAPPING:
-    case SCR_AMNESIA:
-    case SCR_FIRE:
-    case SCR_EARTH:
-        return 8;
-    case SCR_DESTROY_ARMOR:
-    case SCR_CREATE_MONSTER:
-    case SCR_PUNISHMENT:
-        return 10;
-    case SCR_CONFUSE_MONSTER:
-        return 12;
-    case SCR_IDENTIFY:
-        return 14;
-    case SCR_ENCHANT_ARMOR:
-    case SCR_REMOVE_CURSE:
-    case SCR_ENCHANT_WEAPON:
-    case SCR_CHARGING:
-        return 16;
-    case SCR_SCARE_MONSTER:
-    case SCR_STINKING_CLOUD:
-    case SCR_TAMING:
-    case SCR_TELEPORTATION:
-        return 20;
-    case SCR_GENOCIDE:
-        return 30;
-    case SCR_BLANK_PAPER:
-    default:
-        impossible("You can't write such a weird scroll!");
-    }
-    return 1000;
-}
-
-/* getobj callback for object to write on */
-staticfn int
-write_ok(struct obj *obj)
-{
-    if (!obj || (obj->oclass != SCROLL_CLASS && obj->oclass != SPBOOK_CLASS))
-        return GETOBJ_EXCLUDE;
-
-    if (obj->otyp == SCR_BLANK_PAPER || obj->otyp == SPE_BLANK_PAPER)
-        return GETOBJ_SUGGEST;
-
-    return GETOBJ_DOWNPLAY;
-}
-
 /* write -- applying a magic marker */
 int
 dowrite(struct obj *pen)
@@ -384,6 +340,90 @@ dowrite(struct obj *pen)
     return ECMD_TIME;
 }
 
+/**
+ * @brief 두루마리 또는 주문서의 기본 필사 비용을 반환한다.
+ * @param[in] otmp 비용을 계산할 오브젝트(두루마리 또는 주문서).
+ * @return 기본 비용(잉크 소모량 산정에 사용).
+ * @warning 작성 불가능한 종류(빈 종이 등)이면 @c impossible() 경고를 낸다.
+ */
+/*
+ * returns base cost of a scroll or a spellbook
+ */
+staticfn int
+cost(struct obj *otmp)
+{
+    if (otmp->oclass == SPBOOK_CLASS)
+        return (10 * objects[otmp->otyp].oc_level);
+
+    switch (otmp->otyp) {
+#ifdef MAIL_STRUCTURES
+    case SCR_MAIL:
+        return 2;
+#endif
+    case SCR_LIGHT:
+    case SCR_GOLD_DETECTION:
+    case SCR_FOOD_DETECTION:
+    case SCR_MAGIC_MAPPING:
+    case SCR_AMNESIA:
+    case SCR_FIRE:
+    case SCR_EARTH:
+        return 8;
+    case SCR_DESTROY_ARMOR:
+    case SCR_CREATE_MONSTER:
+    case SCR_PUNISHMENT:
+        return 10;
+    case SCR_CONFUSE_MONSTER:
+        return 12;
+    case SCR_IDENTIFY:
+        return 14;
+    case SCR_ENCHANT_ARMOR:
+    case SCR_REMOVE_CURSE:
+    case SCR_ENCHANT_WEAPON:
+    case SCR_CHARGING:
+        return 16;
+    case SCR_SCARE_MONSTER:
+    case SCR_STINKING_CLOUD:
+    case SCR_TAMING:
+    case SCR_TELEPORTATION:
+        return 20;
+    case SCR_GENOCIDE:
+        return 30;
+    case SCR_BLANK_PAPER:
+    default:
+        impossible("You can't write such a weird scroll!");
+    }
+    return 1000;
+}
+
+/**
+ * @brief 작성 대상 오브젝트 선택을 위한 @c getobj 콜백.
+ * @param[in] obj 후보 오브젝트.
+ * @return 선택 우선순위 코드(@c GETOBJ_EXCLUDE / @c GETOBJ_SUGGEST /
+ *         @c GETOBJ_DOWNPLAY).
+ */
+/* getobj callback for object to write on */
+staticfn int
+write_ok(struct obj *obj)
+{
+    if (!obj || (obj->oclass != SCROLL_CLASS && obj->oclass != SPBOOK_CLASS))
+        return GETOBJ_EXCLUDE;
+
+    if (obj->otyp == SCR_BLANK_PAPER || obj->otyp == SPE_BLANK_PAPER)
+        return GETOBJ_SUGGEST;
+
+    return GETOBJ_DOWNPLAY;
+}
+
+/**
+ * @brief 새로 작성된 주문서의 외형 변화를 설명하는 문구를 만든다.
+ *
+ * 표지 외형 설명은 "turns red" 처럼 쓰지만, 재질 설명(예: vellum)에는
+ * "into " 를 앞에 붙여 자연스럽게 만든다.
+ *
+ * @param[in]  booktype 대상 주문서 종류.
+ * @param[out] outbuf   설명 문구를 저장할 버퍼.
+ * @return 결과가 기록된 @p outbuf 를 그대로 반환한다.
+ */
 /* most book descriptions refer to cover appearance, so we can issue a
    message for converting a plain book into one of those with something
    like "the spellbook turns red" or "the spellbook turns ragged";

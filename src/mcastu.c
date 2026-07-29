@@ -3,6 +3,15 @@
 /*-Copyright (c) Robert Patrick Rankin, 2011. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file mcastu.c
+ * @brief 몬스터의 주문 시전(마법사형·성직자형) 처리.
+ *
+ * 몬스터가 상황에 맞는 주문을 선택하여 시전하고, 죽음의 손길·소환·무장 파괴·
+ * 실명·마비·번개·간헐천 등 각 주문 효과를 영웅에게 적용한다. 원거리 주문
+ * (@c buzzmu)과 주문 무용성 판정도 포함한다.
+ */
+
 #include "hack.h"
 
 #define MCASTU_ENUM
@@ -22,6 +31,7 @@ static struct _mcast_data mcast_data[] = {
 };
 #undef MCASTU_INIT
 
+/** @brief 성직자형 몬스터의 주문 목록(레벨 오름차순). */
 /* spell lists for specific monster casters */
 /* the spells in the list should be in ascending level order */
 static int mon_cleric_spells[] = {
@@ -29,6 +39,7 @@ static int mon_cleric_spells[] = {
     MCAST_BLIND_YOU, MCAST_INSECTS, MCAST_CURSE_ITEMS, MCAST_LIGHTNING,
     MCAST_FIRE_PILLAR, MCAST_GEYSER
 };
+/** @brief 마법사형 몬스터의 주문 목록(레벨 오름차순). */
 static int mon_wizard_spells[] = {
     MCAST_PSI_BOLT, MCAST_CURE_SELF, MCAST_HASTE_SELF, MCAST_STUN_YOU,
     MCAST_DISAPPEAR, MCAST_WEAKEN_YOU, MCAST_DESTRY_ARMR, MCAST_CURSE_ITEMS,
@@ -58,6 +69,11 @@ staticfn void mcast_spell(struct monst *, int, int);
 staticfn boolean is_undirected_spell(int);
 staticfn boolean spell_would_be_useless(struct monst *, int);
 
+/**
+ * @brief 몬스터가 주문을 시전하지 못했을 때의 피드백 메시지를 출력한다.
+ * @param[in] mtmp       시전에 실패한 몬스터.
+ * @param[in] undirected 목표가 없는(무방향) 주문이었는지 여부.
+ */
 /* feedback when frustrated monster couldn't cast a spell */
 staticfn void
 cursetxt(struct monst *mtmp, boolean undirected)
@@ -84,6 +100,12 @@ cursetxt(struct monst *mtmp, boolean undirected)
     }
 }
 
+/**
+ * @brief 몬스터가 시전할 주문을 고른다.
+ * @param[in] mtmp  시전 몬스터.
+ * @param[in] adtyp 주문 계열(@c AD_SPEL 마법사형, @c AD_CLRC 성직자형).
+ * @return 선택된 주문 번호(적당한 것이 없으면 @c MCAST_PSI_BOLT).
+ */
 /* choose a spell for monster to cast */
 staticfn int
 choose_monster_spell(struct monst *mtmp, int adtyp)
@@ -125,6 +147,14 @@ choose_monster_spell(struct monst *mtmp, int adtyp)
 /* return values:
  * 1: successful spell
  * 0: unsuccessful spell
+ */
+/**
+ * @brief 근접(공격) 상황에서 몬스터가 주문을 시전한다.
+ * @param[in,out] mtmp               시전 몬스터.
+ * @param[in]     mattk              몬스터의 현재 공격 정보.
+ * @param[in]     thinks_it_foundyou 몬스터가 영웅을 찾았다고 여기는지(잔상 가능).
+ * @param[in]     foundyou           영웅의 정확한 위치를 아는지.
+ * @return 시전 성공이면 1, 실패면 0(공격 결과 코드).
  */
 int
 castmu(
@@ -304,6 +334,12 @@ castmu(
     return ret;
 }
 
+/**
+ * @brief 몬스터가 자신을 치유한다(자가 치료 주문).
+ * @param[in,out] mtmp 치유할 몬스터.
+ * @param[in]     dmg  원래 예정된 피해량.
+ * @return 치유가 일어났으면 0, 아니면 @p dmg 그대로.
+ */
 staticfn int
 m_cure_self(struct monst *mtmp, int dmg)
 {
@@ -317,6 +353,12 @@ m_cure_self(struct monst *mtmp, int dmg)
     return dmg;
 }
 
+/**
+ * @brief "죽음의 손길" 몬스터 주문을 영웅에게 적용한다.
+ * @param[in] mtmp 시전 몬스터.
+ * @note 죽음의 지팡이와 달리 영웅만 공격하며, 최대 체력 절반 흡수 + 큰 피해를
+ *       입혀 사망시킬 수 있다.
+ */
 /* unlike the finger of death spell which behaves like a wand of death,
    this monster spell only attacks the hero */
 void
@@ -353,6 +395,13 @@ touch_of_death(struct monst *mtmp)
     svk.killer.name[0] = '\0'; /* not killed if we get here... */
 }
 
+/**
+ * @brief 몬스터 주문에 의한 사망 사유 문자열을 만든다.
+ * @param[out] outbuf      결과를 저장할 버퍼(충분히 크다고 가정).
+ * @param[in]  deathreason 사인 문구.
+ * @param[in]  mtmp        사망을 유발한 몬스터(NULL 가능).
+ * @return 결과가 기록된 @p outbuf.
+ */
 /* give a reason for death by some monster spells */
 char *
 death_inflicted_by(
@@ -385,6 +434,11 @@ death_inflicted_by(
  * Monster wizard and cleric spellcasting functions.
  */
 
+/**
+ * @brief 죽음의 손길 주문 효과를 처리한다.
+ * @param[in] mtmp 시전 몬스터.
+ * @note 언데드/악마 형태나 반마법 등으로 무효화될 수 있다.
+ */
 staticfn void
 mcast_death_touch(struct monst *mtmp)
 {
@@ -407,6 +461,10 @@ mcast_death_touch(struct monst *mtmp)
     }
 }
 
+/**
+ * @brief 마법사 복제(Double Trouble) 주문 효과를 처리한다.
+ * @param[in] mtmp 시전 몬스터(옌더의 마법사).
+ */
 staticfn void
 mcast_clone_wiz(struct monst *mtmp)
 {
@@ -417,6 +475,10 @@ mcast_clone_wiz(struct monst *mtmp)
         impossible("bad wizard cloning?");
 }
 
+/**
+ * @brief 몬스터 소환 주문 효과를 처리한다.
+ * @param[in] mtmp 시전 몬스터.
+ */
 staticfn void
 mcast_summon_mons(struct monst *mtmp)
 {
@@ -446,6 +508,10 @@ mcast_summon_mons(struct monst *mtmp)
     }
 }
 
+/**
+ * @brief 방어구 파괴 주문 효과를 처리한다.
+ * @note 반마법 상태이면 무효화된다.
+ */
 staticfn void
 mcast_destroy_armor(void)
 {
@@ -462,6 +528,12 @@ mcast_destroy_armor(void)
     }
 }
 
+/**
+ * @brief 힘 약화(근력 감소) 주문 효과를 처리한다.
+ * @param[in] mtmp 시전 몬스터.
+ * @param[in] dmg  기준 피해량(실제 감소량 계산에 사용).
+ * @note 반마법 상태이면 일시적 약화감만 주고 무효화된다.
+ */
 staticfn void
 mcast_weaken_you(struct monst *mtmp, int dmg)
 {
@@ -486,6 +558,10 @@ mcast_weaken_you(struct monst *mtmp, int dmg)
     }
 }
 
+/**
+ * @brief 자기 은신(투명화) 주문 효과를 처리한다.
+ * @param[in,out] mtmp 시전 몬스터(투명해진다).
+ */
 staticfn void
 mcast_disappear(struct monst *mtmp)
 {
@@ -500,6 +576,11 @@ mcast_disappear(struct monst *mtmp)
         impossible("no reason for monster to cast disappear spell?");
 }
 
+/**
+ * @brief 기절(stun) 주문 효과를 영웅에게 적용한다.
+ * @param[in] dmg 기준 피해량(기절 지속시간 계산에 사용).
+ * @note 반마법/자유행동 상태이면 경미하게만 작용한다.
+ */
 staticfn void
 mcast_stun_you(int dmg)
 {
@@ -519,6 +600,11 @@ mcast_stun_you(int dmg)
     }
 }
 
+/**
+ * @brief 간헐천(geyser) 주문 효과를 처리한다(물리 피해).
+ * @param[in] dmg 기준 피해량(사용되지 않고 새로 계산됨).
+ * @return 영웅에게 입힐 피해량.
+ */
 staticfn int
 mcast_geyser(int dmg)
 {
@@ -536,6 +622,12 @@ mcast_geyser(int dmg)
     return dmg;
 }
 
+/**
+ * @brief 화염 기둥(fire pillar) 주문 효과를 처리한다.
+ * @param[in] mtmp 시전 몬스터.
+ * @param[in] dmg  기준 피해량(새로 계산됨).
+ * @return 영웅에게 입힐 화염 피해량(화염 내성 시 0).
+ */
 staticfn int
 mcast_fire_pillar(struct monst *mtmp, int dmg)
 {
@@ -562,6 +654,13 @@ mcast_fire_pillar(struct monst *mtmp, int dmg)
     return dmg;
 }
 
+/**
+ * @brief 번개(lightning) 주문 효과를 처리한다.
+ * @param[in] mtmp 시전 몬스터.
+ * @param[in] dmg  기준 피해량(새로 계산됨).
+ * @return 영웅에게 입힐 전기 피해량(반사/전기 내성 시 0).
+ * @note 눈부심으로 영웅을 실명시킬 수 있다.
+ */
 staticfn int
 mcast_lightning(struct monst *mtmp, int dmg)
 {
@@ -597,6 +696,11 @@ mcast_lightning(struct monst *mtmp, int dmg)
     return dmg;
 }
 
+/**
+ * @brief 정신 충격(psi bolt) 주문 효과를 처리한다.
+ * @param[in] dmg 기준 피해량.
+ * @return 영웅에게 입힐 피해량(반마법 시 절반).
+ */
 staticfn int
 mcast_psi_bolt(int dmg)
 {
@@ -620,6 +724,11 @@ mcast_psi_bolt(int dmg)
     return dmg;
 }
 
+/**
+ * @brief 상처 벌리기(open wounds) 주문 효과를 처리한다.
+ * @param[in] dmg 기준 피해량.
+ * @return 영웅에게 입힐 피해량(반마법 시 절반).
+ */
 staticfn int
 mcast_open_wounds(int dmg)
 {
@@ -641,6 +750,11 @@ mcast_open_wounds(int dmg)
     return dmg;
 }
 
+/**
+ * @brief 곤충 소환(insects) 주문 효과를 처리한다.
+ * @param[in] mtmp 시전 몬스터.
+ * @note 개미류를 소환하며, 없으면 뱀("나뭇가지를 뱀으로")으로 대체한다.
+ */
 staticfn void
 mcast_insects(struct monst *mtmp)
 {
@@ -725,6 +839,9 @@ mcast_insects(struct monst *mtmp)
     }
 }
 
+/**
+ * @brief 실명(blindness) 주문 효과를 영웅에게 적용한다.
+ */
 staticfn void
 mcast_blind_you(void)
 {
@@ -742,6 +859,11 @@ mcast_blind_you(void)
         impossible("no reason for monster to cast blindness spell?");
 }
 
+/**
+ * @brief 마비(paralyze) 주문 효과를 영웅에게 적용한다.
+ * @param[in] mtmp 시전 몬스터.
+ * @return 마비 지속 시간(턴). 반마법/자유행동 시 최소치.
+ */
 staticfn int
 mcast_paralyze(struct monst *mtmp)
 {
@@ -767,6 +889,10 @@ mcast_paralyze(struct monst *mtmp)
     return dmg;
 }
 
+/**
+ * @brief 혼란(confusion) 주문 효과를 영웅에게 적용한다.
+ * @param[in] mtmp 시전 몬스터.
+ */
 staticfn void
 mcast_confuse_you(struct monst *mtmp)
 {
@@ -789,6 +915,13 @@ mcast_confuse_you(struct monst *mtmp)
     }
 }
 
+/**
+ * @brief 주문 번호에 따라 해당 주문 효과를 시전·적용한다(디스패처).
+ * @param[in] mtmp     시전 몬스터.
+ * @param[in] dmg      기준 피해량(0이면 영웅을 겨냥하지 않는 무방향 주문).
+ * @param[in] spellnum 시전할 주문 번호.
+ * @note 처리 후 남은 피해량이 있으면 영웅에게 적용한다.
+ */
 /*
    If dmg is zero, then the monster is not casting at you.
    If the monster is intentionally not casting at you, we have previously
@@ -896,6 +1029,11 @@ mcast_spell(struct monst *mtmp, int dmg, int spellnum)
         mdamageu(mtmp, dmg);
 }
 
+/**
+ * @brief 주문이 목표가 필요 없는(무방향) 주문인지 판정한다.
+ * @param[in] spellnum 검사할 주문 번호.
+ * @return 무방향 주문이면 TRUE, 방향 주문이면 FALSE.
+ */
 staticfn boolean
 is_undirected_spell(int spellnum)
 {
@@ -904,6 +1042,13 @@ is_undirected_spell(int spellnum)
     return FALSE;
 }
 
+/**
+ * @brief 현재 상황에서 해당 주문이 무의미한지 판정한다.
+ * @param[in] mtmp     시전 몬스터.
+ * @param[in] spellnum 검사할 주문 번호.
+ * @return 무의미하면 TRUE(시전 회피), 유용할 수 있으면 FALSE.
+ * @note 이미 가속/투명/치유된 상태, 이미 실명시킨 영웅 등을 걸러낸다.
+ */
 /* Some spells are useless under some circumstances. */
 staticfn boolean
 spell_would_be_useless(struct monst *mtmp, int spellnum)
@@ -984,6 +1129,12 @@ spell_would_be_useless(struct monst *mtmp, int spellnum)
     return FALSE;
 }
 
+/**
+ * @brief 몬스터가 원거리 광선형 주문(buzz)을 발사한다.
+ * @param[in,out] mtmp  시전 몬스터.
+ * @param[in]     mattk 몬스터의 공격 정보(피해 계열 포함).
+ * @return 명중 시 @c M_ATTK_HIT, 실패/무효 시 @c M_ATTK_MISS.
+ */
 /* monster uses spell (ranged) */
 int
 buzzmu(struct monst *mtmp, struct attack *mattk)

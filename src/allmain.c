@@ -2,8 +2,13 @@
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
+/* MODIFIED 2026-07 (real-time fork): added the REALTIME_PROTO shared world
+   clock and real-time command pacing; see MODIFICATIONS.md.  This file
+   differs from the upstream NetHack distribution. */
 
 /* various code that was replicated in *main.c */
+
+/* REALTIME_PROTO (stage-1 semi-realtime) is defined centrally in config.h */
 
 #include "hack.h"
 
@@ -168,6 +173,69 @@ static int mvl_abort_lev;
 #endif
 static int mvl_wtcap = 0;
 static int mvl_change = 0;
+
+#ifdef REALTIME_PROTO
+/*
+ * Real-time world clock (stage 2 of turn-based -> real-time conversion).
+ *
+ * Shared by the console command path below and the win32 tile/GUI port in
+ * mswproc.c so the whole game runs off a single clock.  Returns TRUE at most
+ * once every RT_TURN_MS of real wall-clock time; callers wait for it before
+ * letting the world advance one game turn.  That gives a constant pace no
+ * matter how fast (or slow) the player presses keys -- mashing buffers input
+ * rather than fast-forwarding time.
+ */
+boolean
+rt_world_tick_ready(void)
+{
+    static unsigned long last = 0;
+    unsigned long now = nt_ticks();
+
+    if (last == 0) { /* first call: start the clock, allow an immediate turn */
+        last = now ? now : 1;
+        return TRUE;
+    }
+    if ((unsigned long) (now - last) >= (unsigned long) RT_TURN_MS) {
+        last += RT_TURN_MS;
+        /* if we fell more than a few turns behind (debugger pause, heavy
+           redraw, alt-tab, ...) resync instead of bursting to catch up */
+        if ((unsigned long) (now - last) > (unsigned long) (RT_TURN_MS * 4))
+            last = now;
+        return TRUE;
+    }
+    return FALSE;
+}
+
+/*
+ * Console command input for real-time play.  Buffer any pending keystrokes
+ * without blocking, wait (yielding the CPU) until the world clock says it is
+ * time for the next turn, then report whether the hero has a queued command
+ * to act on (TRUE) or should simply wait this turn (FALSE).  Either way
+ * exactly one turn's worth of real time elapses, so the world -- monsters,
+ * timeouts, and all -- advances at a constant rate.
+ *
+ * This is console-only (kbhit/pgetchar); the win32 GUI build does the
+ * equivalent against its own event queue in mswproc.c.
+ */
+staticfn boolean
+rt_poll_input_timed(void)
+{
+#if defined(MICRO) || defined(WIN32CON)
+    while (kbhit())
+        cmdq_add_key(CQ_CANNED, pgetchar());
+
+    while (!rt_world_tick_ready()) {
+        Delay(RT_POLL_MS);
+        while (kbhit())
+            cmdq_add_key(CQ_CANNED, pgetchar());
+    }
+    return cmdq_peek(CQ_CANNED) ? TRUE : FALSE;
+#else
+    /* no non-blocking console input here; fall back to the normal command */
+    return TRUE;
+#endif
+}
+#endif /* REALTIME_PROTO */
 
 void
 moveloop_core(void)
@@ -529,7 +597,15 @@ moveloop_core(void)
 #ifdef MAIL
         ckmailstatus();
 #endif
+#ifdef REALTIME_PROTO
+        /* real-time: paces to the world clock, then acts on a buffered
+           command if one is queued; otherwise the hero waits this turn while
+           svc.context.move == 1 keeps monsters/timeouts advancing */
+        if (rt_poll_input_timed())
+            rhack(0);
+#else
         rhack(0);
+#endif
     }
     if (u.utotype)       /* change dungeon level */
         deferred_goto(); /* after rhack() */

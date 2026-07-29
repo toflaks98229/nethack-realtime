@@ -3,6 +3,15 @@
 /*-Copyright (c) Robert Patrick Rankin, 2009. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file wield.c
+ * @brief 무기 장착(주무기·보조무기·화살통) 및 이도류 전투 처리.
+ *
+ * 세 가지 무기 슬롯(주무기 @c uwep, 보조무기 @c uswapwep, 화살통 @c uquiver)에
+ * 아이템을 배치/해제하고, #wield/#swap/#quiver/#twoweapon 명령, 무기 도구 장착,
+ * 무기 봉인(weld) 판정, 무기 마법 강화(@c chwepon) 등을 담당한다.
+ */
+
 #include "hack.h"
 
 /* KMH -- Differences between the three weapon slots.
@@ -58,12 +67,14 @@ staticfn int ready_ok(struct obj *) NO_NNARGS;
 staticfn int wield_ok(struct obj *) NO_NNARGS;
 staticfn void finish_splitting(struct obj *);
 
+/** @brief 손에 봉인(weld)될 수 있는 무기류인지 판정하는 매크로. */
 /* used by will_weld() */
 /* probably should be renamed */
 #define erodeable_wep(optr)                             \
     ((optr)->oclass == WEAPON_CLASS || is_weptool(optr) \
      || (optr)->otyp == HEAVY_IRON_BALL || (optr)->otyp == IRON_CHAIN)
 
+/** @brief 저주받아 손에 실제로 봉인되는(놓을 수 없는) 무기인지 판정하는 매크로. */
 /* used by welded(), and also while wielding */
 #define will_weld(optr) \
     ((optr)->cursed && (erodeable_wep(optr) || (optr)->otyp == TIN_OPENER))
@@ -95,6 +106,12 @@ static const char
  * If the item is being moved from another slot, it is the caller's
  * responsibility to handle that.  It's also the caller's responsibility
  * to print the appropriate messages.
+ */
+/**
+ * @brief 주무기 슬롯에 아이템을 설정한다.
+ * @param[in,out] obj 장착할 아이템(NULL 이면 맨손). @c cg.zeroobj 는 금지.
+ * @note 아티팩트 조명/능력치 보너스 처리와 "맨손 강타" 여부(@c gu.unweapon)를
+ *       갱신한다. 슬롯 이동/메시지 출력은 호출자 책임이다.
  */
 void
 setuwep(struct obj *obj)
@@ -134,6 +151,12 @@ setuwep(struct obj *obj)
         gu.unweapon = TRUE; /* for "bare hands" message */
 }
 
+/**
+ * @brief 장갑 없이 석화 시체를 장착하려는 상황을 처리한다.
+ * @param[in] obj 장착하려는 아이템.
+ * @return 석화를 유발하여 장착이 막히면 TRUE, 정상 장착 가능하면 FALSE.
+ * @warning 장갑 없이 코카트리스 시체를 잡으면 즉시 석화된다.
+ */
 staticfn boolean
 cant_wield_corpse(struct obj *obj)
 {
@@ -152,6 +175,10 @@ cant_wield_corpse(struct obj *obj)
     return TRUE;
 }
 
+/**
+ * @brief 아무것도 장착하지 않은 손 상태를 묘사하는 문자열을 반환한다.
+ * @return "empty handed"/"bare handed"/"not wielding anything" 중 하나.
+ */
 /* description of hands when not wielding anything; also used
    by #seeweapon (')'), #attributes (^X), and #takeoffall ('A') */
 const char *
@@ -165,6 +192,13 @@ empty_handed(void)
                : "not wielding anything";
 }
 
+/**
+ * @brief 지정한 무기를 실제로 주무기로 장착한다(교체 로직 공용부).
+ * @param[in,out] wep 장착할 무기(NULL 이면 맨손으로 전환).
+ * @return 명령 처리 결과 코드(@c ECMD_TIME, @c ECMD_OK, @c ECMD_FAIL).
+ * @note 저주 봉인·양손무기+방패 충돌·아티팩트 발화/대사 등 장착 부수 효과를
+ *       처리한다.
+ */
 staticfn int
 ready_weapon(struct obj *wep)
 {
@@ -277,6 +311,10 @@ ready_weapon(struct obj *wep)
     return res;
 }
 
+/**
+ * @brief 화살통 슬롯에 아이템을 설정한다.
+ * @param[in,out] obj 화살통에 넣을 아이템(NULL 이면 비운다).
+ */
 void
 setuqwep(struct obj *obj)
 {
@@ -286,6 +324,10 @@ setuqwep(struct obj *obj)
     return;
 }
 
+/**
+ * @brief 보조무기 슬롯에 아이템을 설정한다.
+ * @param[in,out] obj 보조무기로 넣을 아이템(NULL 이면 비운다).
+ */
 void
 setuswapwep(struct obj *obj)
 {
@@ -293,6 +335,11 @@ setuswapwep(struct obj *obj)
     return;
 }
 
+/**
+ * @brief 화살통에 넣을(발사/투척용) 아이템 선택을 위한 @c getobj 콜백.
+ * @param[in] obj 후보 아이템.
+ * @return 선택 우선순위 코드(@c GETOBJ_SUGGEST/@c GETOBJ_DOWNPLAY 등).
+ */
 /* getobj callback for object to ready for throwing/shooting;
    this filter lets worn items through so that caller can reject them */
 staticfn int
@@ -331,6 +378,11 @@ ready_ok(struct obj *obj)
     return GETOBJ_DOWNPLAY;
 }
 
+/**
+ * @brief 장착할 무기 선택을 위한 @c getobj 콜백.
+ * @param[in] obj 후보 아이템.
+ * @return 선택 우선순위 코드(동전은 제외, 무기/무기도구는 우선 제안).
+ */
 /* getobj callback for object to wield */
 staticfn int
 wield_ok(struct obj *obj)
@@ -347,6 +399,10 @@ wield_ok(struct obj *obj)
     return GETOBJ_DOWNPLAY;
 }
 
+/**
+ * @brief 스택에서 분리된 아이템에 별도의 인벤토리 슬롯을 부여한다.
+ * @param[in,out] obj 분리된 아이템.
+ */
 staticfn void
 finish_splitting(struct obj *obj)
 {
@@ -355,6 +411,12 @@ finish_splitting(struct obj *obj)
     addinv_nomerge(obj);
 }
 
+/**
+ * @brief #wield 명령: 무기를 주무기로 장착한다.
+ * @return 명령 처리 결과 코드.
+ * @note 화살통/보조무기에 있는 것을 장착하려 하면 적절히 확인/위임하며,
+ *       pushweapon 옵션 시 기존 주무기를 보조무기로 옮긴다.
+ */
 /* the #wield command - wield a weapon */
 int
 dowield(void)
@@ -461,6 +523,10 @@ dowield(void)
     return result;
 }
 
+/**
+ * @brief #swap 명령: 주무기와 보조무기를 서로 교체한다.
+ * @return 명령 처리 결과 코드.
+ */
 /* the #swap command - swap wielded and secondary weapons */
 int
 doswapweapon(void)
@@ -505,6 +571,10 @@ doswapweapon(void)
     return result;
 }
 
+/**
+ * @brief #quiver 명령: 화살통에 발사/투척용 아이템을 준비한다.
+ * @return 명령 처리 결과 코드.
+ */
 /* the #quiver command */
 int
 dowieldquiver(void)
@@ -512,6 +582,11 @@ dowieldquiver(void)
     return doquiver_core("ready");
 }
 
+/**
+ * @brief 화살통 준비 로직의 공용부(#fire 로 빈 화살통을 채울 때도 사용).
+ * @param[in] verb 동사("ready" 또는 "fire").
+ * @return 명령 처리 결과 코드.
+ */
 /* guts of #quiver command; also used by #fire when refilling empty quiver */
 int
 doquiver_core(const char *verb) /* "ready" or "fire" */
@@ -683,6 +758,12 @@ doquiver_core(const char *verb) /* "ready" or "fire" */
     return res ? ECMD_TIME : ECMD_OK;
 }
 
+/**
+ * @brief 도구를 주무기 슬롯에 장착한다(#rub, 곡괭이·채찍·갈고리·장창 적용 등).
+ * @param[in,out] obj  장착할 도구.
+ * @param[in]     verb 동작 동사("rub" 등; NULL 이면 "wield").
+ * @return 장착에 성공하면 TRUE, 실패(봉인·방패 충돌 등)하면 FALSE.
+ */
 /* used for #rub and for applying pick-axe, whip, grappling hook or polearm */
 boolean
 wield_tool(struct obj *obj,
@@ -762,6 +843,11 @@ wield_tool(struct obj *obj,
     return TRUE;
 }
 
+/**
+ * @brief 현재 이도류(두 무기) 전투가 가능한지 판정한다.
+ * @return 가능하면 TRUE, 불가능하면 FALSE(불가 사유 메시지를 출력).
+ * @note 형태·빈손·부적합 무기·양손무기·방패·저주/미끄러움 등을 검사한다.
+ */
 int
 can_twoweapon(void)
 {
@@ -808,6 +894,11 @@ can_twoweapon(void)
     return FALSE;
 }
 
+/**
+ * @brief 이도류가 불가능해진 상황에서 보조무기를 손에서 놓친다.
+ * @note 보조무기가 저주받았거나 손이 미끄러워(Glib) 이도류를 유지/시작할 수
+ *       없을 때 보조무기를 왼손에서 떨어뜨린다.
+ */
 /* uswapwep has become cursed while in two-weapon combat mode or hero is
    attempting to dual-wield when it is already cursed or hands are slippery */
 void
@@ -835,6 +926,10 @@ drop_uswapwep(void)
     dropx(obj);
 }
 
+/**
+ * @brief 이도류 상태 플래그(@c u.twoweap)를 설정한다.
+ * @param[in] on_off TRUE 이면 이도류 활성, FALSE 이면 비활성.
+ */
 void
 set_twoweap(boolean on_off)
 {
@@ -845,6 +940,11 @@ set_twoweap(boolean on_off)
     }
 }
 
+/**
+ * @brief #twoweapon 명령: 이도류 전투를 켜거나 끈다.
+ * @return 명령 처리 결과 코드.
+ * @note 켜는 데 성공하면 민첩에 따라 확률적으로 한 턴을 소모한다.
+ */
 /* the #twoweapon command */
 int
 dotwoweapon(void)
@@ -874,6 +974,10 @@ dotwoweapon(void)
  * 1.  The item has been eaten, stolen, burned away, or rotted away.
  * 2.  Making an item disappear for a bones pile.
  */
+/**
+ * @brief 주무기가 소실되었을 때 슬롯을 비운다(먹힘·도난·소각 등).
+ * @note 생명 구조로 되돌릴 수 없는 상실에만 사용한다.
+ */
 void
 uwepgone(void)
 {
@@ -889,6 +993,9 @@ uwepgone(void)
     }
 }
 
+/**
+ * @brief 보조무기가 소실되었을 때 슬롯을 비운다.
+ */
 void
 uswapwepgone(void)
 {
@@ -898,6 +1005,9 @@ uswapwepgone(void)
     }
 }
 
+/**
+ * @brief 화살통 아이템이 소실되었을 때 슬롯을 비운다.
+ */
 void
 uqwepgone(void)
 {
@@ -907,6 +1017,10 @@ uqwepgone(void)
     }
 }
 
+/**
+ * @brief 이도류 전투를 강제로 종료한다.
+ * @note 이도류를 유지할 수 없게 되었을 때 호출되어 상태를 해제한다.
+ */
 void
 untwoweapon(void)
 {
@@ -918,6 +1032,13 @@ untwoweapon(void)
     return;
 }
 
+/**
+ * @brief 장착한 무기를 마법으로 강화하거나 약화한다(무기 강화 두루마리 등).
+ * @param[in] otmp   효과를 유발한 아이템(두루마리 등).
+ * @param[in] amount 강화량(양수=강화, 음수=약화).
+ * @return 무언가 일어났으면 1(또는 관련 상태), 아니면 0.
+ * @note 벌레 이빨↔크리스나이프 변환 등 특수 처리와 과강화 진동 경고를 포함한다.
+ */
 /* enchant wielded weapon */
 int
 chwepon(struct obj *otmp, int amount)
@@ -1052,6 +1173,12 @@ chwepon(struct obj *otmp, int amount)
     return 1;
 }
 
+/**
+ * @brief 아이템이 영웅의 손에 봉인(weld)되어 있는지 판정한다.
+ * @param[in] obj 검사할 아이템.
+ * @return 주무기이고 저주 봉인 상태이면 1, 아니면 0.
+ * @note 봉인이 확인되면 해당 아이템의 저주 여부를 알게 된다.
+ */
 int
 welded(struct obj *obj)
 {
@@ -1062,6 +1189,10 @@ welded(struct obj *obj)
     return 0;
 }
 
+/**
+ * @brief 무기가 손에 봉인되어 있음을 알리는 메시지를 출력한다.
+ * @param[in] obj 봉인된 무기.
+ */
 void
 weldmsg(struct obj *obj)
 {
@@ -1078,6 +1209,11 @@ weldmsg(struct obj *obj)
     obj->owornmask = savewornmask;
 }
 
+/**
+ * @brief 몬스터가 장착한 무기가 손에 봉인되어 있는지 판정한다.
+ * @param[in] obj 검사할 아이템(몬스터의 것이어야 함; 호출자 책임).
+ * @return 몬스터의 주무기이고 봉인 상태이면 TRUE, 아니면 FALSE.
+ */
 /* test whether monster's wielded weapon is stuck to hand/paw/whatever */
 boolean
 mwelded(struct obj *obj)

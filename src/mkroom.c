@@ -3,6 +3,15 @@
 /*-Copyright (c) Robert Patrick Rankin, 2011. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file mkroom.c
+ * @brief 특수 방(상점·동물원·궁정·묘지·신전·늪 등)의 생성과 배치.
+ *
+ * 주어진 유형의 방을 만들어 몬스터·아이템으로 채우고, 방 관련 질의(문 인접,
+ * 계단 포함, 내부 좌표 선택), 특수 방 검색, 궁정/분대 몬스터 생성, 방 정보의
+ * 저장/복원, 심볼→지형 코드 변환 등을 제공한다.
+ */
+
 /*
  * Entry points:
  *      do_mkroom() -- make and stock a room of a given type
@@ -38,6 +47,11 @@ staticfn boolean invalid_shop_shape(struct mkroom *sroom);
 
 extern const struct shclass shtypes[]; /* defined in shknam.c */
 
+/**
+ * @brief 방이 "큰" 방인지(면적 > 20) 판정한다.
+ * @param[in] sroom 대상 방.
+ * @return 큰 방이면 TRUE, 아니면 FALSE.
+ */
 staticfn boolean
 isbig(struct mkroom *sroom)
 {
@@ -47,6 +61,10 @@ isbig(struct mkroom *sroom)
     return (boolean) (area > 20);
 }
 
+/**
+ * @brief 주어진 유형의 방을 만들어 배치·초기화한다.
+ * @param[in] roomtype 방 유형(@c SHOPBASE 이상=상점, @c COURT/ZOO/TEMPLE 등).
+ */
 /* make and stock a room of a given type */
 void
 do_mkroom(int roomtype)
@@ -91,6 +109,10 @@ do_mkroom(int roomtype)
     }
 }
 
+/**
+ * @brief 상점(shop)을 생성한다.
+ * @note 적당한 방을 골라 상점 유형을 지정하고 나중에 채워지도록 표시한다.
+ */
 staticfn void
 mkshop(void)
 {
@@ -215,6 +237,11 @@ mkshop(void)
     sroom->needfill = FILL_NORMAL;
 }
 
+/**
+ * @brief 특수 방으로 쓸 미사용 방을 고른다(가능하면 문이 하나뿐인 방).
+ * @param[in] strict TRUE 이면 계단이 있는 방을 완전히 배제한다.
+ * @return 선택된 방, 없으면 NULL.
+ */
 /* pick an unused room, preferably with only one door */
 staticfn struct mkroom *
 pick_room(boolean strict)
@@ -240,6 +267,10 @@ pick_room(boolean strict)
     return (struct mkroom *) 0;
 }
 
+/**
+ * @brief 지정한 유형의 "동물원류" 특수 방을 지정한다(나중에 채워짐).
+ * @param[in] type 방 유형(@c COURT/ZOO/BEEHIVE/MORGUE 등).
+ */
 staticfn void
 mkzoo(int type)
 {
@@ -253,6 +284,11 @@ mkzoo(int type)
     }
 }
 
+/**
+ * @brief 궁정(throne room) 중앙에 왕좌에 앉을 지배자 몬스터를 만든다.
+ * @param[in] x,y 왕좌(지배자) 좌표.
+ * @note 레벨 난이도에 따라 노움/드워프/엘프/오거 지배자가 등장한다.
+ */
 staticfn void
 mk_zoo_thronemon(coordxy x, coordxy y)
 {
@@ -272,6 +308,12 @@ mk_zoo_thronemon(coordxy x, coordxy y)
     }
 }
 
+/**
+ * @brief 동물원류 특수 방을 유형에 맞는 몬스터·아이템으로 채운다.
+ * @param[in,out] sroom 채울 방(needfill 검사는 호출자 책임).
+ * @note 궁정·동물원·벌집·묘지·병영·레프러콘 홀·코카트리스 둥지·개미굴 등을
+ *       각각 다른 방식으로 채운다.
+ */
 void
 fill_zoo(struct mkroom *sroom)
 {
@@ -451,6 +493,12 @@ fill_zoo(struct mkroom *sroom)
     }
 }
 
+/**
+ * @brief 지정 지점 주위에 언데드 무리를 생성한다.
+ * @param[in] mm             무리의 중심 좌표.
+ * @param[in] revive_corpses TRUE 이면 근처 시체를 되살리는 것을 우선한다.
+ * @param[in] mm_flags       makemon 에 전달할 플래그.
+ */
 /* make a swarm of undead around mm */
 void
 mkundead(
@@ -474,6 +522,10 @@ mkundead(
     svl.level.flags.graveyard = TRUE; /* reduced chance for undead corpse */
 }
 
+/**
+ * @brief 묘지(morgue)에 어울리는 언데드/악마 몬스터 종을 무작위로 고른다.
+ * @return 선택된 몬스터 종 데이터.
+ */
 staticfn struct permonst *
 morguemon(void)
 {
@@ -498,6 +550,11 @@ morguemon(void)
                                 : mkclass(S_ZOMBIE, 0));
 }
 
+/**
+ * @brief 개미굴(anthole)에 채울 개미 종류를 고른다.
+ * @return 선택된 개미 종 데이터, 모두 멸종했으면 NULL.
+ * @note 같은 레벨 안에서는 동일 종, 레벨 간에는 다른 종이 나오도록 한다.
+ */
 struct permonst *
 antholemon(void)
 {
@@ -526,6 +583,10 @@ antholemon(void)
                                              : &mons[mtyp]);
 }
 
+/**
+ * @brief 일부 방을 늪(swamp)으로 만든다(웅덩이와 뱀장어·곰팡이 배치).
+ * @note 최대 5개 방을 늪으로 바꾸며, 웅덩이에는 뱀장어/피라냐를 놓는다.
+ */
 staticfn void
 mkswamp(void) /* Michiel Huisjes & Fred de Wilde */
 {
@@ -573,6 +634,11 @@ mkswamp(void) /* Michiel Huisjes & Fred de Wilde */
     }
 }
 
+/**
+ * @brief 신전 방의 제단(성소) 위치를 구한다.
+ * @param[in] roomno 대상 신전 방 번호.
+ * @return 제단 좌표(정적 버퍼). 중앙이 막혔으면 임의의 빈 칸.
+ */
 /* return center of room, or a random free location
    if center is blocked */
 staticfn coord *
@@ -604,6 +670,9 @@ shrine_pos(int roomno)
     return &buf;
 }
 
+/**
+ * @brief 신전(temple) 방을 만들고 중앙에 성소 제단과 사제를 배치한다.
+ */
 staticfn void
 mktemple(void)
 {
@@ -629,6 +698,11 @@ mktemple(void)
     svl.level.flags.has_temple = 1;
 }
 
+/**
+ * @brief 지정 좌표가 문(또는 비밀문)에 인접해 있는지 판정한다.
+ * @param[in] sx,sy 확인할 좌표.
+ * @return 문에 인접하면 TRUE, 아니면 FALSE.
+ */
 boolean
 nexttodoor(int sx, int sy)
 {
@@ -646,6 +720,11 @@ nexttodoor(int sx, int sy)
     return FALSE;
 }
 
+/**
+ * @brief 방 안에 내려가는 계단이 있는지 판정한다.
+ * @param[in] sroom 대상 방.
+ * @return 내려가는 계단이 있으면 TRUE, 아니면 FALSE.
+ */
 boolean
 has_dnstairs(struct mkroom *sroom)
 {
@@ -659,6 +738,11 @@ has_dnstairs(struct mkroom *sroom)
     return FALSE;
 }
 
+/**
+ * @brief 방 안에 올라가는 계단이 있는지 판정한다.
+ * @param[in] sroom 대상 방.
+ * @return 올라가는 계단이 있으면 TRUE, 아니면 FALSE.
+ */
 boolean
 has_upstairs(struct mkroom *sroom)
 {
@@ -672,18 +756,34 @@ has_upstairs(struct mkroom *sroom)
     return FALSE;
 }
 
+/**
+ * @brief 방 내부의 무작위 x 좌표를 반환한다.
+ * @param[in] croom 대상 방.
+ * @return 방 범위 내의 무작위 x 좌표.
+ */
 int
 somex(struct mkroom *croom)
 {
     return rn1(croom->hx - croom->lx + 1, croom->lx);
 }
 
+/**
+ * @brief 방 내부의 무작위 y 좌표를 반환한다.
+ * @param[in] croom 대상 방.
+ * @return 방 범위 내의 무작위 y 좌표.
+ */
 int
 somey(struct mkroom *croom)
 {
     return rn1(croom->hy - croom->ly + 1, croom->ly);
 }
 
+/**
+ * @brief 지정 좌표가 방 내부에 있는지 판정한다(불규칙 방·서브룸 고려).
+ * @param[in] croom 대상 방.
+ * @param[in] x,y   확인할 좌표.
+ * @return 방 내부이면 TRUE, 아니면 FALSE.
+ */
 boolean
 inside_room(struct mkroom *croom, coordxy x, coordxy y)
 {
@@ -696,6 +796,13 @@ inside_room(struct mkroom *croom, coordxy x, coordxy y)
                       && y >= croom->ly - 1 && y <= croom->hy + 1);
 }
 
+/**
+ * @brief 방 내부의 임의 좌표를 하나 고른다(서브룸 제외).
+ * @param[in]  croom 대상 방.
+ * @param[out] c     선택된 좌표.
+ * @return 적당한 좌표를 찾으면 TRUE, 못 찾으면 FALSE.
+ * @note 접근 불가한 위치(벽 안 등)를 반환할 수도 있다.
+ */
 /* return a coord c inside mkroom croom, but not in a subroom.
    returns TRUE if any such space found.
    can return a non-accessible location, eg. inside a wall
@@ -749,6 +856,12 @@ somexy(struct mkroom *croom, coord *c)
     return TRUE;
 }
 
+/**
+ * @brief @c somexy() 와 같지만 접근 가능한(설 수 있는) 위치를 반환한다.
+ * @param[in]  croom 대상 방.
+ * @param[out] c     선택된 좌표.
+ * @return 접근 가능한 좌표를 찾으면 TRUE, 못 찾으면 FALSE.
+ */
 /* like somexy(), but returns an accessible location */
 boolean
 somexyspace(struct mkroom* croom, coord *c)
@@ -765,6 +878,11 @@ somexyspace(struct mkroom* croom, coord *c)
     return okay;
 }
 
+/**
+ * @brief 유형으로 특수 방을 검색한다.
+ * @param[in] type 찾을 방 유형(@c ANY_SHOP, @c ANY_TYPE 특수값 포함).
+ * @return 조건에 맞는 첫 방(서브룸 포함), 없으면 NULL.
+ */
 /*
  * Search for a special room given its type (zoo, court, etc...)
  *      Special values :
@@ -789,6 +907,10 @@ search_special(schar type)
     return (struct mkroom *) 0;
 }
 
+/**
+ * @brief 궁정(court)에 어울리는 몬스터 종을 무작위로 고른다.
+ * @return 선택된 몬스터 종 데이터.
+ */
 struct permonst *
 courtmon(void)
 {
@@ -822,6 +944,10 @@ static const struct {
                   { PM_LIEUTENANT, 4 },
                   { PM_CAPTAIN, 1 } };
 
+/**
+ * @brief 병영(barracks)에 배치할 병사 종류를 확률에 따라 고른다.
+ * @return 선택된 병사 종 데이터, 해당 종이 멸종했으면 NULL.
+ */
 /* return soldier types. */
 staticfn struct permonst *
 squadmon(void)
@@ -846,6 +972,11 @@ squadmon(void)
         return (struct permonst *) 0;
 }
 
+/**
+ * @brief 방과 그 서브룸을 재귀적으로 파일에 저장한다.
+ * @param[in,out] nhfp 저장 대상 파일 핸들.
+ * @param[in]     r    저장할 방.
+ */
 /*
  * save_room : A recursive function that saves a room and its subrooms
  * (if any).
@@ -866,6 +997,10 @@ save_room(NHFILE *nhfp, struct mkroom *r)
     }
 }
 
+/**
+ * @brief 현재 레벨의 모든 방을 파일에 저장한다.
+ * @param[in,out] nhfp 저장 대상 파일 핸들.
+ */
 /*
  * save_rooms : Save all the rooms on disk!
  */
@@ -881,6 +1016,11 @@ save_rooms(NHFILE *nhfp)
 }
 #endif /* !SFCTOOL */
 
+/**
+ * @brief 방과 그 서브룸을 파일에서 재귀적으로 복원한다.
+ * @param[in,out] nhfp 복원 원본 파일 핸들.
+ * @param[out]    r    복원할 방.
+ */
 staticfn void
 rest_room(NHFILE *nhfp, struct mkroom *r)
 {
@@ -895,6 +1035,10 @@ rest_room(NHFILE *nhfp, struct mkroom *r)
     }
 }
 
+/**
+ * @brief 파일에서 현재 레벨의 모든 방을 복원한다.
+ * @param[in,out] nhfp 복원 원본 파일 핸들.
+ */
 /*
  * rest_rooms : That's for restoring rooms. Read the rooms structure from
  * the disk.
@@ -916,6 +1060,12 @@ rest_rooms(NHFILE *nhfp)
 }
 
 #ifndef SFCTOOL
+/**
+ * @brief 지형 표시 심볼(@c S_xxx)을 지형 타입 코드로 변환한다.
+ * @param[in] sym 지형 표시 심볼.
+ * @return 대응하는 지형 타입 코드(알 수 없으면 @c STONE).
+ * @note 흉내쟁이가 지형으로 위장할 때 기억된 지형을 복원하는 데 쓰인다.
+ */
 /* convert a display symbol for terrain into topology type;
    used for remembered terrain when mimics pose as furniture */
 int
@@ -1056,6 +1206,13 @@ cmap_to_type(int sym)
  * Note that the invalidity of the shape derives from the position of its door
  * already being chosen. It's quite possible that if the door were somewhere
  * else on the perimeter of this room, it would work fine as a shop.*/
+/**
+ * @brief 방의 모양이 상점으로 쓰기에 부적합한지 판정한다.
+ * @param[in] sroom 대상 방.
+ * @return 상점으로 부적합한 모양이면 TRUE, 적합하면 FALSE.
+ * @note 문 안쪽 칸에 인접한 ROOM 칸이 하나뿐이면 상점 주인이 갇힐 수 있어
+ *       부적합으로 본다.
+ */
 staticfn boolean
 invalid_shop_shape(struct mkroom *sroom)
 {

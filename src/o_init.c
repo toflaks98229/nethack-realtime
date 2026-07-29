@@ -3,6 +3,15 @@
 /*-Copyright (c) Robert Patrick Rankin, 2011. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file o_init.c
+ * @brief 오브젝트 초기화, 미확인 설명 섞기, 발견(discoveries) 목록 관리.
+ *
+ * 게임 시작 시 오브젝트 확률과 설명(색/재질 등)을 무작위로 섞어 초기화하고,
+ * 오브젝트 발견/미발견 처리, 발견 목록(#discoveries, #classdisco) 출력과 정렬,
+ * 이름 저장/복원 등을 담당한다.
+ */
+
 #include "hack.h"
 
 #ifndef SFCTOOL
@@ -31,6 +40,11 @@ staticfn void shuffle_tiles(void);
  * is restored.  So might as well do that the first time instead of writing
  * another routine.
  */
+/**
+ * @brief 타일 배정을 오브젝트 설명 순서에 맞게 섞는다.
+ * @note 타일 배정은 저장되지 않으므로 복원 시 설명 정보로부터 다시 섞는다.
+ *       @c TILES_IN_GLYPHMAP 빌드에서만 사용된다.
+ */
 staticfn void
 shuffle_tiles(void)
 {
@@ -50,6 +64,10 @@ shuffle_tiles(void)
 }
 #endif /* TILES_IN_GLYPHMAP */
 
+/**
+ * @brief 던전 깊이에 따라 보석(및 유리 조각)의 생성 확률을 설정한다.
+ * @param[in] dlev 기준 던전 레벨(NULL 이면 초기화 기본값).
+ */
 staticfn void
 setgemprobs(d_level *dlev)
 {
@@ -80,6 +98,9 @@ setgemprobs(d_level *dlev)
     go.oclass_prob_totals[GEM_CLASS] = sum;
 }
 
+/**
+ * @brief 일부 보석의 색을 무작위로 바꾼다(터키석·아쿠아마린·형석 등).
+ */
 /* some gems can have different colors */
 staticfn void
 randomize_gem_colors(void)
@@ -108,6 +129,13 @@ randomize_gem_colors(void)
 #undef COPY_OBJ_DESCR
 }
 
+/**
+ * @brief 지정한 오브젝트 범위의 미확인 설명(외형)을 서로 섞는다.
+ * @param[in] o_low     범위 시작 오브젝트 인덱스.
+ * @param[in] o_high    범위 끝 오브젝트 인덱스.
+ * @param[in] domaterial TRUE 이면 재질(oc_material)도 함께 섞는다.
+ * @note 이미 이름이 알려진 오브젝트는 섞지 않는다.
+ */
 /* shuffle descriptions on objects o_low to o_high */
 staticfn void
 shuffle(int o_low, int o_high, boolean domaterial)
@@ -147,6 +175,11 @@ shuffle(int o_low, int o_high, boolean domaterial)
     }
 }
 
+/**
+ * @brief 게임 시작 시 오브젝트 테이블 전체를 초기화한다.
+ * @note 클래스별 기준 인덱스(bases[])를 설정하고 확률을 검증/계산하며, 미확인
+ *       설명과 타일을 섞는다.
+ */
 void
 init_objects(void)
 {
@@ -234,6 +267,10 @@ init_objects(void)
     objects[WAN_NOTHING].oc_dir = rn2(2) ? NODIR : IMMEDIATE;
 }
 
+/**
+ * @brief 각 오브젝트 클래스의 총 생성 확률을 계산한다.
+ * @note @c svb.bases[] 가 이미 설정되어 있다고 가정한다.
+ */
 /* Compute the total probability of each object class.
  * Assumes svb.bases[] has already been set. */
 void
@@ -264,6 +301,12 @@ init_oclass_probs(void)
     }
 }
 
+/**
+ * @brief 특정 오브젝트가 설명을 공유하는 범위(같은 그룹)를 구한다.
+ * @param[in]  otyp 대표 오브젝트 타입.
+ * @param[out] lo_p 그룹 범위 시작 인덱스.
+ * @param[out] hi_p 그룹 범위 끝 인덱스.
+ */
 /* retrieve the range of objects that otyp shares descriptions with */
 void
 obj_shuffle_range(
@@ -317,6 +360,9 @@ obj_shuffle_range(
     return;
 }
 
+/**
+ * @brief 무작위 설명이 필요한 모든 클래스/타입 범위의 설명을 섞는다.
+ */
 /* randomize object descriptions */
 staticfn void
 shuffle_all(void)
@@ -346,6 +392,12 @@ shuffle_all(void)
     return;
 }
 
+/**
+ * @brief 문자열이 오브젝트의 미확인 설명과 일치하는지 판정한다.
+ * @param[in] obj   대상 오브젝트.
+ * @param[in] descr 비교할 설명 문자열.
+ * @return 설명이 일치하면 TRUE, 아니면 FALSE.
+ */
 /* Return TRUE if the provided string matches the unidentified description of
  * the provided object. */
 boolean
@@ -364,6 +416,9 @@ objdescr_is(struct obj *obj, const char *descr)
     return !strcmp(objdescr, descr);
 }
 
+/**
+ * @brief 레벨 진입에 따른 초기화(보석 확률을 현재 깊이에 맞게 설정).
+ */
 /* level dependent initialization */
 void
 oinit(void)
@@ -371,6 +426,11 @@ oinit(void)
     setgemprobs(&u.uz);
 }
 
+/**
+ * @brief 오브젝트 이름/발견 정보를 세이브 파일에 저장한다.
+ * @param[in,out] nhfp 저장 대상 파일 핸들.
+ * @note 사용자 지정 이름(oc_uname)은 모든 오브젝트에 대해 저장한다.
+ */
 void
 savenames(NHFILE *nhfp)
 {
@@ -407,6 +467,11 @@ savenames(NHFILE *nhfp)
 }
 #endif /* !SFCTOOL */
 
+/**
+ * @brief 세이브 파일에서 오브젝트 이름/발견 정보를 복원한다.
+ * @param[in,out] nhfp 복원 원본 파일 핸들.
+ * @note 타일 빌드에서는 복원 후 타일 배정을 다시 섞는다.
+ */
 void
 restnames(NHFILE *nhfp)
 {
@@ -437,6 +502,11 @@ restnames(NHFILE *nhfp)
 }
 
 #ifndef SFCTOOL
+/**
+ * @brief 오브젝트를 관찰 처리한다(dknown 설정 및 조우 표시).
+ * @param[in,out] obj 관찰한 오브젝트.
+ * @note 일반(generic) 오브젝트나 환각 상태에서는 처리하지 않는다.
+ */
 /* make the object dknown and mark it as encountered */
 void
 observe_object(struct obj *obj)
@@ -450,6 +520,13 @@ observe_object(struct obj *obj)
     }
 }
 
+/**
+ * @brief 오브젝트 타입을 발견(discoveries 목록에 추가)한다.
+ * @param[in] oindx               발견할 오브젝트 타입.
+ * @param[in] mark_as_known       TRUE 이면 타입을 식별됨으로 표시한다.
+ * @param[in] mark_as_encountered TRUE 이면 조우(보거나 만짐)로 표시한다.
+ * @param[in] credit_hero         TRUE 이면 지혜를 단련시킨다.
+ */
 void
 discover_object(
     int oindx,                   /* type of object */
@@ -493,6 +570,10 @@ discover_object(
     }
 }
 
+/**
+ * @brief 오브젝트 타입을 발견 목록에서 제거한다(이름 지정 해제 등).
+ * @param[in] oindx 제거할 오브젝트 타입.
+ */
 /* if a class name has been cleared, we may need to purge it from disco[] */
 void
 undiscover_object(int oindx)
@@ -522,6 +603,11 @@ undiscover_object(int oindx)
     }
 }
 
+/**
+ * @brief 오브젝트 타입이 발견 목록에 표시할 만한지 판정한다.
+ * @param[in] i 검사할 오브젝트 타입.
+ * @return 발견 목록에 넣을 가치가 있으면 TRUE, 아니면 FALSE.
+ */
 boolean
 interesting_to_discover(int i)
 {
@@ -548,6 +634,11 @@ static const short uniq_objs[] = {
     CANDELABRUM_OF_INVOCATION,
 };
 
+/**
+ * @brief 발견 목록 정렬용 qsort 비교 함수.
+ * @param[in] v1,v2 비교할 두 문자열 항목(각 항목은 "* "/"  " 접두어로 시작).
+ * @return 접두어를 제외한 대소문자 무시 비교 결과.
+ */
 /* discoveries qsort comparison function */
 staticfn int QSORTCALLBACK
 discovered_cmp(const genericptr v1, const genericptr v2)
@@ -563,6 +654,12 @@ discovered_cmp(const genericptr v1, const genericptr v2)
     return res;
 }
 
+/**
+ * @brief sortloot 정렬용 정렬 키 문자열을 생성한다.
+ * @param[in]  otyp   대상 오브젝트 타입.
+ * @param[out] outbuf 정렬 키를 저장할 버퍼.
+ * @return 결과가 기록된 @p outbuf.
+ */
 staticfn char *
 sortloot_descr(int otyp, char *outbuf)
 {
@@ -607,6 +704,11 @@ static const char *const disco_orders_descr[] = {
 
 #ifndef SFCTOOL
 
+/**
+ * @brief 발견 목록 정렬 방식을 메뉴로 선택하게 한다.
+ * @param[in] mode 호출 문맥(0='O' 명령, 1=전체 발견, 2=클래스별 발견).
+ * @return 선택한 항목 수(0이면 취소).
+ */
 int
 choose_disco_sort(
     int mode) /* 0 => 'O' cmd, 1 => full discoveries; 2 => class disco */
@@ -656,6 +758,11 @@ choose_disco_sort(
     return n;
 }
 
+/**
+ * @brief 발견 목록용 오브젝트 타입 이름을 만든다(일본어 이름 설명 보강).
+ * @param[in] otyp 대상 오브젝트 타입.
+ * @return 타입 이름 문자열(사무라이의 일본어 이름에는 실제 이름을 덧붙인다).
+ */
 /* augment obj_typename() with explanation of Japanese item names */
 staticfn char *
 disco_typename(int otyp)
@@ -688,6 +795,12 @@ disco_typename(int otyp)
     return result;
 }
 
+/**
+ * @brief 버퍼에 오브젝트 타입 이름과 (여유가 있으면) 가격 정보를 덧붙인다.
+ * @param[in,out] buf 이어 붙일 대상 버퍼.
+ * @param[in]     dis 덧붙일 오브젝트 타입.
+ * @note 이름이 너무 길면 사용자 지정 이름 부분을 잘라 실제 타입 표기를 보존한다.
+ */
 /* append typename(dis) to buf[], possibly truncating in the process;
    also append price quote information if it fits */
 staticfn void
@@ -720,6 +833,12 @@ disco_append_typename(char *buf, int dis)
     append_price_quote(buf, &eos, dis);
 }
 
+/**
+ * @brief 유일(unique) 오브젝트의 발견 목록용 표기 문자열을 만든다.
+ * @param[in]  uidx   대상 유일 오브젝트 타입.
+ * @param[out] outbuf 결과를 저장할 버퍼.
+ * @note 미확인 사자의 서는 "papyrus spellbook" 형태로 표기한다.
+ */
 /* minor fixup for Book of the Dead needed in more than one place */
 staticfn void
 disco_fmt_uniq(int uidx, char *outbuf)
@@ -736,6 +855,13 @@ disco_fmt_uniq(int uidx, char *outbuf)
         Strcat(outbuf, " spellbook");
 }
 
+/**
+ * @brief 정렬된 발견 목록 줄들을 창에 출력하고 메모리를 해제한다.
+ * @param[in]     tmpwin       출력 대상 창.
+ * @param[in,out] sorted_lines 출력할 줄 배열(출력 후 각 줄이 해제된다).
+ * @param[in]     sorted_ct    줄 개수.
+ * @param[in]     lootsort     TRUE 이면 sortloot 정렬 키 접두어를 제거하고 출력.
+ */
 /* sort and output sorted_lines to window and free the lines */
 staticfn void
 disco_output_sorted(
@@ -759,6 +885,12 @@ disco_output_sorted(
     }
 }
 
+/**
+ * @brief #known 명령: 발견한 오브젝트 타입 목록을 표시한다.
+ * @return 명령 처리 결과 코드(@c ECMD_OK).
+ * @note 유일 오브젝트(relics)·아티팩트를 별도 구획으로 모으고, 선택된 정렬
+ *       방식에 따라 클래스별/알파벳/sortloot 순으로 출력한다.
+ */
 /* the #known command - show discovered object types */
 int
 dodiscovered(void) /* free after Robert Viduya */
@@ -872,6 +1004,12 @@ dodiscovered(void) /* free after Robert Viduya */
     return ECMD_OK;
 }
 
+/**
+ * @brief 오브젝트 클래스 이름을 소문자 문자열로 만든다.
+ * @param[in]  oclass 오브젝트 클래스.
+ * @param[out] buf    결과를 저장할 버퍼.
+ * @return 결과가 기록된 @p buf.
+ */
 /* lower case let_to_name() output, which differs from def_oc_syms[].name */
 staticfn char *
 oclass_to_name(char oclass, char *buf)
@@ -884,6 +1022,12 @@ oclass_to_name(char oclass, char *buf)
     return buf;
 }
 
+/**
+ * @brief #knownclass 명령: 특정 클래스의 발견 목록을 표시한다.
+ * @return 명령 처리 결과 코드(@c ECMD_OK).
+ * @note 실제 오브젝트 클래스 외에 아티팩트('a'), 유일 아이템('u'/'r')
+ *       유사 클래스도 지원한다.
+ */
 /* the #knownclass command - show discovered object types for one class;
    in addition to actual object classes, supports pseudo-class 'a' for
    discovered artifacts and 'u' (or 'r', for "relics") for unique items */
@@ -1126,6 +1270,9 @@ doclassdisco(void)
     return ECMD_OK;
 }
 
+/**
+ * @brief 발견 목록 중 이름을 붙일 수 있는 항목들을 메뉴로 띄워 이름을 지정한다.
+ */
 /* put up nameable subset of discoveries list as a menu */
 void
 rename_disco(void)
@@ -1206,6 +1353,11 @@ rename_disco(void)
 }
 #endif /* !SFCTOOL */
 
+/**
+ * @brief 현재 발견 목록 정렬 방식을 문자열로 얻는다(옵션 표시용).
+ * @param[out] opts 결과를 저장할 버퍼.
+ * @param[in]  cnf  TRUE 이면 설정 파일용 단일 문자, FALSE 이면 사람이 읽는 설명.
+ */
 void
 get_sortdisco(char *opts, boolean cnf)
 {

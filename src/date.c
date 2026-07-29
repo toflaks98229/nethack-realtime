@@ -2,6 +2,17 @@
 /* Copyright (c) Michael Allison, 2021.                           */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file date.c
+ * @brief 크로스 컴파일 환경을 위한 빌드 날짜/버전 정보 채움 로직.
+ *
+ * makedefs 를 실행할 수 없는 크로스 컴파일 상황에서, 컴파일러의
+ * @c __DATE__ / @c __TIME__ 매크로로부터 빌드 시각을 추출하여 전역
+ * @c nomakedefs 구조체(버전/빌드 정보)를 채운다.
+ *
+ * @note hack.h 를 포함하지 않으므로 필요한 프로토타입을 직접 선언한다.
+ */
+
 #include "config.h"
 #include "hacklib.h"
 #ifdef Snprintf
@@ -19,9 +30,11 @@ extern char *mdlib_version_string(char *, const char *);
 extern char *version_id_string(char *, size_t, const char *);
 extern char *bannerc_string(char *, size_t, const char *);
 
+/** @brief @c nomakedefs 가 동적 문자열로 채워졌는지(=해제 필요) 나타내는 플래그. */
 /* nomakedefs_populated: flag for whether 'nomakedefs' should be freed */
 static int nomakedefs_populated = 0;
 
+/** @brief 버전/빌드 정보를 담는 전역 구조체. 컴파일 시 기본값으로 초기화된다. */
 struct nomakedefs_s nomakedefs = {
     /* https://groups.google.com/forum/#!original/
        comp.sources.games/91SfKYg_xzI/dGnR3JnspFkJ */
@@ -41,6 +54,10 @@ struct nomakedefs_s nomakedefs = {
 
 #if defined(__DATE__) && defined(__TIME__)
 
+/**
+ * @brief 문자열 @p s 의 오프셋 @p z 에서 @p n 글자를 잘라 @p t 에 복사하는 매크로.
+ * @note 결과는 널 종료된다. 반복 변수 @c i 는 호출 문맥에서 선언되어야 한다.
+ */
 #define extract_field(t,s,n,z)    \
     do {                          \
         for (i = 0; i < n; ++i)   \
@@ -48,6 +65,15 @@ struct nomakedefs_s nomakedefs = {
         t[i] = '\0';              \
     } while (0)
 
+/**
+ * @brief 컴파일러의 빌드 날짜/시각과 버전 정보로 @c nomakedefs 를 채운다.
+ *
+ * @c __DATE__ / @c __TIME__ 을 파싱하여 빌드 시각을 계산하고, 버전 문자열·
+ * 배너·git 정보 등을 동적 문자열로 복제하여 저장한다.
+ *
+ * @param[in] version 채워 넣을 버전 정보(incarnation/feature_set 등). NULL 금지.
+ * @note 문자열 필드들을 @c dupstr 로 할당하며, @c free_nomakedefs() 로 해제한다.
+ */
 void
 populate_nomakedefs(struct version_info *version)
 {
@@ -130,6 +156,12 @@ populate_nomakedefs(struct version_info *version)
     return;
 }
 
+/**
+ * @brief @c populate_nomakedefs() 가 할당한 동적 문자열들을 해제한다.
+ *
+ * @note @c nomakedefs 가 실제로 채워진 경우(@c nomakedefs_populated)에만
+ *       동작하며, 컴파일 시 정적 문자열로 초기화된 값은 해제하지 않는다.
+ */
 void
 free_nomakedefs(void)
 {

@@ -2,12 +2,21 @@
 /*      Copyright (c) Izchak Miller, 1992.                        */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file mplayer.c
+ * @brief 몬스터-플레이어(mplayer) 생성 및 대사 처리.
+ *
+ * 엔드게임 등에서 등장하는 "몬스터 플레이어"(개발자 이름을 딴 적 캐릭터)를
+ * 직업별 장비·능력치와 함께 생성하고, 이름 부여 및 전투 대사 출력을 담당한다.
+ */
+
 #include "hack.h"
 
 staticfn const char *dev_name(void);
 staticfn void get_mplname(struct monst *, char *);
 staticfn void mk_mplayer_armor(struct monst *, short);
 
+/** @brief NetHack 개발 기여자 이름 목록(mplayer 이름 부여에 사용). */
 /* These are the names of those who
  * contributed to the development of NetHack 3.2/3.3/3.4/3.6.
  *
@@ -39,81 +48,19 @@ static const char *const developers[] = {
     "Joshua",  "Pat",    ""
 };
 
-/* return a randomly chosen developer name */
-staticfn const char *
-dev_name(void)
-{
-    int i, m = 0, n = SIZE(developers);
-    struct monst *mtmp;
-    boolean match;
-
-    do {
-        match = FALSE;
-        i = rn2(n);
-        for (mtmp = fmon; mtmp; mtmp = mtmp->nmon) {
-            if (!is_mplayer(mtmp->data))
-                continue;
-            if (!strncmp(developers[i],
-                         (has_mgivenname(mtmp)) ? MGIVENNAME(mtmp) : "",
-                         strlen(developers[i]))) {
-                match = TRUE;
-                break;
-            }
-        }
-        m++;
-    } while (match && m < 100); /* m for insurance */
-
-    if (match)
-        return (const char *) 0;
-    return (developers[i]);
-}
-
-staticfn void
-get_mplname(struct monst *mtmp, char *nam)
-{
-    boolean fmlkind = is_female(mtmp->data);
-    const char *devnam;
-
-    devnam = dev_name();
-    if (!devnam)
-        Strcpy(nam, fmlkind ? "Eve" : "Adam");
-    else if (fmlkind && !!strcmp(devnam, "Janet"))
-        Strcpy(nam, rn2(2) ? "Maud" : "Eve");
-    else
-        Strcpy(nam, devnam);
-
-    if (fmlkind || !strcmp(nam, "Janet"))
-        mtmp->female = 1;
-    else
-        mtmp->female = 0;
-    Strcat(nam, " the ");
-    Strcat(nam, rank_of((int) mtmp->m_lev, monsndx(mtmp->data),
-                        (boolean) mtmp->female));
-}
-
-staticfn void
-mk_mplayer_armor(struct monst *mon, short typ)
-{
-    struct obj *obj;
-
-    if (typ == STRANGE_OBJECT)
-        return;
-    obj = mksobj(typ, FALSE, FALSE);
-    obj->oeroded = obj->oeroded2 = 0;
-    if (!rn2(3))
-        obj->oerodeproof = 1;
-    if (!rn2(3))
-        curse(obj);
-    if (!rn2(3))
-        bless(obj);
-    /* Most players who get to the endgame who have cursed equipment
-     * have it because the wizard or other monsters cursed it, so its
-     * chances of having plusses is the same as usual....
-     */
-    obj->spe = rn2(10) ? (rn2(3) ? rn2(5) : rn1(4, 4)) : -rnd(3);
-    (void) mpickobj(mon, obj);
-}
-
+/**
+ * @brief 몬스터-플레이어를 생성한다.
+ *
+ * 직업(role)별로 무기·방어구·기타 아이템과 능력치를 무작위로 부여한다.
+ * @p special 이면 엔드게임용으로 더 강하게 만들고 개발자 이름과 가짜
+ * 옌더의 부적을 부여한다.
+ *
+ * @param[in] ptr     생성할 몬스터-플레이어 종 데이터.
+ * @param[in] x       생성 위치 x 좌표.
+ * @param[in] y       생성 위치 y 좌표.
+ * @param[in] special TRUE 이면 엔드게임용 강화 버전으로 생성.
+ * @return 생성된 몬스터 포인터, mplayer 종이 아니면 NULL.
+ */
 struct monst *
 mk_mplayer(struct permonst *ptr, coordxy x, coordxy y, boolean special)
 {
@@ -316,6 +263,14 @@ mk_mplayer(struct permonst *ptr, coordxy x, coordxy y, boolean special)
     return (mtmp);
 }
 
+/**
+ * @brief 지정한 수만큼의 몬스터-플레이어를 무작위 위치에 생성한다.
+ *
+ * @param[in] num     생성할 몬스터-플레이어 수.
+ * @param[in] special TRUE 이면 엔드게임용 강화 버전으로 생성.
+ * @note @p special 인 경우 @p num 은 @c developers 배열의 중복 없는 이름 수를
+ *       넘지 않아야 하며, 넘으면 "Adam/Eve" 이름이 채워진다.
+ */
 /* create the indicated number (num) of monster-players,
  * randomly chosen, and in randomly chosen (free) locations
  * on the level.  If "special", the size of num should not
@@ -352,6 +307,12 @@ create_mplayers(int num, boolean special)
     }
 }
 
+/**
+ * @brief 몬스터-플레이어의 전투 대사를 출력한다.
+ * @param[in] mtmp 대사를 말할 몬스터-플레이어.
+ * @note 평화적(mpeaceful) 상태이면 대사 없이 일반 인간형 대화로 넘어간다.
+ *       영웅과 같은 직업이면 다른 대사를 사용한다.
+ */
 void
 mplayer_talk(struct monst *mtmp)
 {
@@ -374,6 +335,98 @@ mplayer_talk(struct monst *mtmp)
     verbalize("Talk? -- %s", mtmp->data == &mons[gu.urole.mnum]
                                 ? same_class_msg[rn2(3)]
                                 : other_class_msg[rn2(3)]);
+}
+
+/**
+ * @brief 아직 사용되지 않은 개발자 이름을 무작위로 하나 반환한다.
+ * @return 선택된 개발자 이름 문자열.
+ * @retval NULL 시도 한계 내에서 미사용 이름을 찾지 못한 경우.
+ * @note 이미 같은 이름의 mplayer 가 레벨에 존재하면 중복을 피한다.
+ */
+/* return a randomly chosen developer name */
+staticfn const char *
+dev_name(void)
+{
+    int i, m = 0, n = SIZE(developers);
+    struct monst *mtmp;
+    boolean match;
+
+    do {
+        match = FALSE;
+        i = rn2(n);
+        for (mtmp = fmon; mtmp; mtmp = mtmp->nmon) {
+            if (!is_mplayer(mtmp->data))
+                continue;
+            if (!strncmp(developers[i],
+                         (has_mgivenname(mtmp)) ? MGIVENNAME(mtmp) : "",
+                         strlen(developers[i]))) {
+                match = TRUE;
+                break;
+            }
+        }
+        m++;
+    } while (match && m < 100); /* m for insurance */
+
+    if (match)
+        return (const char *) 0;
+    return (developers[i]);
+}
+
+/**
+ * @brief 몬스터-플레이어의 이름("<이름> the <계급>")을 생성하고 성별을 정한다.
+ * @param[in]  mtmp 이름을 부여할 몬스터-플레이어.
+ * @param[out] nam  생성된 이름을 저장할 버퍼.
+ */
+staticfn void
+get_mplname(struct monst *mtmp, char *nam)
+{
+    boolean fmlkind = is_female(mtmp->data);
+    const char *devnam;
+
+    devnam = dev_name();
+    if (!devnam)
+        Strcpy(nam, fmlkind ? "Eve" : "Adam");
+    else if (fmlkind && !!strcmp(devnam, "Janet"))
+        Strcpy(nam, rn2(2) ? "Maud" : "Eve");
+    else
+        Strcpy(nam, devnam);
+
+    if (fmlkind || !strcmp(nam, "Janet"))
+        mtmp->female = 1;
+    else
+        mtmp->female = 0;
+    Strcat(nam, " the ");
+    Strcat(nam, rank_of((int) mtmp->m_lev, monsndx(mtmp->data),
+                        (boolean) mtmp->female));
+}
+
+/**
+ * @brief 몬스터-플레이어용 방어구 아이템 하나를 생성해 지급한다.
+ * @param[in,out] mon 아이템을 받을 몬스터.
+ * @param[in]     typ 생성할 방어구 종류(@c STRANGE_OBJECT 이면 아무것도 안 함).
+ * @note 부식 방지/축복/저주/강화 수치가 무작위로 부여된다.
+ */
+staticfn void
+mk_mplayer_armor(struct monst *mon, short typ)
+{
+    struct obj *obj;
+
+    if (typ == STRANGE_OBJECT)
+        return;
+    obj = mksobj(typ, FALSE, FALSE);
+    obj->oeroded = obj->oeroded2 = 0;
+    if (!rn2(3))
+        obj->oerodeproof = 1;
+    if (!rn2(3))
+        curse(obj);
+    if (!rn2(3))
+        bless(obj);
+    /* Most players who get to the endgame who have cursed equipment
+     * have it because the wizard or other monsters cursed it, so its
+     * chances of having plusses is the same as usual....
+     */
+    obj->spe = rn2(10) ? (rn2(3) ? rn2(5) : rn1(4, 4)) : -rnd(3);
+    (void) mpickobj(mon, obj);
 }
 
 /*mplayer.c*/

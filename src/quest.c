@@ -2,13 +2,27 @@
 /*      Copyright 1991, M. Stephenson             */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file quest.c
+ * @brief 퀘스트 던전 분기(branch)의 진행 상태 및 대화 처리.
+ *
+ * 퀘스트 리더/네메시스/수호자와의 대화, 퀘스트 부여 자격(레벨·정렬) 판정,
+ * 퀘스트 아티팩트 회수와 완료 처리, 부적격 시 퀘스트 밖으로의 추방 등을
+ * 담당한다. 진행 상태는 @c svq.quest_status 에 기록된다.
+ *
+ * @note static 헬퍼가 공개 함수와 촘촘히 뒤섞여 있어 재배치는 적용하지 않고
+ *       정의 위치에서 문서화한다.
+ */
+
 #include "hack.h"
 
 /*  quest dungeon branch routines. */
 
 #include "quest.h"
 
+/** @brief 이번 레벨 진입이 처음이 아닌지(같은 레벨에서 재호출) 여부. */
 #define Not_firsttime (on_level(&u.uz0, &u.uz))
+/** @brief 퀘스트 진행 상태(@c svq.quest_status)의 필드 접근 축약 매크로. */
 #define Qstat(x) (svq.quest_status.x)
 
 staticfn void on_start(void);
@@ -22,6 +36,10 @@ staticfn void chat_with_nemesis(void);
 staticfn void chat_with_guardian(void);
 staticfn void prisoner_speaks(struct monst *);
 
+/**
+ * @brief 퀘스트 시작 레벨 진입 시 적절한 안내 메시지를 출력한다.
+ * @note 최초 진입과 재진입(준비 상태에 따라)을 구분하여 다른 문구를 낸다.
+ */
 staticfn void
 on_start(void)
 {
@@ -36,6 +54,11 @@ on_start(void)
     }
 }
 
+/**
+ * @brief 퀘스트 로케이트(locate) 레벨 진입 시 안내 메시지를 출력한다.
+ * @note 메시지는 위층에서 내려온 경우를 전제로 하며, 네메시스를 이미
+ *       처치했으면 아무것도 출력하지 않는다.
+ */
 staticfn void
 on_locate(void)
 {
@@ -58,6 +81,10 @@ on_locate(void)
     }
 }
 
+/**
+ * @brief 퀘스트 목표(네메시스) 레벨 진입 시 안내 메시지를 출력한다.
+ * @note 퀘스트 아티팩트의 존재 여부에 따라 대체 메시지를 요청할 수 있다.
+ */
 staticfn void
 on_goal(void)
 {
@@ -86,6 +113,10 @@ on_goal(void)
     }
 }
 
+/**
+ * @brief 퀘스트 특수 레벨 진입 시 상황에 맞는 안내를 분배한다.
+ * @note 퀘스트를 이미 완료했거나 같은 레벨 재호출이면 아무 동작도 하지 않는다.
+ */
 void
 onquest(void)
 {
@@ -103,6 +134,9 @@ onquest(void)
     return;
 }
 
+/**
+ * @brief 퀘스트 네메시스 사망을 상태에 기록하고 메시지를 출력한다.
+ */
 void
 nemdead(void)
 {
@@ -112,6 +146,9 @@ nemdead(void)
     }
 }
 
+/**
+ * @brief 퀘스트 리더 사망을 상태에 기록한다.
+ */
 void
 leaddead(void)
 {
@@ -121,6 +158,11 @@ leaddead(void)
     }
 }
 
+/**
+ * @brief 퀘스트 아티팩트를 처음 만졌을 때의 메시지·효과를 처리한다.
+ * @param[in] obj 만진 퀘스트 아티팩트.
+ * @note 최초 1회만 메시지를 출력하고 지혜를 단련시킨다.
+ */
 void
 artitouch(struct obj *obj)
 {
@@ -135,6 +177,10 @@ artitouch(struct obj *obj)
     }
 }
 
+/**
+ * @brief 퀘스트 던전으로 진입해도 되는지 판정한다(do.c 의 레벨 변경 검사용).
+ * @return 진입 자격이 있으면 TRUE, 없으면 FALSE.
+ */
 /* external hook for do.c (level change check) */
 boolean
 ok_to_quest(void)
@@ -143,12 +189,21 @@ ok_to_quest(void)
                        && is_pure(FALSE) > 0) || Qstat(killed_leader));
 }
 
+/**
+ * @brief 영웅이 퀘스트 최소 레벨에 도달했는지 판정한다.
+ * @return 최소 레벨 미만이면 TRUE(자격 없음), 충족하면 FALSE.
+ */
 staticfn boolean
 not_capable(void)
 {
     return (boolean) (u.ulevel < MIN_QUEST_LEVEL);
 }
 
+/**
+ * @brief 영웅의 정렬 순수성(퀘스트 자격)을 판정한다.
+ * @param[in] talk TRUE 이고 위저드 모드이면 진단 메시지·보정 프롬프트를 낸다.
+ * @return 순수하면 1, 개종했으면 -1, 그 외(정렬 점수 부족 등) 0.
+ */
 staticfn int
 is_pure(boolean talk)
 {
@@ -176,6 +231,11 @@ is_pure(boolean talk)
     return purity;
 }
 
+/**
+ * @brief 영웅을 퀘스트 던전의 상위 던전 계단으로 추방한다.
+ * @param[in] seal TRUE 이면 퀘스트로 통하는 마법 포탈을 제거하여 봉인한다.
+ * @note 영웅이 현재 퀘스트 던전 안에 있고 분기가 하나뿐임을 전제로 한다.
+ */
 /*
  * Expel the player to the stairs on the parent of the quest dungeon.
  *
@@ -215,6 +275,16 @@ expulsion(boolean seal)
     }
 }
 
+/**
+ * @brief 퀘스트 아티팩트를 리더에게 반환하여 퀘스트 완료를 처리한다.
+ *
+ * 완료 문구를 아직 주지 않았으면 지금 주고, 이미 주었으면 아티팩트를 계속
+ * 지닌 채 포탈로 돌아가는 상황에 대한 메시지를 준다. 소환 아이템(주로 벨)을
+ * 리더에게 던지거나 찬 경우에도 호출된다.
+ *
+ * @param[in] obj 반환된 퀘스트 아티팩트 또는 던져진 유니크/가짜 부적.
+ *                옌더의 부적을 소지한 경우 NULL 일 수 있다.
+ */
 /* Either you've returned to quest leader while carrying the quest
    artifact or you've just thrown it to/at him or her.  If quest
    completion text hasn't been given yet, give it now.  Otherwise
@@ -278,6 +348,14 @@ finish_quest(struct obj *obj) /* quest artifact or thrown unique item or faux
     }
 }
 
+/**
+ * @brief 퀘스트 리더와의 대화를 규칙에 따라 처리한다.
+ *
+ * 진행 상태(부적 소지, 아티팩트 회수, 자격 판정 등)에 따라 격려·퀘스트 부여·
+ * 추방·완료 등 서로 다른 반응을 분기한다.
+ *
+ * @param[in,out] mtmp 대화 상대인 퀘스트 리더.
+ */
 staticfn void
 chat_with_leader(struct monst *mtmp)
 {
@@ -367,6 +445,11 @@ chat_with_leader(struct monst *mtmp)
     }
 }
 
+/**
+ * @brief 퀘스트 리더가 말을 건다(공격받았을 때 포함).
+ * @param[in,out] mtmp 퀘스트 리더.
+ * @note 리더가 적대적이 되면 상태를 갱신하되, 관련 문구는 한 번만 출력한다.
+ */
 void
 leader_speaks(struct monst *mtmp)
 {
@@ -390,6 +473,9 @@ leader_speaks(struct monst *mtmp)
         chat_with_leader(mtmp);
 }
 
+/**
+ * @brief 퀘스트 네메시스와의 대화(주로 조롱)를 처리한다.
+ */
 staticfn void
 chat_with_nemesis(void)
 {
@@ -399,6 +485,11 @@ chat_with_nemesis(void)
         Qstat(met_nemesis++);
 }
 
+/**
+ * @brief 퀘스트 네메시스가 상황에 맞는 대사를 말한다.
+ * @note 전투 중이면 무작위 저주를 내뱉고, 그렇지 않으면 진행도에 따라
+ *       다른 도발 문구를 사용한다.
+ */
 void
 nemesis_speaks(void)
 {
@@ -421,6 +512,12 @@ nemesis_speaks(void)
         qt_pager("discourage");
 }
 
+/**
+ * @brief 죽어가는 네메시스 주위에 유독 가스 구름을 생성한다.
+ * @param[in] mx,my 가스 구름의 중심 좌표.
+ * @note 영웅이 네메시스를 막 처치했더라도 가스 구름의 책임이 영웅에게
+ *       돌아가지 않도록 몬스터 행동으로 처리한다.
+ */
 /* create cloud of stinking gas around dying nemesis */
 void
 nemesis_stinks(coordxy mx, coordxy my)
@@ -437,6 +534,10 @@ nemesis_stinks(coordxy mx, coordxy my)
     svc.context.mon_moving = save_mon_moving;
 }
 
+/**
+ * @brief 퀘스트 수호자(guardian)와의 대화를 처리한다.
+ * @note 아티팩트 회수·네메시스 처치 여부에 따라 다른 문구를 사용한다.
+ */
 staticfn void
 chat_with_guardian(void)
 {
@@ -447,6 +548,11 @@ chat_with_guardian(void)
         qt_pager("guardtalk_before");
 }
 
+/**
+ * @brief 갇힌 죄수(prisoner) 몬스터를 깨우고 해방시킨다.
+ * @param[in,out] mtmp 대상 몬스터(죄수가 아니면 무시).
+ * @note 해방 시 영웅의 신이 기뻐하여 정렬이 오르지만, 경비병들은 분노한다.
+ */
 staticfn void
 prisoner_speaks(struct monst *mtmp)
 {
@@ -469,6 +575,10 @@ prisoner_speaks(struct monst *mtmp)
     return;
 }
 
+/**
+ * @brief 영웅이 퀘스트 캐릭터에게 말을 걸 때(#chat) 적절한 대화로 분배한다.
+ * @param[in,out] mtmp 대화 상대 몬스터(리더/네메시스/수호자).
+ */
 void
 quest_chat(struct monst *mtmp)
 {
@@ -491,6 +601,10 @@ quest_chat(struct monst *mtmp)
     }
 }
 
+/**
+ * @brief 퀘스트 캐릭터가 (영웅의 행동에 반응하여) 먼저 말을 거는 경우를 분배한다.
+ * @param[in,out] mtmp 말을 거는 몬스터(리더/네메시스/죄수).
+ */
 void
 quest_talk(struct monst *mtmp)
 {
@@ -510,6 +624,10 @@ quest_talk(struct monst *mtmp)
     }
 }
 
+/**
+ * @brief 네메시스가 영웅과 교전 중인지 상태를 갱신한다.
+ * @param[in] mtmp 검사할 몬스터(네메시스일 때만 의미 있음).
+ */
 void
 quest_stat_check(struct monst *mtmp)
 {

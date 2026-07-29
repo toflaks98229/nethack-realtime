@@ -2,8 +2,17 @@
 /* Copyright (c) Kevin Hugo, 1998-1999. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file steed.c
+ * @brief 탈것(steed)에 안장 씌우기 및 타기/내리기 로직.
+ *
+ * 안장 장착(#apply saddle), 승마/하마(#ride), 승마 중 이동·발차기, 탈것 변신,
+ * 하마 착지 지점 선정 등 탈것과 관련된 처리를 담당한다.
+ */
+
 #include "hack.h"
 
+/** @brief 탈 수 있는 몬스터 심볼(클래스) 목록. */
 /* Monsters that might be ridden */
 static NEARDATA const char steeds[] = { S_QUADRUPED, S_UNICORN, S_ANGEL,
                                         S_CENTAUR,   S_DRAGON,  S_JABBERWOCK,
@@ -12,6 +21,9 @@ static NEARDATA const char steeds[] = { S_QUADRUPED, S_UNICORN, S_ANGEL,
 staticfn boolean landing_spot(coord *, int, int);
 staticfn void maybewakesteed(struct monst *);
 
+/**
+ * @brief 승마 중 무언가에 손이 닿지 않을 때의 메시지를 출력한다.
+ */
 /* caller has decided that hero can't reach something while mounted */
 void
 rider_cant_reach(void)
@@ -21,6 +33,11 @@ rider_cant_reach(void)
 
 /*** Putting the saddle on ***/
 
+/**
+ * @brief 이 몬스터가 안장을 착용할 수 있는지 판정한다.
+ * @param[in] mtmp 대상 몬스터.
+ * @return 안장 착용이 가능하면 TRUE, 아니면 FALSE.
+ */
 /* Can this monster wear a saddle? */
 boolean
 can_saddle(struct monst *mtmp)
@@ -32,6 +49,12 @@ can_saddle(struct monst *mtmp)
             && !noncorporeal(ptr) && !is_whirly(ptr) && !unsolid(ptr));
 }
 
+/**
+ * @brief 안장을 인접한 몬스터에게 씌우려 시도한다(#apply saddle).
+ * @param[in] otmp 사용할 안장 오브젝트.
+ * @return 명령 처리 결과 코드(@c ECMD_TIME, @c ECMD_OK, @c ECMD_CANCEL).
+ * @note 성공 확률은 민첩·매력·레벨·길들임 정도·승마 기술·저주 여부 등에 좌우된다.
+ */
 int
 use_saddle(struct obj *otmp)
 {
@@ -138,6 +161,12 @@ use_saddle(struct obj *otmp)
     return ECMD_TIME;
 }
 
+/**
+ * @brief 몬스터에게 안장을 실제로 장착시킨다.
+ * @param[in,out] saddle 장착할 안장(NULL 이면 새로 생성).
+ * @param[in,out] mtmp   안장을 씌울 몬스터.
+ * @note 착용 마스크·소유 표시를 설정하고 몬스터 외부 속성을 갱신한다.
+ */
 void
 put_saddle_on_mon(struct obj *saddle, struct monst *mtmp)
 {
@@ -164,6 +193,12 @@ put_saddle_on_mon(struct obj *saddle, struct monst *mtmp)
 
 /*** Riding the monster ***/
 
+/**
+ * @brief 이 몬스터에 탈 수 있는지 판정한다.
+ * @param[in] mtmp 대상 몬스터.
+ * @return 탈 수 있으면 TRUE, 아니면 FALSE.
+ * @note 호출자는 @c can_saddle() 도 함께 확인해야 한다.
+ */
 /* Can we ride this monster?  Caller should also check can_saddle() */
 boolean
 can_ride(struct monst *mtmp)
@@ -173,6 +208,11 @@ can_ride(struct monst *mtmp)
             && (!Underwater || is_swimmer(mtmp->data)));
 }
 
+/**
+ * @brief #ride 명령: 탈것에 타거나 이미 타고 있으면 내린다.
+ * @return 명령 처리 결과 코드.
+ * @note 위저드 모드에서는 강제로 승마를 성공시킬 수 있다.
+ */
 /* the #ride command */
 int
 doride(void)
@@ -192,6 +232,13 @@ doride(void)
     return ECMD_TIME;
 }
 
+/**
+ * @brief 지정한 몬스터에 올라타 승마를 시작한다.
+ * @param[in,out] mtmp  탈 몬스터.
+ * @param[in]     force TRUE 이면 각종 조건 검사를 건너뛰고 강제로 태운다.
+ * @return 승마에 성공하면 TRUE, 실패하면 FALSE.
+ * @note 폴리모프 형태·적재량·다리 부상·시야 등 다양한 조건을 검사한다.
+ */
 /* Start riding, with the given monster */
 boolean
 mount_steed(
@@ -382,6 +429,10 @@ mount_steed(
     return TRUE;
 }
 
+/**
+ * @brief 승마 이동에 따라 승마 기술 숙련도를 단련시킨다.
+ * @note 충분한 턴(약 100턴)을 타야 기술이 오른다.
+ */
 /* You and your steed have moved */
 void
 exercise_steed(void)
@@ -397,6 +448,11 @@ exercise_steed(void)
     return;
 }
 
+/**
+ * @brief 영웅이 탈것을 차거나 채찍질한다.
+ * @note 잠든/마비된 탈것은 깨어날 수 있고, 길들임이 낮아지면 저항하여 영웅을
+ *       떨어뜨릴 수 있으며, 성공하면 질주(gallop)한다.
+ */
 /* The player kicks or whips the steed */
 void
 kick_steed(void)
@@ -449,6 +505,13 @@ kick_steed(void)
     return;
 }
 
+/**
+ * @brief 하마 시 착지할 인접 지점을 찾는다.
+ * @param[out] spot    찾은 착지 좌표.
+ * @param[in]  reason  하마 사유(착지 지점 선호에 영향).
+ * @param[in]  forceit TRUE 이면 적당한 지점이 없을 때 @c enexto() 로 강제 확보.
+ * @return 착지 지점을 찾았으면 TRUE, 아니면 FALSE.
+ */
 /*
  * Try to find a dismount point adjacent to the steed's location.
  * If all else fails, try enexto().  Use enexto() as a last resort because
@@ -571,6 +634,12 @@ landing_spot(
     return found;
 }
 
+/**
+ * @brief 현재 타고 있는 탈것에서 내린다.
+ * @param[in] reason 하마 사유(선택/낙마/던져짐 등).
+ * @note 착지 지점을 정해 영웅을 배치하고, 탈것의 다리 부상을 치유하며, 상황에
+ *       따라 함정·수중 처리 등을 수행한다.
+ */
 /* Stop riding the current steed */
 void
 dismount_steed(
@@ -821,6 +890,12 @@ dismount_steed(
     return;
 }
 
+/**
+ * @brief 안장 씌우기/타기 시도 시 잠든 탈것을 깨우려 시도한다.
+ * @param[in,out] steed 대상 탈것.
+ * @note 시간제 수면/마비는 확률적으로 풀리거나 남은 시간이 절반으로 줄며,
+ *       진행 중이던 식사는 중단된다.
+ */
 /* when attempting to saddle or mount a sleeping steed, try to wake it up
    (for the saddling case, it won't be u.usteed yet) */
 staticfn void
@@ -847,6 +922,12 @@ maybewakesteed(struct monst *steed)
     finish_meating(steed);
 }
 
+/**
+ * @brief 탈것이 새로운 형태로 변신했을 때를 처리한다.
+ * @param[in,out] steed    변신한 탈것.
+ * @param[in]     oldshape 변신 이전의 종 데이터.
+ * @note 새 형태가 탈 수 없는 것이면 낙마시키고, 그렇지 않으면 자세를 고쳐 잡는다.
+ */
 /* steed has taken on a new shape */
 void
 poly_steed(
@@ -872,6 +953,12 @@ poly_steed(
     }
 }
 
+/**
+ * @brief 영웅의 탈것이 움직일 수 없는 상태인지 판정한다.
+ * @param[in] checkfeeding TRUE 이면 식사 중인지도 확인한다.
+ * @return 움직일 수 없으면 TRUE, 움직일 수 있으면 FALSE.
+ * @note 붙잡는 함정은 영웅에게 직접 작용하므로 여기서 확인하지 않는다.
+ */
 /* decide whether hero's steed is able to move;
    doesn't check for holding traps--those affect the hero directly */
 boolean
@@ -894,6 +981,13 @@ stucksteed(boolean checkfeeding)
     return FALSE;
 }
 
+/**
+ * @brief 몬스터를 맵의 지정 좌표에 배치한다.
+ * @param[in,out] mon 배치할 몬스터.
+ * @param[in]     x,y 배치할 좌표.
+ * @note 좌표 유효성·중복 배치·탈것/사망 몬스터 배치 등 이상 상황을
+ *       @c impossible() 로 경고하며, 배치 후 관련 상태 비트를 정리한다.
+ */
 void
 place_monster(struct monst *mon, coordxy x, coordxy y)
 {

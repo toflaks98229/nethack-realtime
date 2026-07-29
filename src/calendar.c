@@ -4,6 +4,14 @@
 /* Copyright (c) Robert Patrick Rankin, 1991                      */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file calendar.c
+ * @brief 실제 시각·날짜 관련 유틸리티(시간 조회, 달의 위상 등).
+ *
+ * 현지 시각/날짜를 조회하고, 묘비의 연도, 기록 파일의 날짜, 달의 위상(달 관련
+ * 몬스터 반응), 밤/자정 여부 등 게임에서 필요로 하는 시간 정보를 계산한다.
+ */
+
 #include "hack.h"
 
 /*
@@ -28,6 +36,10 @@
 
 staticfn struct tm *getlt(void);
 
+/**
+ * @brief 현재 시각을 @c time_t 값으로 반환한다.
+ * @return 현재 달력 시각.
+ */
 time_t
 getnow(void)
 {
@@ -37,14 +49,10 @@ getnow(void)
     return datetime;
 }
 
-staticfn struct tm *
-getlt(void)
-{
-    time_t date = getnow();
-
-    return localtime((LOCALTIME_type) &date);
-}
-
+/**
+ * @brief 현재 연도(서기)를 반환한다.
+ * @return 서기 연도(예: 2026).
+ */
 int
 getyear(void)
 {
@@ -52,6 +60,11 @@ getyear(void)
 }
 
 
+/**
+ * @brief 주어진 시각을 YYYYMMDD 형식의 정수로 변환한다.
+ * @param[in] date 변환할 시각. 0이면 현재 현지 시각을 사용한다.
+ * @return YYYYMMDD 형식의 날짜 값(예: 20260724).
+ */
 long
 yyyymmdd(time_t date)
 {
@@ -76,6 +89,11 @@ yyyymmdd(time_t date)
     return datenum;
 }
 
+/**
+ * @brief 주어진 시각을 HHMMSS 형식의 정수로 변환한다.
+ * @param[in] date 변환할 시각. 0이면 현재 현지 시각을 사용한다.
+ * @return HHMMSS 형식의 시각 값(예: 143005).
+ */
 long
 hhmmss(time_t date)
 {
@@ -91,6 +109,12 @@ hhmmss(time_t date)
     return timenum;
 }
 
+/**
+ * @brief 주어진 시각을 "YYYYMMDDHHMMSS" 문자열로 변환한다.
+ * @param[in] date 변환할 시각. 0이면 현재 현지 시각을 사용한다.
+ * @return 14자리 날짜/시각 문자열.
+ * @warning 정적 버퍼를 반환하므로 스레드 안전하지 않으며, 다음 호출 시 덮어써진다.
+ */
 char *
 yyyymmddhhmmss(time_t date)
 {
@@ -116,6 +140,11 @@ yyyymmddhhmmss(time_t date)
     return datestr;
 }
 
+/**
+ * @brief "YYYYMMDDHHMMSS" 문자열을 @c time_t 값으로 변환한다.
+ * @param[in] buf 14자리 날짜/시각 문자열.
+ * @return 변환된 시각. 형식이 올바르지 않거나 변환에 실패하면 0.
+ */
 time_t
 time_from_yyyymmddhhmmss(char *buf)
 {
@@ -187,6 +216,13 @@ TODO: set_debugpline1, debugpline1 -> function pointer
  * 177 ~= 8 reported phases * 22
  * + 11/22 for rounding
  */
+/**
+ * @brief 오늘의 달의 위상(phase)을 계산한다.
+ *
+ * 메톤 주기(Metonic cycle)와 에팩트(epact)를 이용한 근사 계산이다.
+ *
+ * @return 0~7 사이의 위상 값(0: 신월/new, 4: 보름/full).
+ */
 int
 phase_of_the_moon(void) /* 0-7, with 0: new, 4: full */
 {
@@ -202,6 +238,10 @@ phase_of_the_moon(void) /* 0-7, with 0: new, 4: full */
     return ((((((diy + epact) * 6) + 11) % 177) / 22) & 7);
 }
 
+/**
+ * @brief 오늘이 13일의 금요일인지 판별한다.
+ * @return 13일의 금요일이면 TRUE, 아니면 FALSE.
+ */
 boolean
 friday_13th(void)
 {
@@ -211,6 +251,10 @@ friday_13th(void)
     return (boolean) (lt->tm_wday == 5 && lt->tm_mday == 13);
 }
 
+/**
+ * @brief 현재 시각이 밤인지 판별한다.
+ * @return 밤(22시~5시)이면 참(0이 아님), 아니면 0.
+ */
 int
 night(void)
 {
@@ -219,10 +263,27 @@ night(void)
     return (hour < 6 || hour > 21);
 }
 
+/**
+ * @brief 현재 시각이 자정(0시대)인지 판별한다.
+ * @return 자정이면 참(0이 아님), 아니면 0.
+ */
 int
 midnight(void)
 {
     return (getlt()->tm_hour == 0);
+}
+
+/**
+ * @brief 현재 현지 시각을 분해한 @c tm 구조체 포인터를 반환한다.
+ * @return 현지 시각을 나타내는 정적 @c tm 구조체 포인터.
+ * @warning 표준 라이브러리의 정적 버퍼를 반환하므로 스레드 안전하지 않다.
+ */
+staticfn struct tm *
+getlt(void)
+{
+    time_t date = getnow();
+
+    return localtime((LOCALTIME_type) &date);
 }
 
 /* calendar.c */

@@ -3,6 +3,15 @@
 /*-Copyright (c) Robert Patrick Rankin, 2013. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file worn.c
+ * @brief 착용 장비(무기·방어구·장신구) 슬롯 관리 및 몬스터 장비 처리.
+ *
+ * 영웅의 착용 슬롯 설정/해제와 그에 따른 외재 능력(extrinsic) 갱신, 착용 슬롯
+ * 판정, 몬스터의 방어구 착용/상실/AC 계산·속도 조절, 그리고 오브젝트 순회용
+ * bypass 플래그 관리 등을 담당한다.
+ */
+
 #include "hack.h"
 
 staticfn void m_lose_armor(struct monst *, struct obj *, boolean) NONNULLPTRS;
@@ -45,6 +54,10 @@ static const struct worn {
 /* note: monsters don't have clairvoyance, so dependency on hero's role here
    has no significant effect on their use of w_blocks() */
 
+/**
+ * @brief 영웅의 (맹인이 아닐 때) 텔레파시 범위를 다시 계산한다.
+ * @note 텔레파시를 부여하는 착용 아이템과 ESP 아티팩트 수에 비례한다.
+ */
 /* calc the range of hero's unblind telepathy */
 void
 recalc_telepat_range(void)
@@ -68,6 +81,13 @@ recalc_telepat_range(void)
         u.unblind_telepat_range = -1;
 }
 
+/**
+ * @brief 지정한 슬롯에 아이템을 착용 상태로 설정한다.
+ * @param[in,out] obj  착용할 아이템(NULL 이면 해당 슬롯을 비운다).
+ * @param[in]     mask 대상 착용 슬롯 마스크.
+ * @note 슬롯 변경에 따라 외재 능력(extrinsic)·차단·아티팩트 내재 능력을 갱신하고
+ *       인벤토리/텔레파시 범위를 다시 계산한다.
+ */
 /* Updated to use the extrinsic and blocked fields. */
 void
 setworn(struct obj *obj, long mask)
@@ -144,6 +164,11 @@ setworn(struct obj *obj, long mask)
     recalc_telepat_range();
 }
 
+/**
+ * @brief 아이템을 모든 착용 슬롯에서 해제한다(예: 파괴될 때).
+ * @param[in,out] obj 해제할 아이템.
+ * @note 해제에 따라 외재 능력·차단을 걷어내고 인벤토리/텔레파시 범위를 갱신한다.
+ */
 /* called e.g. when obj is destroyed */
 /* Updated to use the extrinsic and blocked fields. */
 void
@@ -183,6 +208,10 @@ setnotworn(struct obj *obj)
     recalc_telepat_range();
 }
 
+/**
+ * @brief 모든 착용 슬롯 포인터를 비운다(인벤토리 해제 후 저장 시).
+ * @note 오브젝트가 이미 해제된 뒤에 호출되어 owornmask 는 갱신하지 않는다.
+ */
 /* called when saving with FREEING flag set has just discarded inventory */
 void
 allunworn(void)
@@ -201,6 +230,11 @@ allunworn(void)
 }
 
 
+/**
+ * @brief 지정한 착용 슬롯에 착용된 아이템을 반환한다.
+ * @param[in] wornmask 대상 착용 슬롯 마스크.
+ * @return 해당 슬롯의 아이템, 없으면 NULL.
+ */
 /* return item worn in slot indicated by wornmask; needed by poly_obj() */
 struct obj *
 wearmask_to_obj(long wornmask)
@@ -213,6 +247,11 @@ wearmask_to_obj(long wornmask)
     return (struct obj *) 0;
 }
 
+/**
+ * @brief 방어구 착용 슬롯 마스크를 해당 방어구 범주로 변환한다.
+ * @param[in] mask 착용 슬롯 마스크.
+ * @return 대응하는 방어구 범주(@c ARM_SUIT 등), 해당 없으면 0.
+ */
 /* convert an armor wornmask to corresponding category */
 int
 wornmask_to_armcat(long mask)
@@ -245,6 +284,11 @@ wornmask_to_armcat(long mask)
     return cat;
 }
 
+/**
+ * @brief 방어구 범주를 해당 착용 슬롯 마스크로 변환한다.
+ * @param[in] cat 방어구 범주(@c ARM_SUIT 등).
+ * @return 대응하는 착용 슬롯 마스크, 해당 없으면 0.
+ */
 /* convert an armor category to corresponding wornmask */
 long
 armcat_to_wornmask(int cat)
@@ -277,6 +321,11 @@ armcat_to_wornmask(int cat)
     return mask;
 }
 
+/**
+ * @brief 주어진 아이템이 착용될 수 있는 슬롯들의 비트마스크를 반환한다.
+ * @param[in] obj 대상 아이템.
+ * @return 착용 가능한 슬롯 마스크(어디에도 착용 불가면 0).
+ */
 /* return a bitmask of the equipment slot(s) a given item might be worn in */
 long
 wearslot(struct obj *obj)
@@ -350,6 +399,11 @@ wearslot(struct obj *obj)
     return res;
 }
 
+/**
+ * @brief 착용 슬롯 마스크의 정합성을 검사한다(sanity_check 옵션용).
+ * @note 아이템의 owornmask 와 실제 슬롯 포인터가 일치하는지 확인해 이상 시
+ *       경고한다.
+ */
 /* for 'sanity_check' option, called by you_sanity_check() */
 void
 check_wornmask_slots(void)
@@ -470,6 +524,11 @@ check_wornmask_slots(void)
 #undef IGNORE_SLOTS
 } /* check_wornmask_slots() */
 
+/**
+ * @brief 몬스터를 영구 투명 상태로 만든다.
+ * @param[in,out] mon           대상 몬스터.
+ * @param[in]     cursed_potion 저주받은 물약으로 인한 것이면 TRUE.
+ */
 void
 mon_set_minvis(
     struct monst *mon,
@@ -484,6 +543,13 @@ mon_set_minvis(
     }
 }
 
+/**
+ * @brief 몬스터의 내재 이동 속도를 조정한다.
+ * @param[in,out] mon    대상 몬스터.
+ * @param[in]     adjust 속도 조정값(양수=가속, 음수=감속; -3 석화, -4 녹색 점액).
+ * @param[in]     obj    효과를 눈으로 확인하면 정체를 밝힐 아이템(지팡이 등).
+ * @note 신속 부츠(FAST) 착용 여부에 따라 실제 이동 속도를 재계산한다.
+ */
 void
 mon_adjust_speed(
     struct monst *mon,
@@ -575,6 +641,14 @@ mon_adjust_speed(
      : 0)
 
 /* armor put on or taken off; might be magical variety */
+/**
+ * @brief 몬스터가 장비를 착용/탈의할 때 그 외재 능력(내성 등)을 갱신한다.
+ * @param[in,out] mon      대상 몬스터.
+ * @param[in]     obj      착용/탈의되는 방어구.
+ * @param[in]     on       TRUE 이면 착용, FALSE 이면 탈의.
+ * @param[in]     silently TRUE 이면 표시 갱신 메시지를 억제한다.
+ * @note 연금술 작업복처럼 두 가지 내성을 부여하는 아이템도 처리한다.
+ */
 void
 update_mon_extrinsics(
     struct monst *mon,
@@ -713,6 +787,11 @@ update_mon_extrinsics(
 
 #undef altprop
 
+/**
+ * @brief 몬스터의 실효 방어도(AC)를 계산한다.
+ * @param[in] mon 대상 몬스터.
+ * @return 착용 방어구를 반영한 몬스터의 AC(@c AC_MAX 로 상한 처리).
+ */
 int
 find_mac(struct monst *mon)
 {
@@ -740,6 +819,13 @@ find_mac(struct monst *mon)
  * rings and eyewear aren't used by monsters
  */
 
+/**
+ * @brief 몬스터가 가진 각 종류의 가장 좋은 방어구를 착용하게 한다.
+ * @param[in,out] mon      대상 몬스터.
+ * @param[in]     creation TRUE 이면 생성 시점이라 즉시 전부 착용, FALSE 이면
+ *                         착용에 시간이 걸린다.
+ * @note 망토 아래 셔츠/갑옷은 허용하지만 갑옷 아래 셔츠는 허용하지 않는다.
+ */
 /* Wear the best object of each type that the monster has.  During creation,
  * the monster can put everything on at once; otherwise, wearing takes time.
  * This doesn't affect monster searching for objects--a monster may very well
@@ -795,6 +881,13 @@ m_dowear(struct monst *mon, boolean creation)
         m_dowear_type(mon, W_ARM, creation, RACE_EXCEPTION);
 }
 
+/**
+ * @brief 몬스터가 특정 슬롯에 가진 가장 좋은 아이템을 착용하게 한다.
+ * @param[in,out] mon             대상 몬스터.
+ * @param[in]     flag            대상 착용 슬롯 마스크.
+ * @param[in]     creation        TRUE 이면 생성 시점이라 착용 메시지를 내지 않는다.
+ * @param[in]     racialexception TRUE 이면 소형 종족 예외(그놈 등)로 갑옷 착용 허용.
+ */
 staticfn void
 m_dowear_type(
     struct monst *mon,
@@ -1002,6 +1095,12 @@ m_dowear_type(
 }
 #undef RACE_EXCEPTION
 
+/**
+ * @brief 몬스터(또는 영웅)가 특정 슬롯에 착용한 방어구를 반환한다.
+ * @param[in] mon  대상 몬스터(영웅이면 @c &gy.youmonst).
+ * @param[in] flag 대상 착용 슬롯 마스크.
+ * @return 해당 슬롯의 방어구, 없으면 NULL.
+ */
 struct obj *
 which_armor(struct monst *mon, long flag)
 {
@@ -1035,6 +1134,12 @@ which_armor(struct monst *mon, long flag)
     }
 }
 
+/**
+ * @brief 몬스터가 착용 중이던 방어구를 벗겨 바닥에 떨어뜨린다.
+ * @param[in,out] mon      대상 몬스터.
+ * @param[in,out] obj      벗길 방어구.
+ * @param[in]     polyspot TRUE 이면 변신에 의한 것으로 표시(bypass 설정).
+ */
 /* remove an item of armor and then drop it */
 staticfn void
 m_lose_armor(
@@ -1050,6 +1155,10 @@ m_lose_armor(
     newsym(mon->mx, mon->my);
 }
 
+/**
+ * @brief 오브젝트 체인(및 내용물)의 bypass 비트를 모두 지운다.
+ * @param[in,out] objchn 대상 오브젝트 체인.
+ */
 /* clear bypass bits for an object chain, plus contents if applicable */
 staticfn void
 clear_bypass(struct obj *objchn)
@@ -1063,6 +1172,11 @@ clear_bypass(struct obj *objchn)
     }
 }
 
+/**
+ * @brief 모든 오브젝트 체인의 bypass 비트를 초기화한다.
+ * @note 비교적 비용이 큰 연산이라 @c svc.context.bypasses 가 설정된 경우에만
+ *       호출된다. 긴 벌레의 폴리모프 억제 플래그도 함께 정리한다.
+ */
 /* all objects with their bypass bit set should now be reset to normal;
    this can be a relatively expensive operation so is only called if
    svc.context.bypasses is set */
@@ -1115,6 +1229,11 @@ clear_bypasses(void)
     svc.context.bypasses = FALSE;
 }
 
+/**
+ * @brief 오브젝트 하나의 bypass 비트를 설정한다.
+ * @param[in,out] obj 대상 오브젝트.
+ * @note 순회 중 같은 오브젝트를 다시 처리하지 않도록 표시하는 용도.
+ */
 void
 bypass_obj(struct obj *obj)
 {
@@ -1122,6 +1241,11 @@ bypass_obj(struct obj *obj)
     svc.context.bypasses = TRUE;
 }
 
+/**
+ * @brief 오브젝트 목록의 bypass 비트를 일괄 설정/해제한다.
+ * @param[in,out] objchain 대상 오브젝트 체인.
+ * @param[in]     on       TRUE 이면 설정, FALSE 이면 해제.
+ */
 /* set or clear the bypass bit in a list of objects */
 void
 bypass_objlist(
@@ -1136,6 +1260,12 @@ bypass_objlist(
     }
 }
 
+/**
+ * @brief bypass 비트가 설정되지 않은 첫 오브젝트를 반환하고 그 비트를 설정한다.
+ * @param[in,out] objchain 검색할 오브젝트 체인.
+ * @return 아직 처리되지 않은 첫 오브젝트, 없으면 NULL.
+ * @note 반복 호출로 목록의 오브젝트를 하나씩 순회할 수 있다.
+ */
 /* return the first object without its bypass bit set; set that bit
    before returning so that successive calls will find further objects */
 struct obj *
@@ -1151,6 +1281,13 @@ nxt_unbypassed_obj(struct obj *objchain)
     return objchain;
 }
 
+/**
+ * @brief @c nxt_unbypassed_obj() 의 sortloot 배열 버전.
+ * @param[in,out] lootarray obj==NULL 로 끝나는 sortloot 항목 배열.
+ * @param[in]     listhead  유효성 확인용 실제 오브젝트 체인의 머리.
+ * @return 아직 처리되지 않은 첫 유효 오브젝트, 없으면 NULL.
+ * @note 배열에 삭제된 오브젝트의 낡은 포인터가 있을 수 있어 목록으로 검증한다.
+ */
 /* like nxt_unbypassed_obj() but operates on sortloot_item array rather
    than an object linked list; the array contains obj==Null terminator;
    there's an added complication that the array may have stale pointers
@@ -1173,6 +1310,13 @@ nxt_unbypassed_loot(Loot *lootarray, struct obj *listhead)
     return obj;
 }
 
+/**
+ * @brief 몬스터가 변신 등으로 몸에 맞지 않게 된 방어구를 파손/탈락시킨다.
+ * @param[in,out] mon      대상 몬스터.
+ * @param[in]     polyspot TRUE 이면 변신으로 인한 것으로 표시(bypass 설정).
+ * @note 새 형태가 착용 불가한 갑옷은 부수고, 손이 없거나 작아지면 장갑·부츠·
+ *       안장 등을 벗기며, 탈것이라면 영웅이 낙마할 수 있다.
+ */
 void
 mon_break_armor(struct monst *mon, boolean polyspot)
 {
@@ -1334,6 +1478,12 @@ mon_break_armor(struct monst *mon, boolean polyspot)
     return;
 }
 
+/**
+ * @brief 특별한 이점이 있는 방어구에 대한 몬스터의 선호 가중치를 반환한다.
+ * @param[in] mon 대상 몬스터.
+ * @param[in] obj 평가할 방어구.
+ * @return 추가 선호 점수(현재는 신속 부츠에 대해서만 가중치를 준다).
+ */
 /* bias a monster's preferences towards armor that has special benefits. */
 staticfn int
 extra_pref(struct monst *mon, struct obj *obj)
@@ -1348,6 +1498,14 @@ extra_pref(struct monst *mon, struct obj *obj)
     return 0;
 }
 
+/**
+ * @brief 종족에 따른 방어구 착용 예외를 판정한다.
+ * @param[in] mon 대상 몬스터(변신한 영웅의 종족도 올바르게 검사).
+ * @param[in] obj 대상 아이템.
+ * @retval 0  예외 없음(일반 규칙 적용).
+ * @retval 1  해당 종족/아이템 조합이 허용됨(예: 호빗의 엘프 갑옷).
+ * @retval -1 해당 종족/아이템 조합이 금지됨.
+ */
 /*
  * Exceptions to things based on race.
  * Correctly checks polymorphed player race.
@@ -1372,6 +1530,13 @@ racial_exception(struct monst *mon, struct obj *obj)
     return 0;
 }
 
+/**
+ * @brief 몬스터의 인벤토리에서 오브젝트를 떼어낸다.
+ * @param[in,out] mon           대상 몬스터.
+ * @param[in,out] obj           떼어낼 오브젝트(호출 후 free 상태가 된다).
+ * @param[in]     do_extrinsics TRUE 이면 외재 능력 갱신(@c update_mon_extrinsics).
+ * @param[in]     silently      TRUE 이면 외재 능력 갱신 메시지를 억제한다.
+ */
 /* Remove an object from a monster's inventory. */
 void
 extract_from_minvent(

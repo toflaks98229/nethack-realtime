@@ -2,6 +2,9 @@
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Derek S. Ray, 2015. */
 /* NetHack may be freely redistributed.  See license for details. */
+/* MODIFIED 2026-07 (real-time fork): mcalcmove() no longer rounds monster
+   speed to whole turns under REALTIME_PROTO, so kiting is allowed; see
+   MODIFICATIONS.md.  This file differs from the upstream NetHack. */
 
 #include "hack.h"
 #include "mfndpos.h"
@@ -1129,7 +1132,9 @@ mcalcmove(
                        * False: just adjust for speed */
 {
     int mmove = mon->data->mmove;
+#ifndef REALTIME_PROTO
     int mmove_adj;
+#endif
 
     /* Note: MSLOW's `+ 1' prevents slowed speed 1 getting reduced to 0;
      *       MFAST's `+ 2' prevents hasted speed 1 from becoming a no-op;
@@ -1152,6 +1157,7 @@ mcalcmove(
         mmove = ((rn2(2) ? 4 : 5) * mmove) / 3;
     }
 
+#ifndef REALTIME_PROTO
     if (m_moving) {
         /* Randomly round the monster's speed to a multiple of NORMAL_SPEED.
            This makes it impossible for the player to predict when they'll
@@ -1164,6 +1170,12 @@ mcalcmove(
         if (rn2(NORMAL_SPEED) < mmove_adj)
             mmove += NORMAL_SPEED;
     }
+#else
+    /* real-time mode: keep exact speeds so that speed differences translate
+       into real positional advantage -- i.e. kiting is intentionally allowed
+       as core action-game tactics.  (void the now-unused parameter.) */
+    nhUse(m_moving);
+#endif
     return mmove;
 }
 

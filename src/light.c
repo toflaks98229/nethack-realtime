@@ -2,6 +2,16 @@
 /* Copyright (c) Dean Luick, 1994                                       */
 /* NetHack may be freely redistributed.  See license for details.       */
 
+/**
+ * @file light.c
+ * @brief 이동 가능한 광원(light source) 관리.
+ *
+ * 물리적 위치와 반경을 갖는 광원을 오브젝트/몬스터에 부착하여 관리한다.
+ * 시야 시스템이 "볼 수 있음" 배열을 재계산할 때 @c do_light_sources() 가
+ * 각 광원의 시야를 계산해 조명된 위치를 표시한다. 메모리를 아끼는 대신 매번
+ * 재계산하는 방식이며, 세이브/복원 구조는 타이머 시스템과 유사하다.
+ */
+
 #include "hack.h"
 
 /*
@@ -38,9 +48,9 @@
  */
 
 /* flags */
-#define LSF_SHOW 0x1            /* display the light source */
-#define LSF_NEEDS_FIXUP 0x2     /* need oid fixup */
-#define LSF_IS_PROBLEMATIC 0x4  /* impossible situation encountered */
+#define LSF_SHOW 0x1            /**< 광원을 화면에 표시함 */
+#define LSF_NEEDS_FIXUP 0x2     /**< 복원 후 오브젝트 id 보정이 필요함 */
+#define LSF_IS_PROBLEMATIC 0x4  /**< 불가능한(모순된) 상황이 감지됨 */
 
 #ifndef SFCTOOL
 staticfn light_source *new_light_core(coordxy, coordxy,
@@ -56,6 +66,13 @@ extern const coordxy circle_data[];
 extern const coordxy circle_start[];
 
 
+/**
+ * @brief 새 광원을 생성한다(공개 진입점).
+ * @param[in] x,y   광원의 위치.
+ * @param[in] range 광원의 반경.
+ * @param[in] type  광원 종류(@c LS_OBJECT/LS_MONSTER).
+ * @param[in] id    부착 대상 식별자(오브젝트/몬스터).
+ */
 /* Create a new light source.  Caller (and extern.h) doesn't need to know
    anything about type 'light_source'. */
 void
@@ -64,6 +81,15 @@ new_light_source(coordxy x, coordxy y, int range, int type, anything *id)
     (void) new_light_core(x, y, range, type, id);
 }
 
+/**
+ * @brief 새 광원을 생성해 목록에 추가하고 반환한다(내부 구현).
+ * @param[in] x,y   광원의 위치.
+ * @param[in] range 광원의 반경(0 이상 @c MAX_RADIUS 이하).
+ * @param[in] type  광원 종류.
+ * @param[in] id    부착 대상 식별자.
+ * @return 생성된 광원 포인터, 반경이 잘못되면 NULL.
+ * @warning 반경이 범위를 벗어나면 @c impossible() 경고를 낸다.
+ */
 /* Create a new light source and return it.  Only used within this file. */
 staticfn light_source *
 new_light_core(coordxy x, coordxy y, int range, int type, anything *id)
@@ -93,6 +119,12 @@ new_light_core(coordxy x, coordxy y, int range, int type, anything *id)
     return ls;
 }
 
+/**
+ * @brief 지정한 대상에 부착된 광원을 찾아 삭제한다.
+ * @param[in] type 광원 종류.
+ * @param[in] id   부착 대상 식별자.
+ * @note 하나의 오브젝트에는 동시에 최대 하나의 광원만 부착된다고 가정한다.
+ */
 /* Find and delete a light source.
    Assumes at most one light source is attached to an object at a time. */
 void
@@ -137,6 +169,10 @@ del_light_source(int type, anything *id)
     }
 }
 
+/**
+ * @brief 광원을 목록에서 제거하고 메모리를 해제한다.
+ * @param[in] ls 삭제할 광원.
+ */
 /* remove a light source from the light_base list and free it */
 staticfn void
 delete_ls(light_source *ls)
@@ -164,6 +200,12 @@ delete_ls(light_source *ls)
     return;
 }
 
+/**
+ * @brief 이동 광원에 의해 임시로 조명되는 위치들을 표시한다.
+ * @param[in,out] cs_rows 시야 시스템의 "볼 수 있음" 배열 행 포인터.
+ * @note 각 광원의 시야(LOS)를 계산하여 조명된 위치에 @c TEMP_LIT 플래그를 더한다.
+ *       시야 시스템이 재계산될 때마다 호출된다.
+ */
 /* Mark locations that are temporarily lit via mobile light sources. */
 void
 do_light_sources(seenV **cs_rows)
@@ -249,6 +291,12 @@ do_light_sources(seenV **cs_rows)
     }
 }
 
+/**
+ * @brief 이동 중인 광원(던져진 촛불 등) 또는 카메라 섬광의 빛을 잠시 보여준다.
+ * @param[in] obj 빛을 내는 오브젝트. NULL 이면 @c <x,y> 에 카메라 섬광을 비춘다.
+ * @param[in] x,y 빛이 비치는 좌표.
+ * @note 영웅이 순간적으로 드러난 지형·오브젝트·몬스터를 기억할 기회를 준다.
+ */
 /* lit 'obj' has been thrown or kicked and is passing through x,y on the
    way to its destination; show its light so that hero has a chance to
    remember terrain, objects, and monsters being revealed;
@@ -323,6 +371,11 @@ show_transient_light(struct obj *obj, coordxy x, coordxy y)
     }
 }
 
+/**
+ * @brief 임시 광원(카메라 섬광 등) 처리를 마무리하고 화면을 정리한다.
+ * @note 카메라 섬광 광원을 제거하고, 임시로 보였던 몬스터 중 지금은 보이지
+ *       않는 것을 "기억된, 보이지 않는 몬스터" 글리프로 대체한다.
+ */
 /* delete any camera flash light sources and draw "remembered, unseen
    monster" glyph at locations where a monster was flagged for being
    visible during transient light movement but can't be seen now */
@@ -356,6 +409,9 @@ transient_light_cleanup(void)
         flush_screen(0);
 }
 
+/**
+ * @brief 카메라 섬광 광원(오브젝트가 NULL 인 광원)을 모두 제거한다.
+ */
 /* camera flashes have Null object; caller wants to get rid of them now */
 staticfn void
 discard_flashes(void)
@@ -372,6 +428,12 @@ discard_flashes(void)
 /* (mon->mx == 0) implies migrating */
 #define mon_is_local(mon) ((mon)->mx > 0)
 
+/**
+ * @brief 몬스터 ID로 몬스터를 찾는다.
+ * @param[in] nid     찾을 몬스터의 m_id.
+ * @param[in] fmflags 검색 대상 목록 플래그(@c FM_YOU/FM_FMON/FM_MIGRATE 등).
+ * @return 찾은 몬스터 포인터, 없으면 NULL.
+ */
 struct monst *
 find_mid(unsigned nid, unsigned fmflags)
 {
@@ -394,6 +456,12 @@ find_mid(unsigned nid, unsigned fmflags)
     return (struct monst *) 0;
 }
 
+/**
+ * @brief 몬스터가 어느 목록(체인)에 속해 있는지 찾는다.
+ * @param[in] mon     찾을 몬스터.
+ * @param[in] fmflags 검색 대상 목록 플래그.
+ * @return 몬스터가 속한 목록을 나타내는 플래그, 없으면 0.
+ */
 staticfn unsigned
 whereis_mon(struct monst *mon, unsigned fmflags)
 {
@@ -416,6 +484,12 @@ whereis_mon(struct monst *mon, unsigned fmflags)
     return 0;
 }
 
+/**
+ * @brief 지정한 범위(전역/레벨)의 광원들을 세이브 파일에 저장한다.
+ * @param[in,out] nhfp  저장 대상 파일 핸들.
+ * @param[in]     range 저장할 광원 범위(@c RANGE_GLOBAL/@c RANGE_LEVEL).
+ * @note 데이터 해제 단계에서는 해당 범위의 광원을 목록에서 제거한다.
+ */
 /* Save all light sources of the given range. */
 void
 save_light_sources(NHFILE *nhfp, int range)
@@ -471,6 +545,12 @@ save_light_sources(NHFILE *nhfp, int range)
 }
 #endif /* !SFCTOOL */
 
+/**
+ * @brief 세이브 파일에서 광원 구조체들을 복원한다.
+ * @param[in,out] nhfp 복원 원본 파일 핸들.
+ * @note 오브젝트/몬스터 포인터는 여기서 재계산하지 않으며, 이후
+ *       @c relink_light_sources() 에서 실제 포인터로 연결한다.
+ */
 /*
  * Pull in the structures from disk, but don't recalculate the object
  * pointers.
@@ -496,6 +576,13 @@ restore_light_sources(NHFILE *nhfp)
 
 DISABLE_WARNING_FORMAT_NONLITERAL
 
+/**
+ * @brief 광원 통계(개수·메모리 크기)를 집계한다(#stats 위저드 명령용).
+ * @param[in]  hdrfmt 헤더 형식 문자열.
+ * @param[out] hdrbuf 형식화된 헤더를 저장할 버퍼.
+ * @param[out] count  광원 개수.
+ * @param[out] size   광원들이 차지하는 총 바이트 수.
+ */
 /* to support '#stats' wizard-mode command */
 void
 light_stats(const char *hdrfmt, char *hdrbuf, long *count, long *size)
@@ -512,6 +599,11 @@ light_stats(const char *hdrfmt, char *hdrbuf, long *count, long *size)
 
 RESTORE_WARNING_FORMAT_NONLITERAL
 
+/**
+ * @brief 복원 후 보정 표시된 광원들을 실제 오브젝트/몬스터 포인터로 연결한다.
+ * @param[in] ghostly TRUE 이면 bones 파일 복원으로 id 매핑 변환이 필요함.
+ * @warning 대상 오브젝트/몬스터를 찾지 못하면 @c panic() 으로 중단한다.
+ */
 /* Relink all lights that are so marked. */
 void
 relink_light_sources(boolean ghostly)
@@ -562,6 +654,13 @@ relink_light_sources(boolean ghostly)
     }
 }
 
+/**
+ * @brief 저장 대상 광원의 개수를 세고, 필요 시 실제로 기록한다.
+ * @param[in,out] nhfp     저장 대상 파일 핸들.
+ * @param[in]     range    저장할 광원 범위.
+ * @param[in]     write_it TRUE 이면 실제로 기록, FALSE 이면 개수만 센다.
+ * @return 해당 범위에 속하는 광원의 개수.
+ */
 /*
  * Part of the light source save routine.  Count up the number of light
  * sources that would be written.  If write_it is true, actually write
@@ -602,6 +701,11 @@ maybe_write_ls(NHFILE *nhfp, int range, boolean write_it)
     return count;
 }
 
+/**
+ * @brief 광원 목록의 정합성을 검사한다(디버그용).
+ * @warning id 가 없거나 대상 오브젝트/몬스터를 찾을 수 없으면 @c panic() 으로
+ *          중단한다.
+ */
 void
 light_sources_sanity_check(void)
 {
@@ -629,6 +733,12 @@ light_sources_sanity_check(void)
     }
 }
 
+/**
+ * @brief 광원 구조체 하나를 세이브 파일에 기록한다.
+ * @param[in,out] nhfp 저장 대상 파일 핸들.
+ * @param[in]     ls   기록할 광원.
+ * @note 기록 시 오브젝트/몬스터 포인터를 해당 id 로 치환했다가 복원한다.
+ */
 /* Write a light source structure to disk. */
 staticfn void
 write_ls(NHFILE *nhfp, light_source *ls)
@@ -701,6 +811,11 @@ write_ls(NHFILE *nhfp, light_source *ls)
     }
 }
 
+/**
+ * @brief 광원의 부착 대상을 오브젝트 @p src 에서 @p dest 로 옮긴다.
+ * @param[in]     src  기존 부착 오브젝트.
+ * @param[in,out] dest 새 부착 오브젝트.
+ */
 /* Change light source's ID from src to dest. */
 void
 obj_move_light_source(struct obj *src, struct obj *dest)
@@ -714,6 +829,10 @@ obj_move_light_source(struct obj *src, struct obj *dest)
     dest->lamplit = 1;
 }
 
+/**
+ * @brief 광원이 하나라도 존재하는지 판정한다.
+ * @return 광원이 있으면 TRUE, 없으면 FALSE.
+ */
 /* return true if there exist any light sources */
 boolean
 any_light_source(void)
@@ -721,6 +840,11 @@ any_light_source(void)
     return (boolean) (gl.light_base != (light_source *) 0);
 }
 
+/**
+ * @brief 지정 좌표에 있는 오브젝트 광원의 불을 끈다.
+ * @param[in] x,y 대상 좌표.
+ * @note 현재는 불타는 광원에만 작동하며, 아티팩트 광원(선소드 등)은 끄지 않는다.
+ */
 /*
  * Snuff an object light source if at (x,y).  This currently works
  * only for burning light sources.
@@ -758,6 +882,11 @@ snuff_light_source(coordxy x, coordxy y)
         }
 }
 
+/**
+ * @brief 오브젝트가 빛을 내는지 판정한다.
+ * @param[in] obj 대상 오브젝트.
+ * @return 빛을 내면 TRUE, 아니면 FALSE.
+ */
 /* Return TRUE if object sheds any light at all. */
 boolean
 obj_sheds_light(struct obj *obj)
@@ -766,6 +895,11 @@ obj_sheds_light(struct obj *obj)
     return obj_is_burning(obj);
 }
 
+/**
+ * @brief 오브젝트가 불타는 광원인지 판정한다.
+ * @param[in] obj 대상 오브젝트.
+ * @return 불타며 @c end_burn() 으로 꺼질 수 있으면 TRUE, 아니면 FALSE.
+ */
 /* Return TRUE if sheds light AND will be snuffed by end_burn(). */
 boolean
 obj_is_burning(struct obj *obj)
@@ -774,6 +908,12 @@ obj_is_burning(struct obj *obj)
                                        || artifact_light(obj)));
 }
 
+/**
+ * @brief @p src 에 부착된 광원을 복제하여 @p dest 에도 부착한다.
+ * @param[in]     src  원본 오브젝트.
+ * @param[in,out] dest 광원을 부여할 대상 오브젝트.
+ * @note 촛불은 나뉘면 원본·사본의 반경이 개수에 맞게 다시 계산될 수 있다.
+ */
 /* copy the light source(s) attached to src, and attach it/them to dest */
 void
 obj_split_light_source(struct obj *src, struct obj *dest)
@@ -802,6 +942,13 @@ obj_split_light_source(struct obj *src, struct obj *dest)
         }
 }
 
+/**
+ * @brief 광원 @p src 를 @p dest 에 병합한다.
+ * @param[in] src  병합되어 사라지는 오브젝트.
+ * @param[in,out] dest 병합 후 남는 오브젝트.
+ * @note 불붙은 촛불끼리 합치거나 촛대에 촛불을 더할 때 사용하며, 병합 후 반경을
+ *       다시 계산한다(@p src==@p dest 이면 촛대에 추가하는 경우).
+ */
 /* light source `src' has been folded into light source `dest';
    used for merging lit candles and adding candle(s) to lit candelabrum */
 void
@@ -821,6 +968,12 @@ obj_merge_light_sources(struct obj *src, struct obj *dest)
         }
 }
 
+/**
+ * @brief 오브젝트 광원의 반경을 변경한다(밝기 조절).
+ * @param[in,out] obj        대상 광원 오브젝트.
+ * @param[in]     new_radius 새 반경.
+ * @warning 해당 광원을 찾지 못하면 @c impossible() 경고를 낸다.
+ */
 /* light source `obj' is being made brighter or dimmer */
 void
 obj_adjust_light_radius(struct obj *obj, int new_radius)
@@ -837,6 +990,12 @@ obj_adjust_light_radius(struct obj *obj, int new_radius)
     impossible("obj_adjust_light_radius: can't find %s", xname(obj));
 }
 
+/**
+ * @brief 촛불(또는 촛대)이 내는 빛의 반경을 계산한다.
+ * @param[in] obj 대상 촛불/촛대 오브젝트.
+ * @return 빛의 반경(최소 2).
+ * @note 촛불 개수에 따라 반경이 비선형적으로 증가하며, 소환의 촛대는 더 밝다.
+ */
 /* Candlelight is proportional to the number of candles;
    minimum range is 2 rather than 1 for playability. */
 int
@@ -876,6 +1035,12 @@ candle_light_range(struct obj *obj)
     return radius;
 }
 
+/**
+ * @brief 빛을 내는 아티팩트의 반경을 계산한다.
+ * @param[in] obj 대상 아티팩트 오브젝트.
+ * @return 빛의 반경(저주 1, 보통 2, 축복 3), 빛을 내지 않으면 0.
+ * @note 축복/저주 상태에 따라 반경이 달라지며, 금룡 비늘/비늘 갑옷도 처리한다.
+ */
 /* light emitting artifact's range depends upon its curse/bless state */
 int
 arti_light_radius(struct obj *obj)
@@ -910,6 +1075,11 @@ arti_light_radius(struct obj *obj)
     return res;
 }
 
+/**
+ * @brief 아티팩트가 내는 빛의 밝기를 묘사하는 부사를 반환한다.
+ * @param[in] obj 대상 아티팩트 오브젝트.
+ * @return 밝기 부사("radiantly"/"brilliantly"/"brightly"/"dimly"/"strangely").
+ */
 /* adverb describing lit artifact's light; radius varies depending upon
    curse/bless state; also used for gold dragon scales/scale mail */
 const char *
@@ -930,6 +1100,10 @@ arti_light_description(struct obj *obj)
     return "strangely";
 }
 
+/**
+ * @brief #lightsources 위저드 명령: 현재 광원 목록을 창에 표시한다.
+ * @return 명령 처리 결과 코드(@c ECMD_OK).
+ */
 /* the #lightsources command */
 int
 wiz_light_sources(void)

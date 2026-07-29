@@ -4,13 +4,33 @@
 /* NetHack may be freely redistributed.  See license for details. */
 /* track.c - version 1.0.2 */
 
+/**
+ * @file track.c
+ * @brief 영웅(플레이어)의 이동 자취(track)를 기록하고 조회하는 모듈.
+ *
+ * 영웅이 지나온 최근 좌표들을 고정 크기 원형 버퍼(@c utrack)에 저장한다.
+ * 몬스터가 영웅의 냄새/발자국을 추적하는 등의 로직에서 이 자취를 사용한다.
+ *
+ * @note 자취 상태는 파일 지역 static 변수로 유지되므로 스레드 안전하지 않다.
+ */
+
 #include "hack.h"
 
+/** @brief 자취 원형 버퍼(@c utrack)의 크기(저장 가능한 최대 좌표 수). */
 #define UTSZ 100
 
-static NEARDATA int utcnt, utpnt;
+/** @brief 현재 저장된 자취 좌표의 개수(@c UTSZ 로 포화된다). */
+static NEARDATA int utcnt,
+/** @brief 원형 버퍼에서 다음에 기록할 위치(가장 최근 항목의 다음 인덱스). */
+    utpnt;
+/** @brief 영웅이 지나온 최근 좌표들을 담는 원형 버퍼. */
 static NEARDATA coord utrack[UTSZ];
 
+/**
+ * @brief 자취 기록 상태를 초기화한다.
+ *
+ * 카운터를 0으로 되돌리고 버퍼 전체를 0으로 채운다.
+ */
 void
 initrack(void)
 {
@@ -19,7 +39,13 @@ initrack(void)
 }
 
 #ifndef SFCTOOL
-/* add to track */
+/**
+ * @brief 영웅의 현재 위치를 자취 버퍼에 추가한다.
+ *
+ * 원형 버퍼의 다음 슬롯에 현재 좌표(@c u.ux, @c u.uy)를 기록한다.
+ *
+ * @note 은신 반지(@c RIN_STEALTH)를 착용 중이면 자취를 남기지 않고 반환한다.
+ */
 void
 settrack(void)
 {
@@ -36,8 +62,19 @@ settrack(void)
     utpnt++;
 }
 
-/* get a track coord on or next to x,y and last tracked by hero,
-   returns null if no such track */
+/**
+ * @brief 지정한 좌표 위 또는 인접한 곳의, 영웅이 가장 최근에 남긴 자취를 찾는다.
+ *
+ * 최신 항목부터 역순으로 탐색하여 @p x, @p y 와의 거리가 1 이하인
+ * 자취 좌표를 반환한다.
+ *
+ * @param[in] x 기준 x 좌표.
+ * @param[in] y 기준 y 좌표.
+ * @return 조건을 만족하는 자취 좌표의 포인터(내부 버퍼를 가리킨다).
+ * @retval NULL 조건을 만족하는 자취가 없거나, 가장 가까운 자취가
+ *              기준 좌표와 정확히 겹치는 경우.
+ * @note 반환된 포인터는 내부 버퍼를 가리키므로 호출자가 free 해서는 안 된다.
+ */
 coord *
 gettrack(coordxy x, coordxy y)
 {
@@ -58,7 +95,15 @@ gettrack(coordxy x, coordxy y)
 }
 #endif /* !SFCTOOL */
 
-/* return TRUE if x,y has hero tracks on it */
+/**
+ * @brief 지정한 좌표에 영웅의 자취가 존재하는지 확인한다.
+ *
+ * @param[in] x 확인할 x 좌표.
+ * @param[in] y 확인할 y 좌표.
+ * @return 자취 존재 여부.
+ * @retval TRUE  해당 좌표에 자취가 있다.
+ * @retval FALSE 해당 좌표에 자취가 없다.
+ */
 boolean
 hastrack(coordxy x, coordxy y)
 {
@@ -71,7 +116,12 @@ hastrack(coordxy x, coordxy y)
     return FALSE;
 }
 
-/* save the hero tracking info */
+/**
+ * @brief 영웅의 자취 정보를 세이브 파일에 기록한다.
+ *
+ * @param[in,out] nhfp 저장 대상 NetHack 파일 핸들.
+ * @note 데이터 해제 단계(@c release_data)에서는 저장 후 자취를 초기화한다.
+ */
 void
 save_track(NHFILE *nhfp)
 {
@@ -88,7 +138,13 @@ save_track(NHFILE *nhfp)
         initrack();
 }
 
-/* restore the hero tracking info */
+/**
+ * @brief 세이브 파일에서 영웅의 자취 정보를 복원한다.
+ *
+ * @param[in,out] nhfp 복원 원본 NetHack 파일 핸들.
+ * @warning 저장된 카운터가 버퍼 크기(@c UTSZ)를 초과하면 @c panic() 으로
+ *          프로그램을 중단시킨다(손상된 세이브 방어).
+ */
 void
 rest_track(NHFILE *nhfp)
 {

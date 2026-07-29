@@ -3,12 +3,26 @@
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file steal.c
+ * @brief 몬스터의 절도(금화·아이템·부적) 및 소지품 낙하 처리.
+ *
+ * 레프러콘의 금화 절도, 님프/원숭이의 아이템 절도, 마법사·네메시스의 부적/
+ * 소환 아이템 절도를 처리하며, 착용 중인 장비의 탈취, 몬스터의 아이템 획득
+ * (@c mpickobj), 죽거나 떠나는 몬스터의 소지품 방출 등을 담당한다.
+ */
+
 #include "hack.h"
 
 staticfn int unstolenarm(void);
 staticfn int stealarm(void);
 staticfn void worn_item_removal(struct monst *, struct obj *);
 
+/**
+ * @brief 소지 금액의 일부(비례 규모)를 무작위로 계산한다.
+ * @param[in] lmoney 전체 금액.
+ * @return 훔치거나 잃을 금액(int 범위에 들어간다).
+ */
 /* proportional subset of gold; return value actually fits in an int */
 long
 somegold(long lmoney)
@@ -33,6 +47,12 @@ somegold(long lmoney)
     return (long) igold;
 }
 
+/**
+ * @brief 오브젝트 체인에서 첫 번째 금화(GOLD_PIECE)를 찾는다.
+ * @param[in] argchain 검색할 오브젝트 체인.
+ * @return 찾은 금화 오브젝트 포인터, 없으면 NULL.
+ * @note 레프러콘이 남의 금화를 노릴 때 사용하며, 금화만 대상으로 한다.
+ */
 /*
  * Find the first (and hopefully only) gold object in a chain.
  * Used when leprechaun (or you as leprechaun) looks for
@@ -51,6 +71,11 @@ findgold(struct obj *argchain)
     return chain;
 }
 
+/**
+ * @brief 몬스터(레프러콘)가 영웅 또는 바닥의 금화를 훔친다.
+ * @param[in,out] mtmp 절도하는 몬스터.
+ * @note 금화만 대상으로 하며, 하위 동전은 무시한다.
+ */
 /*
  * Steal gold coins only.  Leprechauns don't care for lesser coins.
 */
@@ -115,6 +140,10 @@ stealgold(struct monst *mtmp)
     }
 }
 
+/**
+ * @brief 영웅에게서 훔치던 몬스터가 죽었을 때 절도 진행 상태를 정리한다.
+ * @note 여러 턴 걸리는 갑옷 벗기 도중이면 이후 처리를 @c unstolenarm 으로 바꾼다.
+ */
 /* monster who was stealing from hero has just died */
 void
 thiefdead(void)
@@ -127,6 +156,10 @@ thiefdead(void)
     }
 }
 
+/**
+ * @brief 영웅이 유혹 시도에 반응할 수 없는 상태인지 판정한다.
+ * @return 무의식·기절·마비 등으로 반응 불가능하면 TRUE, 아니면 FALSE.
+ */
 /* checks whether hero can be responsive to seduction attempts; similar to
    Unaware but also includes paralysis */
 boolean
@@ -141,6 +174,11 @@ unresponsive(void)
                     || !strncmp(gm.multi_reason, "paralyzed", 9))));
 }
 
+/**
+ * @brief 도둑이 죽은 뒤에도 진행되던 갑옷 벗기를 마무리한다.
+ * @return 항상 0(afternmv 콜백 규약).
+ * @note 절도가 무산되어 갑옷은 영웅의 인벤토리에 그대로 남는다.
+ */
 /* called via (*ga.afternmv)() when hero finishes taking off armor that
    was slated to be stolen but the thief died in the interim */
 staticfn int
@@ -160,6 +198,11 @@ unstolenarm(void)
     return 0;
 }
 
+/**
+ * @brief 벗는 데 여러 턴이 걸리는 갑옷의 절도를 마무리한다.
+ * @return 항상 0(afternmv 콜백 규약).
+ * @note 도둑이 여전히 살아 있고 인접하며 절도 능력이 있을 때만 실제로 훔친다.
+ */
 /* finish stealing an item of armor which takes multiple turns to take off */
 staticfn int
 stealarm(void)
@@ -207,6 +250,12 @@ stealarm(void)
     return 0;
 }
 
+/**
+ * @brief 착용 중이던 아이템을 벗겨낸다(절도·유혹·변형 등).
+ * @param[in,out] obj          벗길 아이템.
+ * @param[in]     unchain_ball TRUE 이면 쇠구슬/사슬도 풀고, FALSE 이면 무장 해제만.
+ * @note 장비 상실로 물/용암 낙하 등이 발생할 수 있어 처리 중 'in_use' 로 보호한다.
+ */
 /* An object you're wearing has been taken off by a monster (theft or
    seduction).  Also used if a worn item gets transformed (stone to flesh). */
 void
@@ -289,6 +338,11 @@ remove_worn_item(
     obj->in_use = oldinuse;
 }
 
+/**
+ * @brief 착용 아이템 절도 시 메시지를 먼저 출력하고 아이템을 벗긴다.
+ * @param[in] mon 벗기는 몬스터.
+ * @param[in,out] obj 벗겨질 착용 아이템.
+ */
 /* during theft of a worn item: remove_worn_item(), prefaced by a message */
 staticfn void
 worn_item_removal(
@@ -333,6 +387,14 @@ worn_item_removal(
     remove_worn_item(obj, TRUE);
 }
 
+/**
+ * @brief 몬스터가 영웅의 아이템 하나를 훔친다(님프·원숭이 등).
+ * @param[in]  mtmp      절도하는 몬스터.
+ * @param[out] objnambuf 훔친 아이템 이름을 담을 버퍼(가능한 경우).
+ * @return 훔쳤(또는 도망쳐야) 하면 1, 시도 중 몬스터가 죽으면 -1, 그 외 0.
+ * @note 님프·원숭이는 동전을 훔치지 않으며, 석화 시체 접촉으로 몬스터가 석화될
+ *       수 있다.
+ */
 /* Returns 1 when something was stolen (or at least, when N should flee now),
  * returns -1 if the monster died in the attempt.
  * Avoid stealing the object 'stealoid'.
@@ -613,6 +675,13 @@ steal(struct monst *mtmp, char *objnambuf)
     return (gm.multi < 0) ? 0 : 1;
 }
 
+/**
+ * @brief 몬스터가 오브젝트를 집어 자신의 인벤토리에 넣는다.
+ * @param[in,out] mtmp 아이템을 획득하는 몬스터.
+ * @param[in,out] otmp 획득할 오브젝트.
+ * @return 병합 등으로 @p otmp 가 해제되었으면 1, 그대로 남아 있으면 0.
+ * @note 미결제 아이템의 청구 처리, 빛나는 아이템의 소등 등 부수 처리를 수행한다.
+ */
 /* Returns 1 if otmp is free'd, 0 otherwise. */
 int
 mpickobj(struct monst *mtmp, struct obj *otmp)
@@ -684,6 +753,12 @@ mpickobj(struct monst *mtmp, struct obj *otmp)
     return freed_otmp;
 }
 
+/**
+ * @brief 몬스터가 영웅의 특별 아이템(부적·소환 도구·퀘스트 아티팩트)을 훔친다.
+ * @param[in,out] mtmp 절도하는 몬스터(마법사·네메시스 등, AD_SAMU 공격).
+ * @note 대상 아이템을 훔치기 위해 필요한 겉옷·장갑·무기를 먼저 벗기며, 성공 후
+ *       가능하면 순간이동한다.
+ */
 /* called for AD_SAMU (the Wizard and quest nemeses) */
 void
 stealamulet(struct monst *mtmp)
@@ -766,6 +841,13 @@ stealamulet(struct monst *mtmp)
     }
 }
 
+/**
+ * @brief 흉내쟁이(mimic)가 찔린 물건을 흡수(탈취)할지 결정하고 처리한다.
+ * @param[in,out] mon     흡수하는 몬스터.
+ * @param[in,out] obj     흡수 대상 아이템.
+ * @param[in]     ochance 일반 아이템 흡수 확률(%).
+ * @param[in]     achance 아티팩트 흡수 확률(%).
+ */
 /* when a mimic gets poked with something, it might take that thing
    (at present, only implemented for when the hero does the poking) */
 void
@@ -809,6 +891,14 @@ maybe_absorb_item(
     (void) mpickobj(mon, obj);
 }
 
+/**
+ * @brief 몬스터의 인벤토리에서 아이템 하나를 꺼내 바닥에 떨어뜨린다.
+ * @param[in,out] mon       아이템을 내려놓는 몬스터.
+ * @param[in,out] obj       내려놓을 아이템.
+ * @param[in]     verbosely TRUE 이고 보이면 "~가 ~를 떨어뜨린다" 메시지를 낸다.
+ * @note 착용 중이던 안장을 벗기면 탑승자가 떨어질 수 있으므로 바닥에 놓은 뒤
+ *       마지막에 외부 속성을 갱신한다.
+ */
 /* drop one object taken from a (possibly dead) monster's inventory */
 void
 mdrop_obj(
@@ -845,6 +935,12 @@ mdrop_obj(
         update_mon_extrinsics(mon, obj, FALSE, TRUE);
 }
 
+/**
+ * @brief 몬스터가 게임/레벨을 떠날 때 특별 아이템을 남기도록 떨어뜨린다.
+ * @param[in,out] mon 대상 몬스터.
+ * @note 옌더의 부적·소환 도구·현재 직업의 퀘스트 아티팩트를 가져가지 못하게
+ *       바닥이나 다른 위치로 방출한다.
+ */
 /* some monsters bypass the normal rules for moving between levels or
    even leaving the game entirely; when that happens, prevent them from
    taking the Amulet, invocation items, or quest artifact with them */
@@ -870,6 +966,13 @@ mdrop_special_objs(struct monst *mon)
     }
 }
 
+/**
+ * @brief 몬스터가 지니고 있던 아이템들을 바닥에 방출한다.
+ * @param[in,out] mtmp   대상 몬스터.
+ * @param[in]     show   0이 아니면 방출 후 해당 위치를 다시 그린다.
+ * @param[in]     is_pet TRUE 이면 애완동물이 착용/장비 아이템은 계속 소지한다.
+ * @note 금고 경비병의 금화는 떨어뜨리지 않고 사라진다.
+ */
 /* release the objects the creature is carrying */
 void
 relobj(

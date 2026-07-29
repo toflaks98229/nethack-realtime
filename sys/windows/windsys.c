@@ -1,6 +1,9 @@
 /* NetHack 5.0	windsys.c	$NHDT-Date: 1710949760 2024/03/20 15:49:20 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.95 $ */
 /* Copyright (c) NetHack PC Development Team 1993, 1994 */
 /* NetHack may be freely redistributed.  See license for details. */
+/* MODIFIED 2026-07 (real-time fork): added nt_ticks() millisecond clock for
+   the real-time world clock; see MODIFICATIONS.md.  This file differs from
+   the upstream NetHack distribution. */
 
 /*
  *  WIN32 system functions.
@@ -281,6 +284,16 @@ Delay(int ms)
 {
     (void) Sleep(ms);
 }
+
+#ifdef REALTIME_PROTO
+/* monotonic-ish wall-clock in milliseconds, for the real-time world clock;
+   lives here so core files (allmain.c) needn't pull in <windows.h> */
+unsigned long
+nt_ticks(void)
+{
+    return (unsigned long) GetTickCount();
+}
+#endif
 
 void
 win32_abort(void)

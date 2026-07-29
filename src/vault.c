@@ -3,6 +3,15 @@
 /*-Copyright (c) Robert Patrick Rankin, 2011. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file vault.c
+ * @brief 금고(vault)와 금고 경비병(vault guard)의 동작 처리.
+ *
+ * 영웅이 금고에 침입했을 때 경비병을 소환하고, 경비병이 임시 통로(fake corridor)
+ * 를 뚫어 영웅을 금고 밖으로 안내하거나(금화를 두고 가면 평화적) 화나게 하는
+ * 로직, 경비병의 이동·금화 회수·통로 제거, 사망/퇴장 시 정산 등을 담당한다.
+ */
+
 #include "hack.h"
 
 staticfn boolean clear_fcorr(struct monst *, boolean) NONNULLARG1;
@@ -19,6 +28,11 @@ staticfn void gd_pick_corridor_gold(struct monst *, int, int) NONNULLARG1;
 staticfn int gd_move_cleanup(struct monst *, boolean, boolean) NONNULLARG1;
 staticfn void gd_letknow(struct monst *) NONNULLARG1;
 
+/**
+ * @brief 몬스터에 경비병(egd) 확장 구조체를 할당한다.
+ * @param[in,out] mtmp 대상 몬스터.
+ * @note 이미 할당되어 있으면 아무 동작도 하지 않는다.
+ */
 void
 newegd(struct monst *mtmp)
 {
@@ -31,6 +45,11 @@ newegd(struct monst *mtmp)
     }
 }
 
+/**
+ * @brief 몬스터의 경비병(egd) 확장 구조체를 해제한다.
+ * @param[in,out] mtmp 대상 몬스터.
+ * @note 경비병 플래그(@c isgd)도 함께 해제한다.
+ */
 void
 free_egd(struct monst *mtmp)
 {
@@ -41,6 +60,14 @@ free_egd(struct monst *mtmp)
     mtmp->isgd = 0;
 }
 
+/**
+ * @brief 경비병이 유지하던 임시 통로를 제거한다.
+ * @param[in,out] grd       대상 경비병.
+ * @param[in]     forceshow TRUE 이면 보이지 않아도 강제로 통로를 되돌린다.
+ * @return 통로 제거를 완료했으면 TRUE, (경비병/영웅이 아직 통로에 있어) 실패하면
+ *         FALSE.
+ * @note 통로가 돌로 되돌아가며, 그곳의 함정·조명·조각(engraving)을 정리한다.
+ */
 /* try to remove the temporary corridor (from vault to rest of map) being
    maintained by guard 'grd'; if guard is still in it, removal will fail,
    to be tried again later */
@@ -115,6 +142,11 @@ clear_fcorr(struct monst *grd, boolean forceshow)
     return TRUE;
 }
 
+/**
+ * @brief 임시 통로 제거 시 해당 돌 지점과 인접 지점의 조명을 끈다.
+ * @param[in] x,y 기준 좌표.
+ * @note 통로 안에서 켠 빛이 새 터널을 팔 때 되살아나지 않도록 한다.
+ */
 /* as a temporary corridor is removed, set stone locations and adjacent
    spots to unlit; if player used scroll/wand/spell of light while inside
    the corridor, we don't want the light to reappear if/when a new tunnel
@@ -140,6 +172,10 @@ blackout(coordxy x, coordxy y)
         }
 }
 
+/**
+ * @brief 임시 통로를 제거할 수 있으면 제거하고 경비병을 사라지게 한다.
+ * @param[in,out] grd 대상 경비병.
+ */
 staticfn void
 restfakecorr(struct monst *grd)
 {
@@ -151,6 +187,11 @@ restfakecorr(struct monst *grd)
     }
 }
 
+/**
+ * @brief 경비병을 임시 통로가 제거될 때까지 맵 밖(<0,0>)에 "주차"시킨다.
+ * @param[in,out] grd 대상 경비병(살아 있든 죽었든).
+ * @note 몬스터 순회 루프가 이 경비병을 건너뛰도록 한다.
+ */
 /* move guard--dead to alive--to <0,0> until temporary corridor is removed */
 staticfn void
 parkguard(struct monst *grd)
@@ -173,6 +214,12 @@ parkguard(struct monst *grd)
     EGD(grd)->ogy = grd->my;
 }
 
+/**
+ * @brief 경비병이 죽었을 때의 처리를 수행한다(mon.c 에서 호출).
+ * @param[in,out] grd 죽은 경비병.
+ * @return 즉시 제거 가능하면 TRUE, 임시 통로가 남아 주차해야 하면 FALSE.
+ * @note 통로를 아직 못 없애면 소지 금화를 없애고 나머지를 떨어뜨린 뒤 주차한다.
+ */
 /* called in mon.c */
 boolean
 grddead(struct monst *grd)
@@ -191,6 +238,12 @@ grddead(struct monst *grd)
     return dispose;
 }
 
+/**
+ * @brief 지정 좌표가 경비병의 임시 통로 상에 있는지 판정한다.
+ * @param[in] grd 대상 경비병.
+ * @param[in] x,y 확인할 좌표.
+ * @return 통로 상에 있으면 TRUE, 아니면 FALSE.
+ */
 staticfn boolean
 in_fcorridor(struct monst *grd, coordxy x, coordxy y)
 {
@@ -203,6 +256,11 @@ in_fcorridor(struct monst *grd, coordxy x, coordxy y)
     return FALSE;
 }
 
+/**
+ * @brief 현재 레벨의 금고 경비병을 찾는다(이주 대기 중인 경비병 포함).
+ * @return 이 레벨의 경비병 포인터, 없으면 NULL.
+ * @note 이주 목록에서 발견하면 맵 밖(<0,0>)에 배치하여 활성화한다.
+ */
 struct monst *
 findgd(void)
 {
@@ -236,6 +294,9 @@ findgd(void)
     return (struct monst *) 0;
 }
 
+/**
+ * @brief 영웅이 금고에 있고 경비병이 없으면 곧 경비병이 소환되도록 예약한다.
+ */
 void
 vault_summon_gd(void)
 {
@@ -243,6 +304,11 @@ vault_summon_gd(void)
         u.uinvault = (VAULT_GUARD_TIME - 1);
 }
 
+/**
+ * @brief 방 목록 중 금고(vault)에 해당하는 방 문자를 찾는다.
+ * @param[in] array 방 문자 배열(예: @c u.urooms).
+ * @return 금고 방 문자, 없으면 '\0'.
+ */
 char
 vault_occupied(char *array)
 {
@@ -254,6 +320,11 @@ vault_occupied(char *array)
     return '\0';
 }
 
+/**
+ * @brief 경비병이 활성인 상태에서 영웅이 금고 밖으로 순간이동했을 때 처리한다.
+ * @param[in,out] grd 활성 경비병.
+ * @note 금화를 지닌 채 경비병 곁이 아닌 곳에 도착하면 경비병이 화를 낸다.
+ */
 /* hero has teleported out of vault while a guard is active */
 void
 uleftvault(struct monst *grd)
@@ -280,6 +351,12 @@ uleftvault(struct monst *grd)
     }
 }
 
+/**
+ * @brief 경비병이 통로를 낼 목적지(영웅 근처의 적당한 복도 칸)를 찾는다.
+ * @param[in]  guard  경비병(자신의 통로 칸은 제외).
+ * @param[out] rx,ry  찾은 목적지 좌표.
+ * @return 목적지를 찾으면 TRUE, 못 찾으면 FALSE(비상 텔레포트).
+ */
 staticfn boolean
 find_guard_dest(struct monst *guard, coordxy *rx, coordxy *ry)
 {
@@ -316,6 +393,11 @@ find_guard_dest(struct monst *guard, coordxy *rx, coordxy *ry)
     return FALSE;
 }
 
+/**
+ * @brief 영웅이 금고 안에 머무는 동안의 처리(경비병 등장·대치 등).
+ * @note 일정 시간 후 경비병이 나타나 영웅의 이름을 묻고, 금화 소지 여부에 따라
+ *       평화적으로 안내하거나 적대적으로 대응한다.
+ */
 void
 invault(void)
 {
@@ -631,6 +713,11 @@ invault(void)
     }
 }
 
+/**
+ * @brief 금화를 금고 방의 지정 위치로 옮긴다.
+ * @param[in,out] gold  옮길 금화.
+ * @param[in]     vroom 대상 금고 방 번호.
+ */
 staticfn void
 move_gold(struct obj *gold, int vroom)
 {
@@ -645,6 +732,11 @@ move_gold(struct obj *gold, int vroom)
     newsym(nx, ny);
 }
 
+/**
+ * @brief 금고의 벽을 복구한다(뚫린 곳을 다시 벽으로).
+ * @param[in,out] grd 대상 경비병.
+ * @note 영웅이 금고 벽을 부순 경우 등에 원상 복구하며, 갇힌 몬스터를 처리한다.
+ */
 staticfn void
 wallify_vault(struct monst *grd)
 {
@@ -733,6 +825,11 @@ wallify_vault(struct monst *grd)
     }
 }
 
+/**
+ * @brief 경비병이 이동하려는 칸에 있는 다른 몬스터를 비켜나게 한다.
+ * @param[in,out] grd   이동하는 경비병.
+ * @param[in]     nx,ny 경비병이 이동하려는 칸.
+ */
 staticfn void
 gd_mv_monaway(struct monst *grd, int nx, int ny)
 {
@@ -749,6 +846,12 @@ gd_mv_monaway(struct monst *grd, int nx, int ny)
     }
 }
 
+/**
+ * @brief 경비병이 통로 바닥의 금화를 주워 든다.
+ * @param[in,out] grd          대상 경비병.
+ * @param[in]     goldx,goldy  금화의 위치.
+ * @note 필요하면 금화 위치로 이동해 메시지를 낸 뒤 원래 자리로 되돌아온다.
+ */
 /* have guard pick gold off the floor, possibly moving to the gold's
    position before message and back to his current spot after */
 staticfn void
@@ -834,6 +937,11 @@ gd_pick_corridor_gold(struct monst *grd, int goldx, int goldy)
 }
 
 
+/**
+ * @brief 경비병 임무 종료 시 통로 제거·정산 등 마무리 처리를 수행한다.
+ * @param[in,out] grd 대상 경비병.
+ * @return 경비병이 처리(이동)했으면 1, 죽었으면 -2.
+ */
 /* return 1: guard moved, -2: died  */
 staticfn int
 gd_move_cleanup(
@@ -868,6 +976,10 @@ gd_move_cleanup(
     return -2;
 }
 
+/**
+ * @brief 경비병이 영웅의 존재를 인지했음을 알리는 처리(대사/각성 등).
+ * @param[in,out] grd 대상 경비병.
+ */
 staticfn void
 gd_letknow(struct monst *grd)
 {
@@ -884,6 +996,19 @@ gd_letknow(struct monst *grd)
             x_monnam(grd, ARTICLE_A, "angry", 0, FALSE));
 }
 
+/**
+ * @brief 금고 경비병의 한 턴 이동·행동을 처리한다.
+ *
+ * 영웅을 금고 밖으로 안내하기 위해 통로를 뚫으며 따라가고, 금화를 회수하며,
+ * 임무가 끝나면 통로를 제거하고 사라진다. 영웅의 대응(금화 반납 등)에 따라
+ * 평화/적대 여부가 갈린다.
+ *
+ * @param[in,out] grd 대상 경비병.
+ * @retval 1  경비병이 이동/행동했다.
+ * @retval 0  경비병이 아무것도 하지 않았다.
+ * @retval -1 일반 이동 처리(@c m_move)에 맡긴다.
+ * @retval -2 경비병이 죽었다.
+ */
 /*
  * return  1: guard moved,  0: guard didn't,  -1: let m_move do it,  -2: died
  */
@@ -1203,6 +1328,11 @@ gd_move(struct monst *grd)
     return 1;
 }
 
+/**
+ * @brief 게임 종료(사망/포기) 시 금고 경비병 관련 정산을 처리한다.
+ * @param[in] silently TRUE 이면 메시지 없이 조용히 처리한다.
+ * @note 영웅이 금고 안에서 죽는 경우 등 경비병이 남아 있을 때의 마무리다.
+ */
 /* Routine when dying or quitting with a vault guard around */
 void
 paygd(boolean silently)
@@ -1249,6 +1379,12 @@ paygd(boolean silently)
     return;
 }
 
+/**
+ * @brief 소지한 컨테이너 안에 든 금화의 총액을 계산한다.
+ * @param[in] even_if_unknown TRUE 이면 내용을 몰라도 전부, FALSE 이면 알려진
+ *                            내용물로 한정한다.
+ * @return 컨테이너 내부 금화의 총액.
+ */
 /*
  * amount of gold in carried containers
  *
@@ -1270,6 +1406,10 @@ hidden_gold(boolean even_if_unknown)
     return value;
 }
 
+/**
+ * @brief 금고 관련 발소리 효과음을 낼 적절한 상황인지 판정한다.
+ * @return 발소리 효과음을 내도 되면 TRUE, 부적절하면 FALSE.
+ */
 /* prevent "You hear footsteps.." when inappropriate */
 boolean
 gd_sound(void)
@@ -1277,6 +1417,10 @@ gd_sound(void)
     return !(vault_occupied(u.urooms) || findgd());
 }
 
+/**
+ * @brief 경비병이 영웅의 특정 행동(금화 먹기/파괴)을 목격했는지 기록한다.
+ * @param[in] activity 감시 대상 행동(@c GD_EATGOLD, @c GD_DESTROYGOLD).
+ */
 void
 vault_gd_watching(unsigned int activity)
 {

@@ -2,6 +2,16 @@
 /* Copyright (c) Michael Allison, 2021. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file utf8map.c
+ * @brief 글리프(glyph)의 UTF-8/유니코드 표현 매핑 및 커스터마이징 처리.
+ *
+ * "U+NNNN" 형식의 유니코드 값 파싱, 글리프에 대한 UTF-8 문자열 매핑 저장/해제,
+ * @c \\GNNNNNNNN 참조를 실제 UTF-8 시퀀스로 치환하는 변환, 사용자 정의
+ * 유니코드 표현 항목 관리 등을 제공한다. 대부분 @c ENHANCED_SYMBOLS 빌드에서만
+ * 컴파일된다.
+ */
+
 #include "hack.h"
 
 #ifdef ENHANCED_SYMBOLS
@@ -14,6 +24,11 @@ extern const char *const known_handling[];        /* symbols.c */
 
 /* hexdd[] is defined in decl.c */
 
+/**
+ * @brief "U+NNNN" 형식의 문자열을 유니코드 코드포인트 정수로 변환한다.
+ * @param[in] cp 변환할 문자열(예: "U+1F600"). NULL 이거나 형식이 아니면 0 반환.
+ * @return 파싱된 유니코드 코드포인트, 유효하지 않으면 0.
+ */
 int
 unicode_val(const char *cp)
 {
@@ -33,6 +48,14 @@ unicode_val(const char *cp)
     return cval;
 }
 
+/**
+ * @brief 글리프 매핑에 유니코드 표현(UTF-32 코드포인트 + UTF-8 문자열)을 설정한다.
+ * @param[in,out] gmap    표현을 설정할 글리프 매핑.
+ * @param[in]     utf32ch UTF-32 코드포인트.
+ * @param[in]     utf8str 대응하는 UTF-8 문자열.
+ * @return 성공 시 1, @p gmap 이 NULL 이거나 @p utf32ch 가 0이면 0.
+ * @note 필요 시 표현 구조체를 새로 할당하며, 기존 UTF-8 문자열은 해제 후 교체한다.
+ */
 int
 set_map_u(glyph_map *gmap, uint32 utf32ch, const uint8 *utf8str)
 {
@@ -55,6 +78,11 @@ set_map_u(glyph_map *gmap, uint32 utf32ch, const uint8 *utf8str)
     return 1;
 }
 
+/**
+ * @brief 모든 글리프 매핑의 유니코드 표현 메모리를 해제한다.
+ * @note 해제 후 화면 버퍼(@c gg.gbuf)의 해당 포인터도 NULL 로 지워 use-after-free
+ *       를 방지한다.
+ */
 void
 free_all_glyphmap_u(void)
 {
@@ -79,6 +107,19 @@ free_all_glyphmap_u(void)
     }
 }
 
+/**
+ * @brief 문자열 내 @c \\GNNNNNNNN 글리프 참조를 실제 UTF-8 시퀀스로 치환한다.
+ *
+ * 윈도우 포트가 글리프 표현을 문자열에 직접 삽입하고자 할 때 사용한다.
+ *
+ * @param[out] buf      결과를 담을 버퍼.
+ * @param[in]  bufsz    결과 버퍼의 크기(널 종료 공간 포함).
+ * @param[in]  str      변환할 원본 문자열. NULL 이면 빈 문자열을 만든다.
+ * @param[out] retflags NULL 이 아니면, UTF-8 시퀀스를 삽입했는지(1) 심볼로
+ *                      대체했는지(0)를 마지막 처리 기준으로 기록한다.
+ * @return 결과가 기록된 @p buf 를 그대로 반환한다.
+ * @warning 결과는 @p bufsz-1 바이트를 넘지 않도록 잘린다.
+ */
 /* helper routine if a window port wants to embed any UTF-8 sequences
    for the glyph representation in the string in place of the \GNNNNNNNN
    reference */
@@ -144,6 +185,19 @@ mixed_to_utf8(char *buf, size_t bufsz, const char *str, int *retflags)
     return buf;
 }
 
+/**
+ * @brief 사용자 정의 유니코드 표현(urep) 항목을 추가하거나 갱신한다.
+ *
+ * 동일 글리프에 대한 항목이 이미 있으면 갱신하고, 없으면 새 항목을 만들어
+ * 커스터마이징 목록에 추가한다.
+ *
+ * @param[in] customization_name 커스터마이징 이름.
+ * @param[in] glyphidx           대상 글리프 인덱스.
+ * @param[in] utf32ch            UTF-32 코드포인트(0이면 표현 제거).
+ * @param[in] utf8str            대응하는 UTF-8 문자열.
+ * @param[in] which_set          적용할 그래픽 세트.
+ * @return 항상 1(성공).
+ */
 int
 add_custom_urep_entry(
     const char *customization_name,
@@ -207,6 +261,10 @@ add_custom_urep_entry(
 }
 #endif /* ENHANCED_SYMBOLS */
 
+/**
+ * @brief 사용자 정의 심볼을 초기화하고 현재 그래픽 세트에 다시 적용한다.
+ * @note @c ENHANCED_SYMBOLS 빌드가 아니면 아무 동작도 하지 않는다.
+ */
 void
 reset_customsymbols(void)
 {

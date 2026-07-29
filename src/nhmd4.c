@@ -2,6 +2,18 @@
 /*-Copyright (c) Kenneth Lorber, Kensington, Maryland, 2024 */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file nhmd4.c
+ * @brief MD4(RFC-1320) 메시지 다이제스트 구현(크래시 리포트용).
+ *
+ * 트레이스백 데이터를 그것을 생성한 프로그램 인스턴스와 대조하기 위한
+ * 용도이며, 보안 목적이 아니다. Solar Designer 의 공개 도메인 구현에서
+ * 유래했다. @c CRASHREPORT 빌드에서만 컴파일된다.
+ *
+ * @note 공개 도메인 이식 코드이며, 매크로 @c #define / @c #undef 순서가
+ *       필수적이므로 선언을 재배치하지 않고 문서화만 추가한다.
+ */
+
 /*
  * Usage is to try to match traceback data with the instance of the
  * program which produced that, not for security related purposes.
@@ -75,6 +87,14 @@ staticfn const unsigned char *nhmd4_body(struct nhmd4_context *,
 #define GET(n) (ctx->block[(n)])
 #endif
 
+/**
+ * @brief 하나 이상의 64바이트 블록을 처리하여 다이제스트 상태를 갱신한다.
+ * @param[in,out] ctx  MD4 컨텍스트(내부 상태 a/b/c/d 가 갱신됨).
+ * @param[in]     data 처리할 데이터.
+ * @param[in]     size 처리할 바이트 수(64의 배수).
+ * @return 처리한 데이터의 끝 다음 위치를 가리키는 포인터.
+ * @note 비트 카운터는 갱신하지 않으며, 정렬 요구 사항이 없다.
+ */
 /*
  * This processes one or more 64-byte data blocks, but does NOT update
  * the bit counters.  There're no alignment requirements.
@@ -179,6 +199,10 @@ nhmd4_body(
     return ptr;
 }
 
+/**
+ * @brief MD4 컨텍스트를 표준 초기 상태로 초기화한다.
+ * @param[out] ctx 초기화할 MD4 컨텍스트.
+ */
 void
 nhmd4_init(
     struct nhmd4_context *ctx)
@@ -192,6 +216,14 @@ nhmd4_init(
     ctx->hi = 0;
 }
 
+/**
+ * @brief 데이터를 다이제스트에 추가로 반영한다.
+ * @param[in,out] ctx  MD4 컨텍스트.
+ * @param[in]     data 반영할 데이터.
+ * @param[in]     size 데이터의 바이트 수.
+ * @note 64바이트에 못 미치는 잔여분은 내부 버퍼에 축적되어 다음 호출에서
+ *       이어 처리된다.
+ */
 void
 nhmd4_update(
     struct nhmd4_context *ctx,
@@ -231,6 +263,12 @@ nhmd4_update(
     memcpy(ctx->buffer, data, size);
 }
 
+/**
+ * @brief 다이제스트 계산을 마무리하고 최종 해시 값을 산출한다.
+ * @param[in,out] ctx    MD4 컨텍스트(완료 후 0으로 지워진다).
+ * @param[out]    result 16바이트 다이제스트 결과를 저장할 버퍼.
+ * @note 표준 MD4 패딩과 길이 부호화를 적용한 뒤 결과를 리틀엔디언으로 기록한다.
+ */
 void
 nhmd4_final(
     struct nhmd4_context *ctx,
