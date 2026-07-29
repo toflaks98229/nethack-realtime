@@ -3,6 +3,42 @@
 /*-Copyright (c) Robert Patrick Rankin, 2013. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file potion.c
+ * @brief Potions, and the several ways one can be used.
+ *
+ * A potion is not only drunk. It can be thrown to shatter on a victim, applied
+ * to something to coat it, mixed with another, or diluted -- and a potion
+ * vapour affects whoever is nearby whether or not they wanted it.
+ *
+ * Blessing and cursing change the effect rather than scaling it, so a cursed
+ * potion is frequently a different event from a blessed one and not merely a
+ * weaker version.
+ *
+ * @note Dipping lives here as well, which is how potions are mixed, holy water
+ *       is made, and Excalibur is drawn -- so this file is where several
+ *       unrelated-looking rituals converge.
+ * @warning Vapours reach bystanders, so drinking or breaking a potion can
+ *          affect creatures the hero never targeted, including pets.
+ */
+
+/**
+ * @file potion.c
+ * @brief 물약, 그리고 물약을 쓰는 여러 방식.
+ *
+ * 물약은 마시기만 하는 것이 아니다. 던져서 대상에게 깨뜨릴 수도, 무언가에 발라 입힐
+ * 수도, 다른 것과 섞을 수도, 희석할 수도 있다. 그리고 물약의 증기는 원하든 원치 않든
+ * 근처의 누구에게나 작용한다.
+ *
+ * 축복과 저주는 효과를 키우거나 줄이는 것이 아니라 바꾼다. 그래서 저주받은 물약은
+ * 흔히 축복받은 것의 약한 판본이 아니라 아예 다른 사건이다.
+ *
+ * @note 담그기도 여기에 있다. 물약을 섞고, 성수를 만들고, 엑스칼리버를 뽑는 방법이다.
+ *       서로 무관해 보이는 여러 의식이 이 파일로 모이는 이유다.
+ * @warning 증기는 곁에 있는 이에게 닿는다. 물약을 마시거나 깨뜨리는 일이 영웅이 겨눈
+ *          적 없는 생물에게 -- 애완동물을 포함해 -- 작용할 수 있다.
+ */
+
 #include "hack.h"
 
 staticfn long itimeout(long);

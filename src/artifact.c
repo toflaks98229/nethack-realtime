@@ -3,6 +3,44 @@
 /*-Copyright (c) Robert Patrick Rankin, 2013. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file artifact.c
+ * @brief Artifacts: objects that are individuals.
+ *
+ * An artifact is not a kind of object but a particular one. Excalibur exists at
+ * most once in a game, so creating, naming and destroying artifacts is tracked
+ * globally rather than per object -- which is why an artifact arriving from a
+ * bones file may have to be refused.
+ *
+ * Each carries properties its base object does not: bonuses against certain
+ * creatures, intrinsics granted while carried or worn, an invoked power with
+ * its own cooldown, and an allegiance that decides who may safely wield it.
+ *
+ * @note An artifact that objects to its wielder blasts them, so wielding is a
+ *       question with an answer rather than an assignment.
+ * @warning The globally unique record and the object must stay in step. An
+ *          artifact destroyed without clearing that record can never be created
+ *          again in that game.
+ */
+
+/**
+ * @file artifact.c
+ * @brief 아티팩트. 개체로서의 물건.
+ *
+ * 아티팩트는 물건의 종류가 아니라 특정한 하나다. 엑스칼리버는 한 게임에 많아야 하나
+ * 존재하므로, 생성·명명·파괴가 객체별이 아니라 전역으로 추적된다. 본즈 파일에서
+ * 넘어온 아티팩트를 거부해야 할 수도 있는 이유가 그것이다.
+ *
+ * 각각은 기반 물건에는 없는 성질을 지닌다. 특정 생물에 대한 보너스, 지니거나 착용한
+ * 동안 주어지는 고유 능력, 자체 대기 시간을 가진 발동 능력, 그리고 누가 안전하게
+ * 휘두를 수 있는지를 정하는 소속이다.
+ *
+ * @note 자기를 든 자를 못마땅해하는 아티팩트는 그를 후려친다. 그래서 휘두르는 일은
+ *       대입이 아니라 답이 있는 질문이다.
+ * @warning 전역 고유 기록과 객체는 항상 함께 가야 한다. 그 기록을 지우지 않고 파괴된
+ *          아티팩트는 그 게임에서 다시는 만들어질 수 없다.
+ */
+
 #include "hack.h"
 #include "artifact.h"
 #include "artilist.h"

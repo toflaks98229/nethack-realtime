@@ -3,6 +3,44 @@
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file role.c
+ * @brief Roles, races, genders and alignments, and the fact that they constrain
+ *        one another.
+ *
+ * These four choices are not independent. A Valkyrie is not orcish, a Samurai
+ * is human, some roles admit only one alignment -- so choosing one narrows the
+ * others, and a random pick must respect what has already been decided rather
+ * than roll freely and hope.
+ *
+ * This holds the tables describing each, the rules about which combinations are
+ * legal, and the code that fills in whatever the player left unspecified.
+ *
+ * @note Also assembles the titles the hero is addressed by, since rank depends
+ *       on role and experience together.
+ * @warning Anything derived from these choices -- starting inventory, quest,
+ *          pantheon, allowed skills -- is decided from them, so a combination
+ *          accepted here must be one every later stage can actually build.
+ */
+
+/**
+ * @file role.c
+ * @brief 직업, 종족, 성별, 성향, 그리고 그것들이 서로를 제약한다는 사실.
+ *
+ * 이 네 가지 선택은 독립적이지 않다. 발키리는 오크가 아니고, 사무라이는 인간이며,
+ * 어떤 직업은 하나의 성향만 허용한다. 그래서 하나를 고르면 나머지가 좁아지고,
+ * 무작위 선택은 자유롭게 굴린 뒤 요행을 바라는 대신 이미 정해진 것을 존중해야 한다.
+ *
+ * 이 파일은 각각을 기술하는 표와, 어떤 조합이 적법한지에 대한 규칙, 그리고 플레이어가
+ * 지정하지 않은 것을 채워 넣는 코드를 담는다.
+ *
+ * @note 영웅을 부르는 칭호도 여기서 조립한다. 계급이 직업과 경험에 함께 달려 있기
+ *       때문이다.
+ * @warning 이 선택들에서 파생되는 모든 것 -- 시작 소지품, 퀘스트, 신들, 익힐 수 있는
+ *          기술 -- 이 여기서 결정된다. 그러므로 여기서 받아들인 조합은 이후 모든
+ *          단계가 실제로 만들어 낼 수 있는 조합이어야 한다.
+ */
+
 #include "hack.h"
 
 /*** Table of all roles ***/

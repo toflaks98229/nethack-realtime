@@ -8,6 +8,45 @@
  * a few other help related facilities such as data.base lookup.
  */
 
+/**
+ * @file pager.c
+ * @brief Answering "what is this?" -- about a square, a symbol, or a command.
+ *
+ * The player can point at anything on the map and be told what it is, look up
+ * what a symbol means, or read the help. All of it is the same job: turning
+ * game state and data files into text the player can read.
+ *
+ * What may be said is bounded by what the hero knows. A monster in disguise is
+ * described as what it appears to be, an unidentified object by its appearance,
+ * and something merely remembered as remembered -- so this must consult the
+ * hero's knowledge rather than the truth.
+ *
+ * @note Descriptions come partly from the data files, so the text the player
+ *       sees is not all in the program.
+ * @warning A square can hold several things at once -- a monster on an object
+ *          in a trap -- so answering means enumerating what is there, not
+ *          picking one.
+ */
+
+/**
+ * @file pager.c
+ * @brief "이게 뭐지?"에 답하기. 칸에 대해, 기호에 대해, 명령에 대해.
+ *
+ * 플레이어는 지도 위 아무것이나 가리켜 그것이 무엇인지 들을 수 있고, 기호의 의미를
+ * 찾아볼 수 있으며, 도움말을 읽을 수 있다. 전부 같은 일이다. 게임 상태와 데이터
+ * 파일을 플레이어가 읽을 수 있는 글로 바꾸는 것이다.
+ *
+ * 무엇을 말할 수 있는지는 영웅이 아는 것에 한정된다. 변장한 몬스터는 그렇게 보이는
+ * 것으로 설명되고, 감정되지 않은 물건은 겉모습으로, 그저 기억된 것은 기억된 것으로
+ * 설명된다. 그래서 진실이 아니라 영웅의 지식을 참조해야 한다.
+ *
+ * @note 설명의 일부는 데이터 파일에서 온다. 플레이어가 보는 글이 전부 프로그램 안에
+ *       있는 것은 아니다.
+ * @warning 한 칸에 여러 가지가 함께 있을 수 있다. 함정 안의 물건 위에 선 몬스터처럼
+ *          말이다. 그래서 답한다는 것은 하나를 고르는 것이 아니라 거기 있는 것을
+ *          모두 늘어놓는 일이다.
+ */
+
 #include "hack.h"
 #include "dlb.h"
 

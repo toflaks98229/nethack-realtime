@@ -5,6 +5,46 @@
 
 /* Contains code for 't' (throw) */
 
+/**
+ * @file dothrow.c
+ * @brief The hero throwing, firing, and being thrown.
+ *
+ * A thrown object travels square by square and may strike anything on the way,
+ * so range, what it passes over, and what stops it all matter -- and what
+ * happens on impact depends on the object as much as the target: a potion
+ * shatters, a boomerang returns, a cockatrice corpse is dangerous to whoever
+ * touches it next.
+ *
+ * The same machinery carries the hero when *they* are the projectile, flung by
+ * a giant or hurtling from a collision, which is why being thrown lives beside
+ * throwing.
+ *
+ * @note Firing from a quiver differs from throwing by hand mainly in what is
+ *       selected and how many leave at once; the flight is the same.
+ * @warning An object in flight has left the hero's inventory but has not
+ *          arrived anywhere, so it belongs to neither while it travels and must
+ *          be accounted for if the flight is interrupted.
+ */
+
+/**
+ * @file dothrow.c
+ * @brief 영웅이 던지고, 쏘고, 던져지는 일.
+ *
+ * 던져진 물건은 칸을 하나씩 지나가며 도중의 무엇에든 맞을 수 있다. 그래서 사거리,
+ * 무엇을 지나쳤는지, 무엇이 그것을 멈췄는지가 모두 중요하다. 충돌 시 벌어지는 일도
+ * 대상만큼이나 물건에 달려 있다. 물약은 깨지고, 부메랑은 돌아오며, 코카트리스 시체는
+ * 다음에 그것을 만지는 자에게 위험하다.
+ *
+ * 같은 장치가 *영웅 자신* 이 발사체가 되었을 때 -- 거인에게 내던져지거나 충돌로
+ * 튕겨 나갈 때 -- 도 그를 나른다. 던져지는 일이 던지는 일 곁에 있는 이유다.
+ *
+ * @note 화살통에서 쏘는 것은 손으로 던지는 것과 주로 무엇이 선택되고 한 번에 몇 개가
+ *       나가는지에서 다르다. 비행 자체는 같다.
+ * @warning 날아가는 중인 물건은 영웅의 소지품을 떠났지만 아직 어디에도 도착하지
+ *          않았다. 비행 중에는 어느 쪽에도 속하지 않으므로, 비행이 중단되면 그것을
+ *          따로 처리해야 한다.
+ */
+
 #include "hack.h"
 
 staticfn int throw_obj(struct obj *, int);
