@@ -139,14 +139,24 @@ monst` behind accessors. Measurement redirected it:
   | `nh_fileprefix.h` | directory classes locating data and state files |
   | `nh_corpstat.h` | corpse/statue creation flags stored in `obj->spe` |
   | `nh_shop.h` | shopkeeper billing: selling states, damage prices, devaluation, repossession |
+  | `nh_bubble.h` | drifting bubbles and their contents on the water/air levels |
+  | `nh_msg.h` | message classification, `pline` wrappers, yes/no queries, `custompline()` flags |
+  | `nh_objsel.h` | object-selection menus: `query_objlist`, `query_category`, `sortloot` |
+  | `nh_move.h` | directions, movement styles, `test_move` and `m_move` outcomes |
+  | `nh_oname.h` | artifact provenance recorded when an object is named |
+  | `nh_trapflags.h` | circumstances under which a trap is triggered |
 
   `hack.h` remains a facade, so every existing source file and the PCH keep
-  working unchanged. It is now 1,186 lines, down from 1,581.
+  working unchanged. It is now 1,018 lines, down from 1,581 — a 36% reduction,
+  with each remaining cohesive group given a name and a home.
 
-  Most headers are straight extractions of a contiguous block, included at the
-  position it occupied. `nh_shop.h` is the exception: its definitions sat in
-  four separate places, and are gathered at the position of the earliest, so
-  each becomes available no later than before.
+  Where a group was contiguous it is extracted in place, included at the exact
+  position it occupied. Where it was scattered — `nh_shop.h` (four places),
+  `nh_msg.h` (four), `nh_objsel.h`, `nh_move.h`, `nh_bubble.h` (two each) — the
+  pieces are gathered at the position of the **earliest** of them, so every
+  definition becomes available no later than it was before. The savefile
+  compatibility flags joined `nh_savefile.h`, whose include moved up to their
+  position for the same reason.
 
   **Verification.** Each round is checked against the pre-decomposition
   baseline by two preprocessor comparisons, both of which must show zero
