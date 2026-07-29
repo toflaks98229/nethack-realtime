@@ -8,7 +8,47 @@
 
 /* various code that was replicated in *main.c */
 
-/* REALTIME_PROTO (stage-1 semi-realtime) is defined centrally in config.h */
+/**
+ * @file allmain.c
+ * @brief The loop the whole game runs in, and the bookkeeping a turn implies.
+ *
+ * @c moveloop_core() is where the game actually happens: it hands out movement
+ * to the hero and the monsters, lets whoever can act do so, and when everyone
+ * has run out, ends the turn and runs everything that a turn passing means --
+ * healing, hunger, timed effects, spells ageing, the dungeon stirring.
+ *
+ * The code here was originally duplicated across each port's main(), which is
+ * why it sits in a file of its own rather than with any one subsystem.
+ *
+ * In this fork the loop is also where real time enters the game: the world is
+ * advanced on a wall-clock rather than on the player pressing keys. See
+ * MODIFICATIONS.md; everything specific to that is behind @c REALTIME_PROTO,
+ * which is defined centrally in @c config.h.
+ *
+ * @note "Moves" counts turns, not steps; a fast hero acts several times within
+ *       one. The distinction matters to every per-turn effect below.
+ */
+
+/**
+ * @file allmain.c
+ * @brief 게임 전체가 도는 루프와, 한 턴이 수반하는 처리들.
+ *
+ * @c moveloop_core() 가 실제로 게임이 일어나는 곳이다. 영웅과 몬스터에게
+ * 이동력을 나눠 주고, 행동할 수 있는 쪽이 행동하게 하며, 모두가 이동력을 다
+ * 쓰면 턴을 끝내고 한 턴이 지났다는 것이 뜻하는 모든 일을 실행한다. 회복,
+ * 허기, 시한 효과, 주문의 노화, 던전의 움직임 같은 것들이다.
+ *
+ * 이 코드는 원래 각 포팅의 main() 마다 중복되어 있었고, 그래서 특정 서브시스템에
+ * 속하지 않고 별도 파일로 존재한다.
+ *
+ * 이 포크에서는 이 루프가 실시간이 게임에 들어오는 지점이기도 하다. 세계는
+ * 플레이어가 키를 누르는 것이 아니라 벽시계에 따라 전진한다. MODIFICATIONS.md
+ * 참고. 그에 해당하는 모든 것은 @c REALTIME_PROTO 뒤에 있으며, 이 스위치는
+ * @c config.h 에서 중앙 관리된다.
+ *
+ * @note "moves" 는 걸음이 아니라 턴을 센다. 빠른 영웅은 한 턴 안에 여러 번
+ *       행동한다. 이 구분은 아래의 모든 턴 단위 효과에 영향을 준다.
+ */
 
 #include "hack.h"
 
@@ -27,6 +67,20 @@ staticfn void regen_pw(int);
 staticfn void regen_hp(int);
 staticfn void interrupt_multi(const char *);
 
+/**
+ * @brief Bring the process to a state in which anything else may be called.
+ * @param[in] argc Argument count as received by @c main().
+ * @param[in] argv Argument vector as received by @c main().
+ * @note Runs before options, before the window system, before a game exists;
+ *       only things with no prerequisites of their own belong here.
+ */
+/**
+ * @brief 다른 무엇이든 호출할 수 있는 상태로 프로세스를 끌어올린다.
+ * @param[in] argc @c main() 이 받은 인자 개수.
+ * @param[in] argv @c main() 이 받은 인자 벡터.
+ * @note 옵션보다, 윈도우 시스템보다, 게임이 존재하기보다 먼저 실행된다. 자기
+ *       나름의 선행 조건이 없는 것들만 여기에 둔다.
+ */
 /*ARGSUSED*/
 void
 early_init(int argc, char *argv[])
@@ -45,6 +99,19 @@ early_init(int argc, char *argv[])
     nhUse(argv[0]);
 }
 
+/**
+ * @brief Put the world in order before the first turn is taken.
+ * @param[in] resuming FALSE for a new game, TRUE when a save was restored.
+ * @note A restored game must not repeat what the original start already did,
+ *       which is what the flag distinguishes; the level still has to be woken
+ *       up either way.
+ */
+/**
+ * @brief 첫 턴이 시작되기 전에 세계를 정돈한다.
+ * @param[in] resuming 새 게임이면 FALSE, 저장을 복원한 것이면 TRUE.
+ * @note 복원된 게임은 최초 시작이 이미 한 일을 되풀이해서는 안 되며, 이 플래그가
+ *       그것을 구분한다. 다만 레벨을 깨우는 일은 어느 쪽이든 필요하다.
+ */
 staticfn void
 moveloop_preamble(boolean resuming)
 {
@@ -111,6 +178,25 @@ moveloop_preamble(boolean resuming)
         update_inventory();
 }
 
+/**
+ * @brief Grant the hero this turn's movement, adjusted for speed and burden.
+ * @param[in] wtcap Current encumbrance level, @c UNENCUMBERED upward.
+ * @note Speed is granted probabilistically rather than as a fraction: a
+ *       hasted hero gains a whole extra action on some turns instead of a
+ *       partial one on every turn, which is what makes speed unpredictable
+ *       from the player's side.
+ * @note Riding hands the question to the steed -- the hero's own speed does
+ *       not add to what the steed can do.
+ */
+/**
+ * @brief 속도와 하중을 반영해 이번 턴의 이동력을 영웅에게 지급한다.
+ * @param[in] wtcap 현재 하중 단계. @c UNENCUMBERED 이상.
+ * @note 속도는 비율이 아니라 확률로 지급된다. 가속된 영웅은 매 턴 일부를 더
+ *       받는 것이 아니라 일부 턴에 행동 하나를 통째로 더 얻는다. 플레이어
+ *       입장에서 속도를 예측하기 어려운 이유가 이것이다.
+ * @note 탈것을 타고 있으면 이 판단은 탈것에게 넘어간다. 영웅 자신의 속도는
+ *       탈것이 할 수 있는 일에 더해지지 않는다.
+ */
 staticfn void
 u_calc_moveamt(int wtcap)
 {
@@ -250,6 +336,40 @@ rt_poll_input_timed(void)
 }
 #endif /* REALTIME_PROTO */
 
+/**
+ * @brief Advance the game by as much as can happen before the player is asked
+ *        to act again.
+ *
+ * Movement is an allowance, not a schedule: everyone accumulates it and spends
+ * it, and a turn ends only when nobody can act. So this runs the monsters until
+ * either one of them yields to the hero or they all run dry, and only in the
+ * latter case does a turn actually pass and the per-turn machinery run.
+ *
+ * @note The once-per-turn block is deliberately long: hunger, healing, timed
+ *       effects, prayer, polymorph, shape-shift, level noises and the endgame
+ *       countdown all mean "a turn went by" and have nowhere else to live.
+ * @warning Order within a turn is load-bearing. Encumbrance is recomputed
+ *          after monsters move because their actions can change what the hero
+ *          is carrying, and again before the hero acts so the player is told
+ *          immediately.
+ */
+/**
+ * @brief 플레이어에게 다시 행동을 묻기 전까지 일어날 수 있는 만큼 게임을
+ *        진행시킨다.
+ *
+ * 이동력은 일정표가 아니라 배당이다. 모두가 그것을 쌓고 소비하며, 아무도 행동할
+ * 수 없을 때에야 턴이 끝난다. 그래서 여기서는 몬스터 중 누군가가 영웅에게
+ * 차례를 넘기거나 전부 이동력을 소진할 때까지 몬스터를 움직이고, 후자의 경우에만
+ * 실제로 턴이 지나가며 턴 단위 처리가 실행된다.
+ *
+ * @note 턴당 1회 블록이 긴 것은 의도된 것이다. 허기, 회복, 시한 효과, 기도,
+ *       변신, 형태 변화, 레벨의 소리, 엔드게임 카운트다운이 모두 "한 턴이
+ *       지났다"를 뜻하며 달리 있을 곳이 없다.
+ * @warning 턴 안의 순서가 동작을 좌우한다. 하중은 몬스터가 움직인 뒤에 다시
+ *          계산되는데, 그들의 행동이 영웅이 지닌 것을 바꿀 수 있기 때문이다.
+ *          그리고 영웅이 행동하기 전에 또 한 번 계산해, 플레이어에게 즉시
+ *          알린다.
+ */
 void
 moveloop_core(void)
 {
@@ -671,6 +791,18 @@ maybe_do_tutorial(void)
     }
 }
 
+/**
+ * @brief Run the game until it ends.
+ * @param[in] resuming FALSE for a new game, TRUE when a save was restored.
+ * @warning Does not return. The game is left by longjmp or by exiting, not by
+ *          this loop finishing.
+ */
+/**
+ * @brief 게임이 끝날 때까지 돌린다.
+ * @param[in] resuming 새 게임이면 FALSE, 저장을 복원한 것이면 TRUE.
+ * @warning 반환하지 않는다. 게임에서 빠져나가는 것은 longjmp 나 종료를 통해서지,
+ *          이 루프가 끝나서가 아니다.
+ */
 void
 moveloop(boolean resuming)
 {
@@ -687,6 +819,20 @@ moveloop(boolean resuming)
     }
 }
 
+/**
+ * @brief Recover a little spell energy, if this turn is one of the ones that
+ *        does.
+ * @param[in] wtcap Current encumbrance level.
+ * @note The interval shortens with experience and is kinder to wizards; being
+ *       heavily burdened stops natural recovery entirely, though the intrinsic
+ *       still works.
+ */
+/**
+ * @brief 이번 턴이 회복이 일어나는 턴이라면 마력을 조금 회복한다.
+ * @param[in] wtcap 현재 하중 단계.
+ * @note 회복 간격은 경험이 쌓일수록 짧아지며 마법사에게 더 관대하다. 하중이
+ *       심하면 자연 회복은 완전히 멈추지만, 고유 능력에 의한 회복은 계속된다.
+ */
 staticfn void
 regen_pw(int wtcap)
 {
@@ -712,6 +858,24 @@ regen_pw(int wtcap)
 #define U_CAN_REGEN() (Regeneration || (Sleepy && u.usleep))
 
 /* maybe recover some lost health (or lose some when an eel out of water) */
+/**
+ * @brief Recover a little health -- or lose some, for an eel out of water.
+ * @param[in] wtcap Current encumbrance level.
+ * @note Recovery is slower the healthier and the more experienced the hero is,
+ *       so it matters most when it is most needed.
+ * @warning A polymorphed hero heals @c u.mh, the form's health, and not
+ *          @c u.uhp; the two are deliberately kept apart so that surviving as
+ *          a monster does not quietly repair the hero underneath.
+ */
+/**
+ * @brief 체력을 조금 회복한다. 물 밖의 뱀장어라면 오히려 잃는다.
+ * @param[in] wtcap 현재 하중 단계.
+ * @note 영웅이 건강할수록, 경험이 많을수록 회복이 느리다. 그래서 가장 필요할 때
+ *       가장 크게 작용한다.
+ * @warning 변신 중인 영웅은 @c u.uhp 가 아니라 그 형태의 체력인 @c u.mh 를
+ *          회복한다. 둘을 의도적으로 분리해 두어, 몬스터로 버티는 동안 밑에 있는
+ *          영웅이 조용히 회복되지 않게 한다.
+ */
 staticfn void
 regen_hp(int wtcap)
 {
@@ -771,6 +935,19 @@ regen_hp(int wtcap)
 
 #undef U_CAN_REGEN
 
+/**
+ * @brief Abandon a multi-turn activity the hero was in the middle of.
+ * @note Digging, eating, and the like are represented as an occupation that
+ *       resumes each turn; interrupting one has to clear the repeat count and
+ *       the "you continue" state as well, or the activity would silently pick
+ *       itself back up.
+ */
+/**
+ * @brief 영웅이 진행 중이던 여러 턴짜리 활동을 중단한다.
+ * @note 굴착이나 식사 같은 활동은 매 턴 재개되는 occupation 으로 표현된다.
+ *       중단하려면 반복 횟수와 "계속한다" 상태까지 함께 지워야 하며, 그러지
+ *       않으면 활동이 조용히 다시 이어진다.
+ */
 void
 stop_occupation(void)
 {
@@ -853,6 +1030,18 @@ init_sound_disp_gamewindows(void)
 #endif
 }
 
+/**
+ * @brief Build a fresh game: the hero, their possessions, and the first level.
+ * @note Everything that only ever happens once lives here -- naming, the
+ *       starting inventory, the first pet, the initial dungeon layout -- which
+ *       is why restoring a save deliberately does not come through this path.
+ */
+/**
+ * @brief 새 게임을 구성한다. 영웅과 그 소지품, 그리고 첫 레벨.
+ * @note 오직 한 번만 일어나는 모든 것이 여기에 있다. 이름 짓기, 시작 소지품,
+ *       첫 애완동물, 최초 던전 배치 등이다. 저장을 복원할 때 이 경로를 의도적으로
+ *       거치지 않는 이유가 그것이다.
+ */
 void
 newgame(void)
 {

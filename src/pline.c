@@ -3,6 +3,44 @@
 /*-Copyright (c) Robert Patrick Rankin, 2018. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file pline.c
+ * @brief Everything the game says to the player.
+ *
+ * @c pline() and its relatives format a message and hand it to the window
+ * port, but most of this file is about the decisions made on the way there:
+ * whether the player has asked for this kind of message to be hidden or to
+ * stop the game, whether it repeats the last one, whether it should be
+ * recorded in the session's history, the dump log, or the public live log.
+ *
+ * The variants exist because the same sentence needs different grammar
+ * depending on who it is about -- @c You(), @c Your(), @c pline_mon() -- and
+ * because a message may need to point at a place on the map so the interface
+ * can draw attention there.
+ *
+ * @note Messages are formatted into a buffer several times @c BUFSZ so that
+ *       long configuration text can be decorated before being truncated, which
+ *       is why the working buffer here is larger than the one callers see.
+ */
+
+/**
+ * @file pline.c
+ * @brief 게임이 플레이어에게 하는 모든 말.
+ *
+ * @c pline() 과 그 친척들은 메시지를 형식화해 윈도우 포팅에 넘기지만, 이 파일의
+ * 대부분은 거기에 이르기까지의 판단에 관한 것이다. 플레이어가 이런 종류의
+ * 메시지를 감추라고 했는지 혹은 게임을 멈추라고 했는지, 직전 메시지의 반복인지,
+ * 세션 기록·덤프 로그·공개 라이브 로그에 남겨야 하는지 등이다.
+ *
+ * 변형들이 존재하는 이유는 같은 문장이라도 누구에 관한 것이냐에 따라 다른 문법이
+ * 필요하기 때문이며(@c You(), @c Your(), @c pline_mon()), 또 메시지가 지도 위의
+ * 한 지점을 가리켜 인터페이스가 그쪽으로 주의를 끌게 해야 할 때가 있기 때문이다.
+ *
+ * @note 메시지는 @c BUFSZ 의 몇 배가 되는 버퍼에 형식화된다. 긴 설정 텍스트를
+ *       장식한 뒤 잘라내기 위함이며, 그래서 여기의 작업 버퍼가 호출자가 보는
+ *       것보다 크다.
+ */
+
 #include "hack.h"
 
 #define BIGBUFSZ (5 * BUFSZ) /* big enough to format a 4*BUFSZ string (from
@@ -100,6 +138,22 @@ staticfn void vpline(const char *, va_list);
 
 DISABLE_WARNING_FORMAT_NONLITERAL
 
+/**
+ * @brief Say something to the player.
+ * @param[in] line Printf-style format for the message.
+ * @note Subject to the player's message-type rules, so a message may be
+ *       suppressed or may stop multi-turn activity.
+ * @warning Never pass a runtime string as the format. Use @c pline1() for
+ *          that; a stray percent sign would otherwise be read as a conversion.
+ */
+/**
+ * @brief 플레이어에게 무언가를 말한다.
+ * @param[in] line printf 형식의 메시지 서식.
+ * @note 플레이어의 메시지 유형 규칙을 따르므로, 메시지가 억제되거나 여러 턴짜리
+ *       행동을 중단시킬 수 있다.
+ * @warning 런타임 문자열을 서식으로 넘기지 말 것. 그런 경우 @c pline1() 을 쓴다.
+ *          그러지 않으면 문자열에 섞인 퍼센트 기호가 변환 지시자로 해석된다.
+ */
 void
 pline(const char *line, ...)
 {
@@ -149,6 +203,29 @@ pline_mon(struct monst *mtmp, const char *line, ...)
     va_end(the_args);
 }
 
+/**
+ * @brief Format a message and decide what becomes of it.
+ * @param[in] line     Printf-style format for the message.
+ * @param[in] the_args Arguments for that format.
+ * @note This is where the player's configuration is honoured: a matching
+ *       message may be hidden, may interrupt what the hero is doing, or may be
+ *       kept out of the history. It is also where a message identical to the
+ *       previous one is suppressed.
+ * @warning Reentered indirectly in some paths -- a message can be produced
+ *          while one is being handled -- so it guards against recursion rather
+ *          than assuming it cannot happen.
+ */
+/**
+ * @brief 메시지를 형식화하고 그것이 어떻게 될지 결정한다.
+ * @param[in] line     printf 형식의 메시지 서식.
+ * @param[in] the_args 그 서식에 대한 인자들.
+ * @note 플레이어의 설정이 반영되는 지점이다. 규칙에 걸린 메시지는 감춰지거나,
+ *       영웅이 하던 일을 중단시키거나, 기록에서 빠질 수 있다. 직전과 동일한
+ *       메시지를 억제하는 것도 여기서 이루어진다.
+ * @warning 일부 경로에서 간접적으로 재진입된다. 메시지를 처리하는 도중에 또
+ *          다른 메시지가 생길 수 있기 때문이며, 그래서 그런 일이 없다고 가정하지
+ *          않고 재귀를 방어한다.
+ */
 staticfn void
 vpline(const char *line, va_list the_args)
 {
@@ -295,6 +372,25 @@ RESTORE_WARNING_FORMAT_NONLITERAL
 /* pline() variant which can override MSGTYPE handling or suppress
    message history (tty interface uses pline() to issue prompts and
    they shouldn't be blockable via MSGTYPE=hide) */
+/**
+ * @brief Say something, overriding how it would normally be handled.
+ * @param[in] pflags Mask of @c PLINE_ values; see nh_msg.h.
+ * @param[in] line   Printf-style format for the message.
+ * @note Used where the default is wrong for one particular message -- to stop
+ *       a repeat from stuttering, to keep something out of history, or to mark
+ *       text as speech.
+ * @warning @c OVERRIDE_MSGTYPE ignores the player's own filters, so it belongs
+ *          only on messages the game must not let them hide.
+ */
+/**
+ * @brief 평소의 처리 방식을 무시하고 무언가를 말한다.
+ * @param[in] pflags @c PLINE_ 값들의 마스크. nh_msg.h 참고.
+ * @param[in] line   printf 형식의 메시지 서식.
+ * @note 특정 메시지 하나에 대해 기본 동작이 부적절할 때 쓴다. 반복되는 메시지가
+ *       계속 튀어나오지 않게 하거나, 기록에 남기지 않거나, 발화로 표시할 때다.
+ * @warning @c OVERRIDE_MSGTYPE 은 플레이어 자신의 필터를 무시하므로, 감춰지도록
+ *          두어서는 안 되는 메시지에만 쓴다.
+ */
 void
 custompline(unsigned pflags, const char *line, ...)
 {
@@ -471,6 +567,18 @@ You_see(const char *line, ...)
 /* Print a message inside double-quotes.
  * The caller is responsible for checking deafness.
  * Gods can speak directly to you in spite of deafness.
+ */
+/**
+ * @brief Report something as spoken aloud, in double quotes.
+ * @param[in] line Printf-style format for what is said.
+ * @warning Does not check whether the hero can hear. The caller must, since
+ *          gods are heard through deafness and most other speakers are not.
+ */
+/**
+ * @brief 소리 내어 말한 것으로, 큰따옴표를 둘러 보고한다.
+ * @param[in] line printf 형식의 발화 내용 서식.
+ * @warning 영웅이 들을 수 있는지 검사하지 않는다. 확인은 호출자의 몫이다. 신은
+ *          난청 상태에서도 들리지만 다른 화자들은 그렇지 않기 때문이다.
  */
 void
 verbalize(const char *line, ...)
