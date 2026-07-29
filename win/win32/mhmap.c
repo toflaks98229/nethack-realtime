@@ -100,6 +100,10 @@ typedef struct mswin_nethack_map_window {
     int heroLastX, heroLastY;   /* hero cell observed at last slide seed */
     boolean heroInit;           /* heroLast{X,Y} initialized */
     boolean heroSlideActive;    /* hero is mid-glide */
+    boolean monSliding;         /* at least one monster was mid-glide at the
+                                   last paint; keeps the frame timer alive
+                                   even though monsters carry no offset here
+                                   (their motion lives in the core records) */
 #endif
 } NHMapWindow, *PNHMapWindow;
 
@@ -696,8 +700,12 @@ MapWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             if (data->heroDX == 0 && data->heroDY == 0)
                 data->heroSlideActive = FALSE;
             InvalidateRect(hWnd, NULL, FALSE); /* repaint at new offsets */
+            /* monSliding is set by the paint below; monsters are animated from
+               the core's motion records rather than an offset kept here, so
+               without it the timer would stop while they are still moving */
             if (data->camDX == 0 && data->camDY == 0
-                && data->heroDX == 0 && data->heroDY == 0) {
+                && data->heroDX == 0 && data->heroDY == 0
+                && !data->monSliding) {
                 KillTimer(hWnd, RT_CAM_TIMER_ID);
                 data->camAnimating = FALSE;
             }
@@ -1321,6 +1329,74 @@ onPaint(HWND hWnd)
             GetNHApp()->mapTile_Y, TILE_BK_COLOR);
 
         SelectObject(data->tileDC, savedTile);
+    }
+
+    /* Glide monsters that stepped recently.  The core records arrivals by
+       destination square (it is the only place that knows a monster's previous
+       position), so we ask each visible square whether its occupant just
+       arrived and, if so, draw it partway back toward where it came from.
+       Only squares the map is actually showing a monster on are animated, so
+       this cannot reveal a monster the player is not entitled to see. */
+    {
+        int i, j, i0, i1, j0, j1;
+        boolean anyMoving = FALSE;
+        HBITMAP savedTile = SelectObject(data->tileDC, GetNHApp()->bmpMapTiles);
+
+        /* restrict the scan to the visible page rather than the whole map */
+        i0 = max(0, data->xPos);
+        i1 = min(COLNO - 1, data->xPos + data->xPageSize);
+        j0 = max(0, data->yPos);
+        j1 = min(ROWNO - 1, data->yPos + data->yPageSize);
+
+        for (i = i0; i <= i1; i++) {
+            for (j = j0; j <= j1; j++) {
+                coordxy fx = 0, fy = 0;
+                int pct = 0;
+                int glyph = data->map[i][j].glyph;
+                RECT mr;
+                short ntile;
+                int bx, by, offx, offy;
+
+                if (glyph == NO_GLYPH || !glyph_is_monster(glyph))
+                    continue;
+                if (i == (int) u.ux && j == (int) u.uy)
+                    continue; /* the hero is handled above */
+                if (!rt_recent_move((coordxy) i, (coordxy) j, &fx, &fy, &pct))
+                    continue;
+                if (data->bkmap[i][j].glyph == NO_GLYPH)
+                    continue; /* no terrain to erase with; leave it static */
+
+                anyMoving = TRUE;
+                nhcoord2display(data, i, j, &mr);
+                bx = mr.left + data->camDX;
+                by = mr.top + data->camDY;
+
+                /* remaining distance back toward the square it came from */
+                offx = ((fx - i) * data->xFrontTile * (100 - pct)) / 100;
+                offy = ((fy - j) * data->yFrontTile * (100 - pct)) / 100;
+
+                /* erase the statically drawn monster with its terrain ... */
+                ntile = data->bkmap[i][j].gm.tileidx;
+                StretchBlt(hFrontBufferDC, bx, by, data->xFrontTile,
+                           data->yFrontTile, data->tileDC, TILEBMP_X(ntile),
+                           TILEBMP_Y(ntile), GetNHApp()->mapTile_X,
+                           GetNHApp()->mapTile_Y, SRCCOPY);
+
+                /* ... and redraw it at the interpolated position */
+                ntile = data->map[i][j].gm.tileidx;
+                (*GetNHApp()->lpfnTransparentBlt)(
+                    hFrontBufferDC, bx + offx, by + offy, data->xFrontTile,
+                    data->yFrontTile, data->tileDC, TILEBMP_X(ntile),
+                    TILEBMP_Y(ntile), GetNHApp()->mapTile_X,
+                    GetNHApp()->mapTile_Y, TILE_BK_COLOR);
+            }
+        }
+        SelectObject(data->tileDC, savedTile);
+
+        /* keep the frame timer running while anything is still in motion */
+        data->monSliding = anyMoving;
+        if (anyMoving)
+            rt_anim_start_timer(data);
     }
 #endif
 

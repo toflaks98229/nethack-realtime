@@ -1,6 +1,9 @@
 /* NetHack 5.0	steed.c	$NHDT-Date: 1781973068 2026/06/20 16:31:08 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.132 $ */
 /* Copyright (c) Kevin Hugo, 1998-1999. */
 /* NetHack may be freely redistributed.  See license for details. */
+/* MODIFIED 2026-07 (real-time fork): place_monster() reports single-step moves
+   to the renderer's motion records (REALTIME_PROTO); see MODIFICATIONS.md.
+   This file differs from the upstream NetHack distribution. */
 
 /**
  * @file steed.c
@@ -1022,6 +1025,12 @@ place_monster(struct monst *mon, coordxy x, coordxy y)
         impossible("placing %s over %s at <%d,%d>, mstates:%lx %lx on %s?",
                    monnm, othnm, x, y, othermon->mstate, mon->mstate, buf);
     }
+#ifdef REALTIME_PROTO
+    /* mon->mx/my still hold the previous square here, which is the only place
+       that pairing is available; hand it to the renderer's motion records so a
+       single step can be drawn as a glide.  Recording only. */
+    rt_note_move(mon->mx, mon->my, x, y);
+#endif
     mon->mx = x, mon->my = y;
     svl.level.monsters[x][y] = mon;
     /* even though MON_FLOOR is not actually a bit currently

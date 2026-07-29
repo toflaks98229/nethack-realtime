@@ -207,6 +207,67 @@ rt_world_tick_ready(void)
 }
 
 /*
+ * Monster motion records (stage 4).
+ *
+ * The tile renderer draws from a grid of glyphs and has no notion of entity
+ * identity, so it cannot tell that the monster now in one square is the one
+ * that was in the next square a moment ago.  place_monster() knows, because
+ * the monster's old coordinates are still in mtmp->mx/my when it is called.
+ * We record single-step arrivals here, keyed by destination square, and the
+ * renderer asks "did the occupant of this square just arrive, and from
+ * where?" -- a question it can pose without identifying anyone.
+ *
+ * Recording only; nothing here influences gameplay.
+ */
+static struct {
+    coordxy fromx, fromy;  /* square the occupant stepped from */
+    unsigned long tick;    /* nt_ticks() at the moment of arrival */
+} rt_motions[COLNO][ROWNO];
+
+/* note a monster arriving at <tx,ty> from <fx,fy>; ignores anything that is
+   not a single step, so teleports and level placement do not glide */
+void
+rt_note_move(coordxy fx, coordxy fy, coordxy tx, coordxy ty)
+{
+    int dx = (int) tx - (int) fx, dy = (int) ty - (int) fy;
+
+    if (!isok(fx, fy) || !isok(tx, ty))
+        return;
+    if (dx < -1 || dx > 1 || dy < -1 || dy > 1 || (dx == 0 && dy == 0))
+        return;
+    rt_motions[tx][ty].fromx = fx;
+    rt_motions[tx][ty].fromy = fy;
+    rt_motions[tx][ty].tick = nt_ticks();
+}
+
+/*
+ * Report whether the occupant of <x,y> arrived recently enough to still be
+ * animating, and if so where it came from and how far along it is.
+ *
+ * pct counts up from 0 at the moment of arrival to 100 when the glide is
+ * finished, so the caller offsets the sprite by (100 - pct) of the way back
+ * toward the source.
+ */
+boolean
+rt_recent_move(coordxy x, coordxy y, coordxy *fx, coordxy *fy, int *pct)
+{
+    unsigned long now, age;
+
+    if (!isok(x, y) || rt_motions[x][y].tick == 0)
+        return FALSE;
+    now = nt_ticks();
+    age = now - rt_motions[x][y].tick;
+    if (age >= (unsigned long) RT_TURN_MS) {
+        rt_motions[x][y].tick = 0; /* finished; stop reporting it */
+        return FALSE;
+    }
+    *fx = rt_motions[x][y].fromx;
+    *fy = rt_motions[x][y].fromy;
+    *pct = (int) ((age * 100UL) / (unsigned long) RT_TURN_MS);
+    return TRUE;
+}
+
+/*
  * Console command input for real-time play.  Buffer any pending keystrokes
  * without blocking, wait (yielding the CPU) until the world clock says it is
  * time for the next turn, then report whether the hero has a queued command
