@@ -68,18 +68,9 @@
 /* number of turns it takes for vault guard to show up */
 #define VAULT_GUARD_TIME 30
 
-/* sellobj_state() states */
-#define SELL_NORMAL (0)
-#define SELL_DELIBERATE (1)
-#define SELL_DONTSELL (2)
-
-#define SHOP_DOOR_COST 400L /* cost of a destroyed shop door */
-#define SHOP_BARS_COST 300L /* cost of iron bars */
-#define SHOP_HOLE_COST 200L /* cost of making hole/trapdoor */
-#define SHOP_WALL_COST 200L /* cost of destroying a wall */
-#define SHOP_WALL_DMG  (10L * ACURRSTR) /* damaging a wall */
-#define SHOP_PIT_COST  100L /* cost of making a pit */
-#define SHOP_WEB_COST   30L /* cost of removing a web */
+/* shopkeeper billing: selling states, damage prices, devaluation, repossession
+   [gathered from four places in this file; see nh_shop.h] */
+#include "nh_shop.h"
 
 /* flags for look_here() */
 #define LOOKHERE_NOFLAGS       0U
@@ -190,36 +181,7 @@ struct container {
     genericptr_t list;
 };
 
-/* alteration types--keep in synch with costly_alteration(mkobj.c) */
-enum cost_alteration_types {
-    COST_CANCEL  =  0, /* standard cancellation */
-    COST_DRAIN   =  1, /* drain life upon an object */
-    COST_UNCHRG  =  2, /* cursed charging */
-    COST_UNBLSS  =  3, /* unbless (devalues holy water) */
-    COST_UNCURS  =  4, /* uncurse (devalues unholy water) */
-    COST_DECHNT  =  5, /* disenchant weapons or armor */
-    COST_DEGRD   =  6, /* removal of rustproofing, dulling via engraving */
-    COST_DILUTE  =  7, /* potion dilution */
-    COST_ERASE   =  8, /* scroll or spellbook blanking */
-    COST_BURN    =  9, /* dipped into flaming oil */
-    COST_NUTRLZ  = 10, /* neutralized via unicorn horn */
-    COST_DSTROY  = 11, /* wand breaking (bill first, useup later) */
-    COST_SPLAT   = 12, /* cream pie to own face (ditto) */
-    COST_BITE    = 13, /* start eating food */
-    COST_OPEN    = 14, /* open tin */
-    COST_BRKLCK  = 15, /* break box/chest's lock */
-    COST_RUST    = 16, /* rust damage */
-    COST_ROT     = 17, /* rotting attack */
-    COST_CORRODE = 18, /* acid damage */
-    COST_CRACK   = 19, /* damage to crystal armor */
-};
-
-/* used by unpaid_cost(shk.h) */
-enum unpaid_cost_flags {
-    COST_NOCONTENTS = 0,
-    COST_CONTENTS   = 1,
-    COST_SINGLEOBJ  = 2,
-};
+/* [cost_alteration_types and unpaid_cost_flags moved to nh_shop.h] */
 
 /* read.c, create_particular() & create_particular_parse() */
 struct _create_particular_data {
@@ -579,10 +541,7 @@ enum polyself_flags {
     POLY_LOW_CTRL   = 0x08
 };
 
-struct repo { /* repossession context */
-    struct monst *shopkeeper;
-    coord location;
-};
+/* [struct repo moved to nh_shop.h] */
 
 struct restore_info {
     const char *name;
