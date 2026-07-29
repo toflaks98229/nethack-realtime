@@ -1530,18 +1530,26 @@ mswin_nh_poskey(coordxy *x, coordxy *y, int *mod)
     /* real-time only at the command prompt; menus/getpos/prompts still
        block normally (they don't set input_state to commandInp) */
     if (program_state.input_state == commandInp) {
+        PMSNHEvent e;
+
         mswin_rt_wait_for_tick(); /* pace to the shared world clock */
         if (!mswin_have_input()) {
             /* tick arrived with nothing buffered: hero waits this turn */
             *x = u.ux, *y = u.uy, *mod = 0;
             return RT_REST_KEY;
         }
-        /* else: a buffered event is waiting; fall through to pop it */
-    }
+        /* Keep only the most recent buffered event and drop the rest, so a
+           backlog of keystrokes made during an animation can't accumulate
+           and then replay ("pre-input"): the hero acts on live intent. */
+        event = NULL;
+        while ((e = mswin_input_pop()) != NULL)
+            event = e;
+    } else
 #endif
-
-    while ((event = mswin_input_pop()) == NULL)
-        mswin_main_loop();
+    {
+        while ((event = mswin_input_pop()) == NULL)
+            mswin_main_loop();
+    }
 
     if (event->type == NHEVENT_MOUSE) {
         if (iflags.wc_mouse_support) {

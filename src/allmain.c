@@ -221,13 +221,26 @@ staticfn boolean
 rt_poll_input_timed(void)
 {
 #if defined(MICRO) || defined(WIN32CON)
-    while (kbhit())
-        cmdq_add_key(CQ_CANNED, pgetchar());
+    char last = 0;
+    boolean got = FALSE;
 
+    /* Collect keystrokes but keep only the most recent one, so a backlog can't
+       accumulate during the wait and then replay ("pre-input"): each tick acts
+       on the player's live intent rather than a stale queue. */
+    while (kbhit()) {
+        last = pgetchar();
+        got = TRUE;
+    }
     while (!rt_world_tick_ready()) {
         Delay(RT_POLL_MS);
-        while (kbhit())
-            cmdq_add_key(CQ_CANNED, pgetchar());
+        while (kbhit()) {
+            last = pgetchar();
+            got = TRUE;
+        }
+    }
+    if (got) {
+        cmdq_add_key(CQ_CANNED, last);
+        return TRUE;
     }
     return cmdq_peek(CQ_CANNED) ? TRUE : FALSE;
 #else
