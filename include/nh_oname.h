@@ -39,6 +39,34 @@
 #ifndef NH_ONAME_H
 #define NH_ONAME_H
 
+/**
+ * @brief Where an artifact came from, carried through naming and queried later.
+ *
+ * Provenance is not bookkeeping: an artifact that was wished for, granted for
+ * an offering, or drawn from a fountain is treated differently afterwards, and
+ * some origins are announced to other players in the live log.
+ *
+ * @warning Bit 0x0001U is reserved for the 'exists' query and is deliberately
+ *          absent here; do not reuse it.
+ * @note @c ONAME_BONES marks an artifact that arrived from a bones file, whose
+ *       original provenance is neither known nor relevant.
+ * @note @c ONAME_SKIP_INVUPD is not about origin at all -- it suppresses the
+ *       inventory redraw that naming would otherwise trigger.
+ */
+/**
+ * @brief 아티팩트의 유래. 명명 과정을 통해 전달되고 이후 조회된다.
+ *
+ * 유래는 단순한 기록이 아니다. 소원으로 얻었는지, 봉헌의 대가로 받았는지,
+ * 분수에서 끌어냈는지에 따라 이후의 처리가 달라지며, 일부 유래는 라이브 로그로
+ * 다른 플레이어에게 알려진다.
+ *
+ * @warning 0x0001U 비트는 'exists' 질의용으로 예약되어 여기에 의도적으로 없다.
+ *          재사용하지 말 것.
+ * @note @c ONAME_BONES 는 본즈 파일에서 넘어온 아티팩트를 표시한다. 원래 유래는
+ *       알 수도 없고 중요하지도 않다.
+ * @note @c ONAME_SKIP_INVUPD 는 유래와 무관하다. 명명이 유발할 소지품 화면 갱신을
+ *       억제한다.
+ */
 /* Flags for oname(), artifact_exists(), artifact_origin() */
 #define ONAME_NO_FLAGS   0U /* none of the below; they apply to artifacts */
 /*                       0x0001U is reserved for 'exists' */

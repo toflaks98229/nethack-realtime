@@ -43,6 +43,31 @@
 #ifndef NH_CORPSTAT_H
 #define NH_CORPSTAT_H
 
+/**
+ * @brief What a corpse or statue should remember about its origin.
+ *
+ * A corpse can later be revived, eaten, or named, and a statue can be broken
+ * open or identified as historic, so the remains must carry enough of the
+ * original creature to answer those questions.
+ *
+ * @warning Bits 0..7 are stored in @c obj->spe, a field that carries different
+ *          meanings for other object types. Values must stay within
+ *          @c CORPSTAT_SPE_VAL.
+ * @note @c CORPSTAT_INIT and @c CORPSTAT_BURIED are instructions to the
+ *       creating routine, not properties recorded on the object.
+ */
+/**
+ * @brief 시체나 조각상이 자신의 유래에 관해 기억해야 할 것.
+ *
+ * 시체는 나중에 되살아나거나, 먹히거나, 이름이 붙을 수 있고, 조각상은 깨지거나
+ * 역사적인 것으로 식별될 수 있다. 따라서 그 잔해는 원래 생물에 대한 정보를 그런
+ * 질문에 답할 만큼 지니고 있어야 한다.
+ *
+ * @warning 0..7 비트는 @c obj->spe 에 저장된다. 이 필드는 다른 물건 종류에서는
+ *          다른 의미를 지니므로, 값은 @c CORPSTAT_SPE_VAL 범위를 벗어나면 안 된다.
+ * @note @c CORPSTAT_INIT 과 @c CORPSTAT_BURIED 는 생성 루틴에 대한 지시이며,
+ *       물건에 기록되는 속성이 아니다.
+ */
 /* flags for make_corpse() and mkcorpstat(); 0..7 are recorded in obj->spe */
 #define CORPSTAT_NONE     0x00
 #define CORPSTAT_GENDER   0x03 /* 0x01 | 0x02 */

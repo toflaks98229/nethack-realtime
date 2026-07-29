@@ -36,6 +36,33 @@
 #ifndef NH_DGNTOPO_H
 #define NH_DGNTOPO_H
 
+/**
+ * @brief Resolved locations of every level and branch the code names directly.
+ *
+ * The dungeon is generated, so the depth of the Oracle or the Castle is not
+ * known until play begins. Once resolved, those answers are cached here, since
+ * the game asks "is this level X?" constantly and searching the dungeon
+ * description each time would be wasteful.
+ *
+ * @note Some members are retained but unused (@c d_bigroom_level,
+ *       @c d_baalzebub_level, @c d_asmodeus_level); they are kept so the
+ *       structure's layout does not shift.
+ * @warning Filled in during dungeon initialization. Reading these before that
+ *          yields zeroes, which name a valid-looking but wrong level.
+ */
+/**
+ * @brief 코드가 이름으로 직접 참조하는 모든 레벨과 분기의 해석된 위치.
+ *
+ * 던전은 생성되는 것이므로 신탁이나 성이 몇 층인지는 플레이가 시작되어야 알 수
+ * 있다. 한 번 확정된 뒤에는 그 답을 여기에 캐시한다. 게임이 "이 레벨이 X인가?"를
+ * 끊임없이 묻는데, 매번 던전 서술을 뒤지는 것은 낭비이기 때문이다.
+ *
+ * @note 일부 멤버는 남아 있으나 사용되지 않는다(@c d_bigroom_level,
+ *       @c d_baalzebub_level, @c d_asmodeus_level). 구조체 배치가 어긋나지
+ *       않도록 유지한다.
+ * @warning 던전 초기화 중에 채워진다. 그 전에 읽으면 0이 나오는데, 이는 유효해
+ *          보이지만 잘못된 레벨을 지칭한다.
+ */
 struct dgn_topology { /* special dungeon levels for speed */
     d_level d_oracle_level;
     d_level d_bigroom_level; /* unused */
@@ -67,6 +94,26 @@ struct dgn_topology { /* special dungeon levels for speed */
     d_level d_sokoend_level;
 };
 
+/**
+ * @brief Short names for the cached levels and branch numbers.
+ *
+ * These read like plain globals at the call site, which is why the surrounding
+ * code can say @c Is_astralevel(&u.uz) or compare against @c medusa_level
+ * without mentioning where the value is stored.
+ *
+ * @note Each expands to an lvalue inside @c svd.dungeon_topology, so they are
+ *       assignable; dungeon initialization sets them through these names.
+ */
+/**
+ * @brief 캐시된 레벨과 분기 번호에 대한 짧은 이름들.
+ *
+ * 호출 지점에서는 평범한 전역처럼 읽힌다. 그래서 주변 코드가 값이 어디에
+ * 저장되는지 언급하지 않고도 @c Is_astralevel(&u.uz) 라고 쓰거나
+ * @c medusa_level 과 비교할 수 있다.
+ *
+ * @note 각각 @c svd.dungeon_topology 내부의 좌변값으로 확장되므로 대입이
+ *       가능하다. 던전 초기화도 이 이름들을 통해 값을 설정한다.
+ */
 /* macros for accessing the dungeon levels by their old names */
 /* clang-format off */
 #define oracle_level            (svd.dungeon_topology.d_oracle_level)
@@ -102,7 +149,22 @@ struct dgn_topology { /* special dungeon levels for speed */
 #define sokoend_level           (svd.dungeon_topology.d_sokoend_level)
 /* clang-format on */
 
+/**
+ * @brief Report the deepest level the hero has reached in a dungeon branch.
+ * @param x Pointer to a @c d_level naming the branch of interest.
+ * @return The deepest level number reached within that branch.
+ * @note An lvalue, so it is also how that high-water mark gets updated.
+ */
+/**
+ * @brief 영웅이 해당 던전 분기에서 도달한 가장 깊은 레벨을 반환한다.
+ * @param x 대상 분기를 지칭하는 @c d_level 포인터.
+ * @return 그 분기 안에서 도달한 가장 깊은 레벨 번호.
+ * @note 좌변값이므로, 이 최고 기록을 갱신하는 수단이기도 하다.
+ */
 #define dunlev_reached(x) (svd.dungeons[(x)->dnum].dunlev_ureached)
+
+/** @brief Upper bound on level-information entries across the whole dungeon. */
+/** @brief 던전 전체에 걸친 레벨 정보 항목 수의 상한. */
 #define MAXLINFO (MAXDUNGEON * MAXLEVEL)
 
 #endif /* NH_DGNTOPO_H */

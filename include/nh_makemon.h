@@ -41,9 +41,47 @@
 #ifndef NH_MAKEMON_H
 #define NH_MAKEMON_H
 
+/**
+ * @brief The word carrying both the @c MM_ and @c GP_ flags.
+ * @note Fixed width, because the flags reach past the range a plain @c int is
+ *       guaranteed to hold.
+ */
+/**
+ * @brief @c MM_ 와 @c GP_ 플래그를 함께 담는 워드.
+ * @note 플래그가 평범한 @c int 가 보장하는 범위를 넘어서므로 고정 너비를 쓴다.
+ */
 typedef uint32_t mmflags_nht;     /* makemon MM_ flags */
 
 
+/**
+ * @brief How to build a new monster, and where it may be placed.
+ *
+ * The @c MM_ bits answer questions @c makemon() would otherwise have to guess:
+ * should this monster get its usual inventory, a particular sex, an extension
+ * structure for a shopkeeper or priest, and should its arrival be announced.
+ * The @c GP_ bits answer a different question for @c goodpos() -- which squares
+ * count as acceptable -- and share the same word so one argument carries both.
+ *
+ * @warning The two groups are consecutive bits in a single word (25 bits used).
+ *          Adding an @c MM_ flag requires renumbering the @c GP_ flags above it.
+ * @note Several bits request an extension structure (@c MM_EGD, @c MM_EPRI,
+ *       @c MM_ESHK, @c MM_EMIN, @c MM_EDOG); a monster that needs one and is
+ *       created without it will lack the state its role depends on.
+ */
+/**
+ * @brief 새 몬스터를 어떻게 만들지, 그리고 어디에 놓을 수 있는지.
+ *
+ * @c MM_ 비트는 @c makemon() 이 아니면 추측해야 할 것들에 답한다. 평소의 소지품을
+ * 줄지, 특정 성별로 할지, 상점 주인이나 사제를 위한 확장 구조체를 붙일지, 등장을
+ * 알릴지 등이다. @c GP_ 비트는 @c goodpos() 에 대한 다른 질문 -- 어떤 칸을
+ * 허용할 것인지 -- 에 답하며, 인자 하나로 둘 다 전달하도록 같은 워드를 공유한다.
+ *
+ * @warning 두 무리는 한 워드 안의 연속된 비트다(25비트 사용). @c MM_ 플래그를
+ *          추가하려면 그 위의 @c GP_ 플래그들을 다시 번호 매겨야 한다.
+ * @note 여러 비트가 확장 구조체를 요청한다(@c MM_EGD, @c MM_EPRI, @c MM_ESHK,
+ *       @c MM_EMIN, @c MM_EDOG). 그것이 필요한 몬스터를 그 비트 없이 만들면 자기
+ *       역할이 의존하는 상태를 갖지 못한다.
+ */
 /* flags to control makemon(); goodpos() uses some plus has some of its own*/
 #define NO_MM_FLAGS     0x00000000L /* use this rather than plain 0 */
 #define NO_MINVENT      0x00000001L /* suppress minvent when creating mon */

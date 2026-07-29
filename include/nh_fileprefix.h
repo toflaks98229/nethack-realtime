@@ -46,6 +46,28 @@
  * provides all the subclasses that seem reasonable, and sets up for all
  * prefixes being null.  Port code can set those that it wants.
  */
+/**
+ * @brief The kinds of file NetHack opens, each of which a port may relocate.
+ *
+ * The comments record what each class expects of its directory -- shared
+ * between players or private to one, read-only or writable -- and a port that
+ * redirects a prefix has to honor that. Scores and bones must be reachable by
+ * every player; saves and level files must not be.
+ *
+ * @warning @c DATAPREFIX must match the corresponding value in @c dlb.c, which
+ *          resolves data-file names independently.
+ */
+/**
+ * @brief NetHack 이 여는 파일의 종류들이며, 포팅 코드가 각각의 위치를 바꿀 수 있다.
+ *
+ * 주석은 각 분류가 자신의 디렉토리에 기대하는 바 -- 플레이어 간 공유인지 한 명의
+ * 전용인지, 읽기 전용인지 쓰기 가능한지 -- 를 기록하며, 접두사를 바꾸는 포팅
+ * 코드는 이를 지켜야 한다. 점수와 본즈는 모든 플레이어가 접근할 수 있어야 하고,
+ * 저장 파일과 레벨 파일은 그래서는 안 된다.
+ *
+ * @warning @c DATAPREFIX 는 데이터 파일 이름을 독자적으로 해석하는 @c dlb.c 의
+ *          대응 값과 일치해야 한다.
+ */
 #define HACKPREFIX      0  /* shared, RO */
 #define LEVELPREFIX     1  /* per-user, RW */
 #define SAVEPREFIX      2  /* per-user, RW */

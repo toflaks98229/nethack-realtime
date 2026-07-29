@@ -35,6 +35,34 @@
 #ifndef NH_TRAPFLAGS_H
 #define NH_TRAPFLAGS_H
 
+/**
+ * @brief The circumstances of a trap being triggered.
+ *
+ * Whether a trap fires at all, how severely, and what the player is told
+ * depend on how the victim arrived. Climbing deliberately into a pit, being
+ * flung into one, and setting a trap off by failing to disarm it are the same
+ * trap and three different events.
+ *
+ * @note @c FORCETRAP removes the usual chance of avoiding the trap; the
+ *       trigger is no longer a roll.
+ * @warning @c RECURSIVETRAP marks a trap that has already changed into another
+ *          type during this turn. Treating it as a fresh trigger risks a chain
+ *          of activations within a single move.
+ */
+/**
+ * @brief 함정이 발동되는 상황.
+ *
+ * 함정이 애초에 작동하는지, 얼마나 심하게 작동하는지, 플레이어에게 무엇을
+ * 알리는지는 피해자가 어떻게 도달했는지에 달려 있다. 스스로 구덩이로 내려가는
+ * 것과, 던져져 빠지는 것과, 해제에 실패해 발동시키는 것은 같은 함정이면서 서로
+ * 다른 세 사건이다.
+ *
+ * @note @c FORCETRAP 은 함정을 피할 통상적인 확률을 없앤다. 발동이 더 이상
+ *       주사위 굴림이 아니게 된다.
+ * @warning @c RECURSIVETRAP 은 이번 턴에 이미 다른 종류로 바뀐 함정을 표시한다.
+ *          이를 새로운 발동으로 취급하면 한 번의 이동 안에서 연쇄 발동이 일어날
+ *          수 있다.
+ */
 /* Flags to control dotrap() and mintrap() in trap.c */
 #define NO_TRAP_FLAGS 0x00U
 #define FORCETRAP     0x01U /* triggering not left to chance */

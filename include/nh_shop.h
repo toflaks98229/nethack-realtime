@@ -43,11 +43,36 @@
 #ifndef NH_SHOP_H
 #define NH_SHOP_H
 
+/**
+ * @brief How a shopkeeper should treat an object being put down.
+ *
+ * Dropping something in a shop is ambiguous: it may be an offer to sell, an
+ * accident, or the hero merely setting something down. These states let the
+ * caller say which, so the shopkeeper does not buy what was not offered.
+ */
+/**
+ * @brief 상점 주인이 내려놓는 물건을 어떻게 다뤄야 하는지.
+ *
+ * 상점 안에 물건을 내려놓는 행위는 뜻이 모호하다. 팔겠다는 제안일 수도, 실수일
+ * 수도, 그저 잠시 내려놓는 것일 수도 있다. 이 상태들이 그중 무엇인지 호출자가
+ * 밝히게 하여, 제안하지 않은 물건을 주인이 사들이지 않도록 한다.
+ */
 /* sellobj_state() states */
 #define SELL_NORMAL (0)
 #define SELL_DELIBERATE (1)
 #define SELL_DONTSELL (2)
 
+/**
+ * @brief Price list for damage done to a shop's structure.
+ * @note @c SHOP_WALL_DMG is not a constant: it scales with the hero's current
+ *       strength and is evaluated where it is used, so a stronger hero does
+ *       more expensive damage.
+ */
+/**
+ * @brief 상점 구조물에 입힌 손상에 대한 가격표.
+ * @note @c SHOP_WALL_DMG 는 상수가 아니다. 영웅의 현재 힘에 비례하며 사용
+ *       시점에 평가되므로, 힘이 셀수록 더 비싼 손상을 입힌다.
+ */
 #define SHOP_DOOR_COST 400L /* cost of a destroyed shop door */
 #define SHOP_BARS_COST 300L /* cost of iron bars */
 #define SHOP_HOLE_COST 200L /* cost of making hole/trapdoor */
@@ -56,6 +81,28 @@
 #define SHOP_PIT_COST  100L /* cost of making a pit */
 #define SHOP_WEB_COST   30L /* cost of removing a web */
 
+/**
+ * @brief Ways an object can lose value while the shop still owns it.
+ *
+ * A shopkeeper charges for harm done to unpaid goods, not only for taking
+ * them. Cancelling a wand, diluting a potion, blanking a scroll, or biting
+ * into food all leave the object less saleable, and each is billed.
+ *
+ * @warning Must stay in step with @c costly_alteration() in @c mkobj.c: the
+ *          enumeration is the index into that function's parallel handling, so
+ *          inserting a value silently shifts the rest.
+ */
+/**
+ * @brief 상점이 아직 소유한 물건이 가치를 잃는 경우들.
+ *
+ * 상점 주인은 물건을 가져가는 것뿐 아니라 미지불 상품에 입힌 손해에도 값을
+ * 매긴다. 지팡이를 무효화하거나, 물약을 희석하거나, 두루마리를 지우거나, 음식을
+ * 베어 무는 일은 모두 물건을 덜 팔리게 만들며 각각 청구된다.
+ *
+ * @warning @c mkobj.c 의 @c costly_alteration() 과 항상 일치해야 한다. 이 열거가
+ *          해당 함수의 대응 처리에 대한 색인이므로, 값을 중간에 끼워 넣으면
+ *          나머지가 조용히 밀린다.
+ */
 /* alteration types--keep in synch with costly_alteration(mkobj.c) */
 enum cost_alteration_types {
     COST_CANCEL  =  0, /* standard cancellation */
@@ -80,6 +127,18 @@ enum cost_alteration_types {
     COST_CRACK   = 19, /* damage to crystal armor */
 };
 
+/**
+ * @brief Whether an unpaid total should include what is inside a container.
+ *
+ * A bag carried out of a shop may itself be paid for while its contents are
+ * not, so the caller must say which it is asking about.
+ */
+/**
+ * @brief 미지불 총액에 용기 안의 내용물을 포함할지 여부.
+ *
+ * 상점에서 들고 나가는 가방은 그 자체는 지불되었어도 내용물은 아닐 수 있으므로,
+ * 호출자가 무엇을 묻는지 밝혀야 한다.
+ */
 /* used by unpaid_cost(shk.h) */
 enum unpaid_cost_flags {
     COST_NOCONTENTS = 0,
@@ -87,6 +146,15 @@ enum unpaid_cost_flags {
     COST_SINGLEOBJ  = 2,
 };
 
+/**
+ * @brief Who is repossessing goods, and where it is happening.
+ * @note Records the shopkeeper and the spot so the reclaim can be carried out
+ *       and described after the fact.
+ */
+/**
+ * @brief 누가 물건을 회수하는지, 그리고 어디에서 벌어지는지.
+ * @note 회수를 수행하고 사후에 서술할 수 있도록 상점 주인과 장소를 기록한다.
+ */
 struct repo { /* repossession context */
     struct monst *shopkeeper;
     coord location;

@@ -40,12 +40,47 @@
 #ifndef NH_MONNAM_H
 #define NH_MONNAM_H
 
+/**
+ * @brief Which article, if any, should precede a monster's name.
+ * @note @c ARTICLE_YOUR is what distinguishes a pet in prose; it is chosen
+ *       from the monster's tameness, not requested arbitrarily.
+ */
+/**
+ * @brief 몬스터 이름 앞에 어떤 관사를 붙일지(붙이지 않을지).
+ * @note @c ARTICLE_YOUR 는 글에서 애완동물을 구별해 준다. 임의로 요청하는 것이
+ *       아니라 몬스터의 길들여진 정도에서 결정된다.
+ */
 /* Monster name articles */
 #define ARTICLE_NONE 0
 #define ARTICLE_THE 1
 #define ARTICLE_A 2
 #define ARTICLE_YOUR 3
 
+/**
+ * @brief Details to leave out of a monster's description.
+ *
+ * What the hero may fairly be told varies: an unseen monster should not be
+ * named, hallucination replaces the name outright, and a mimic's disguise must
+ * not be given away. Each bit removes one such qualifier.
+ *
+ * @note @c EXACT_NAME is the union of the individual suppress bits rather than
+ *       a flag of its own; it asks for the plain, unqualified name.
+ * @note @c AUGMENT_IT substitutes "someone" or "something" for a bare "it",
+ *       which reads better when the hero knows a creature is present but not
+ *       what it is.
+ */
+/**
+ * @brief 몬스터 설명에서 빼야 할 세부 정보.
+ *
+ * 영웅에게 알려 주어도 되는 범위는 상황마다 다르다. 보이지 않는 몬스터의 이름을
+ * 밝혀서는 안 되고, 환각은 이름 자체를 바꿔치우며, 의태 중인 몬스터의 위장을
+ * 누설해서도 안 된다. 각 비트가 그런 수식을 하나씩 제거한다.
+ *
+ * @note @c EXACT_NAME 은 자체 플래그가 아니라 개별 억제 비트들의 합집합이며,
+ *       수식 없는 순수한 이름을 요청한다.
+ * @note @c AUGMENT_IT 은 밋밋한 "그것" 대신 "누군가" 또는 "무언가"를 넣는다.
+ *       영웅이 무언가 있다는 것은 알지만 정체는 모를 때 더 자연스럽게 읽힌다.
+ */
 /* x_monnam() monster name suppress masks */
 #define SUPPRESS_IT            0x01
 #define SUPPRESS_INVISIBLE     0x02

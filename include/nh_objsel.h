@@ -41,9 +41,38 @@
 #ifndef NH_OBJSEL_H
 #define NH_OBJSEL_H
 
+/** @brief The called routine already completed the work, so stop iterating. */
+/** @brief 호출된 루틴이 이미 작업을 끝냈으므로 반복을 멈추라는 표시. */
 /* flags for special ggetobj status returns */
 #define ALL_FINISHED 0x01 /* called routine already finished the job */
 
+/**
+ * @brief Which objects to offer, how to label them, and what an empty or
+ *        cancelled selection means.
+ *
+ * These decide both the contents of the menu and how its outcome is reported,
+ * since a caller often needs to tell "nothing was eligible" apart from "the
+ * player declined".
+ *
+ * @note @c BY_NEXTHERE walks the pile at a map square rather than an
+ *       inventory chain; the two use different link fields.
+ * @warning @c FEEL_COCKATRICE is not presentational. Listing such an object can
+ *          amount to touching it, and this flag engages the petrification
+ *          checks that go with that.
+ */
+/**
+ * @brief 어떤 물건을 제시할지, 어떻게 표시할지, 그리고 아무것도 없거나 취소된
+ *        선택이 무엇을 뜻하는지.
+ *
+ * 메뉴의 내용과 결과 보고 방식을 함께 정한다. 호출자는 흔히 "해당하는 물건이
+ * 없었다"와 "플레이어가 거절했다"를 구분해야 하기 때문이다.
+ *
+ * @note @c BY_NEXTHERE 는 소지품 사슬이 아니라 맵 칸에 쌓인 더미를 순회한다.
+ *       둘은 서로 다른 연결 필드를 쓴다.
+ * @warning @c FEEL_COCKATRICE 는 표시상의 문제가 아니다. 그런 물건을 목록에
+ *          올리는 것이 접촉에 해당할 수 있으며, 이 플래그가 그에 따르는 석화
+ *          검사를 활성화한다.
+ */
 /* flags to control query_objlist() */
 #define BY_NEXTHERE       0x0001 /* follow objlist by nexthere field */
 #define INCLUDE_VENOM     0x0002 /* include venom objects if present */
@@ -55,6 +84,31 @@
 #define FEEL_COCKATRICE   0x0080 /* engage cockatrice checks and react */
 #define INCLUDE_HERO      0x0100 /* show hero among engulfer's inventory */
 
+/**
+ * @brief Which groupings to offer when the player picks by category.
+ *
+ * Categories are not only object classes: unpaid, worn, and blessed/cursed
+ * status are equally useful ways to say "all of those", which is what makes
+ * bulk operations practical.
+ *
+ * @warning Shares a flag word with @c query_objlist(). @c BY_NEXTHERE and
+ *          @c INCLUDE_VENOM keep their meaning here, which is why these values
+ *          begin at 0x0004.
+ * @note @c BUC_ALLBKNOWN and @c BUCX_TYPES are unions of the individual
+ *       blessed/cursed bits, not additional categories.
+ */
+/**
+ * @brief 플레이어가 분류 단위로 고를 때 어떤 묶음을 제시할지.
+ *
+ * 분류는 물건의 종류만이 아니다. 미지불, 착용 중, 축복/저주 상태 역시 "그것들
+ * 전부"를 뜻하는 유용한 기준이며, 그 덕분에 일괄 작업이 실용적이 된다.
+ *
+ * @warning @c query_objlist() 와 플래그 워드를 공유한다. @c BY_NEXTHERE 와
+ *          @c INCLUDE_VENOM 이 여기서도 같은 의미를 유지하므로, 이 값들은
+ *          0x0004 부터 시작한다.
+ * @note @c BUC_ALLBKNOWN 과 @c BUCX_TYPES 는 개별 축복/저주 비트들의 합집합이며,
+ *       추가적인 분류가 아니다.
+ */
 /* Flags to control query_category() */
 /* BY_NEXTHERE and INCLUDE_VENOM are used by query_category() too, so
    skip 0x0001 and 0x0002 */
@@ -73,6 +127,21 @@
 #define BUCX_TYPES (BUC_ALLBKNOWN | BUC_UNKNOWN)
 #define ALL_TYPES_SELECTED -2
 
+/**
+ * @brief What order to list objects in, and what to bring to the front.
+ * @note @c SORTLOOT_INUSE floats worn, wielded, and lit items to the top,
+ *       which is usually what the player is looking for in a long inventory.
+ * @warning @c SORTLOOT_PETRIFY overrides the caller's filter so that
+ *          cockatrice corpses are still listed; it exists for safety, not
+ *          convenience.
+ */
+/**
+ * @brief 물건을 어떤 순서로 나열할지, 그리고 무엇을 앞으로 끌어올릴지.
+ * @note @c SORTLOOT_INUSE 는 착용 중이거나 들고 있거나 불이 붙은 물건을 위로
+ *       올린다. 소지품이 길 때 플레이어가 대개 찾는 것이 그것이기 때문이다.
+ * @warning @c SORTLOOT_PETRIFY 는 호출자의 필터를 무시하고 코카트리스 시체를
+ *          목록에 남긴다. 편의가 아니라 안전을 위한 것이다.
+ */
 /* control flags for sortloot() */
 #define SORTLOOT_PACK   0x01
 #define SORTLOOT_INVLET 0x02

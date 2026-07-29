@@ -45,6 +45,35 @@
 #define NH_PROGSTATE_H
 
 /* structure for 'program_state'; not saved and restored */
+
+/**
+ * @brief What the process is doing at this instant.
+ *
+ * Most members are re-entrancy guards. Saving, restoring, level building, and
+ * error reporting are all reachable from many directions, and several of them
+ * can be provoked *by* the code they would run; the flags let such a path
+ * detect that it is already inside one of these phases and step aside.
+ *
+ * @note Not saved or restored -- this describes the running program, not the
+ *       game being played.
+ * @warning During teardown (@c panicking, @c exiting, @c gameover) the game
+ *          state may be partially destroyed; code that can run then must check
+ *          rather than assume a consistent world.
+ */
+/**
+ * @brief 이 순간 프로세스가 하고 있는 일.
+ *
+ * 대부분의 멤버는 재진입 방지 장치다. 저장, 복원, 레벨 생성, 오류 보고는 모두
+ * 여러 경로에서 도달할 수 있고, 그중 일부는 자신이 실행할 코드 *때문에*
+ * 유발되기도 한다. 이 플래그들은 그런 경로가 이미 해당 단계 안에 있음을 알아채고
+ * 물러날 수 있게 한다.
+ *
+ * @note 저장·복원되지 않는다. 진행 중인 게임이 아니라 실행 중인 프로그램을
+ *       서술한다.
+ * @warning 종료 처리 중(@c panicking, @c exiting, @c gameover)에는 게임 상태가
+ *          일부 파괴되어 있을 수 있다. 그때 실행될 수 있는 코드는 일관된 세계를
+ *          가정하지 말고 확인해야 한다.
+ */
 struct sinfo {
     int gameover;               /* self-explanatory? */
     int stopprint;              /* inhibit further end of game disclosure */
@@ -94,6 +123,25 @@ struct sinfo {
 };
 
 /* structure for current 'level_status'; not saved and restored */
+
+/**
+ * @brief How far along the current level's construction has got.
+ *
+ * A level passes through generation, loading, and shop setup before it is fit
+ * to play. Code that can be reached during those phases -- monster placement,
+ * display updates -- uses these to tell a half-built level from a live one.
+ *
+ * @note Not saved or restored; rebuilt as each level is entered.
+ */
+/**
+ * @brief 현재 레벨의 구축이 어디까지 진행되었는지.
+ *
+ * 레벨은 생성, 적재, 상점 설정을 거쳐야 플레이 가능한 상태가 된다. 그 단계
+ * 중에 도달할 수 있는 코드 -- 몬스터 배치, 화면 갱신 -- 는 이 값들로 절반만
+ * 지어진 레벨과 정상 동작 중인 레벨을 구분한다.
+ *
+ * @note 저장·복원되지 않으며, 레벨에 들어갈 때마다 다시 설정된다.
+ */
 struct levelstatus {
     int making;                 /* makelevel has begun */
     int loading;                /* level loading has begun */
@@ -103,6 +151,29 @@ struct levelstatus {
 
 /* value of program_state.input_state, significant during readchar();
    get_count() expects digits then a command so sets it to commandInp */
+
+/**
+ * @brief What the next keystroke will be interpreted as.
+ *
+ * Interfaces need this because the same physical key must mean different
+ * things in different contexts: the curses port suppresses arrow keys unless a
+ * command or direction is expected, Qt suppresses menu accelerators similarly,
+ * and the core uses it to decide how to treat ESC under the @c altmeta option.
+ *
+ * @warning @c readchar() resets this to @c otherInp before returning, so it is
+ *          only meaningful for the keystroke currently being read.
+ */
+/**
+ * @brief 다음 키 입력이 무엇으로 해석될지.
+ *
+ * 인터페이스가 이 값을 필요로 하는 이유는 같은 물리 키가 맥락에 따라 다른 것을
+ * 뜻해야 하기 때문이다. curses 포트는 명령이나 방향을 기대하는 때가 아니면
+ * 화살표 키를 억제하고, Qt 도 메뉴 단축키를 비슷하게 억제하며, 코어는
+ * @c altmeta 옵션에서 ESC 를 어떻게 다룰지 결정하는 데 쓴다.
+ *
+ * @warning @c readchar() 는 반환 직전 이 값을 @c otherInp 로 되돌린다. 따라서
+ *          지금 읽고 있는 키 입력에 대해서만 의미가 있다.
+ */
 enum InputState {
     otherInp   = 0, /* 'other' */
     commandInp = 1, /* readchar() */
