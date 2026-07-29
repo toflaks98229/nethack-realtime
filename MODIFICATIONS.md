@@ -67,16 +67,28 @@ nothing is moving the render is pixel-identical to stock:
   already handling. The back buffer is never modified, so when the glide ends
   the static hero simply reappears with no gap.
 
-Independent monster motion is not yet interpolated (monsters still step
-cell-to-cell); per-entity monster sprite interpolation, which needs a
-core-side motion source, is possible future work.
+- **Monster glide.** The renderer draws from a grid of glyphs and has no entity
+  identity, so it cannot tell that the monster now in one square is the one that
+  was next door a moment ago. `place_monster()` does know — the monster's
+  previous coordinates are still in `mtmp->mx/my` when it is called — so it
+  reports single-step moves to a set of motion records keyed by *destination
+  square*. The renderer then asks each visible square whether its occupant just
+  arrived and from where, a question it can pose without identifying anyone, and
+  draws the sprite partway back toward its origin.
+
+  Only squares where the map is actually showing a monster are animated, so this
+  cannot reveal a monster the player is not entitled to see. Teleports and level
+  placement are ignored, because only adjacent steps are recorded. The core side
+  is recording only and affects no gameplay logic.
 
 ### Known limitations (prototype)
 - Commands that need follow-up input (e.g. `z` then a direction) still block on
   the follow-up keystroke.
 - During occupations/running, pacing falls back toward stock behavior.
-- Smoothing covers the camera pan and the hero's own movement; other monster
-  sprites still step grid-to-grid rather than sliding.
+- Smoothing is a rendering overlay, not real sub-tile position: entities occupy
+  whole squares as far as the game is concerned, and only their drawn position
+  is interpolated. A monster that is not being shown (unseen, or on terrain with
+  no remembered background to erase it with) is drawn stepping, not gliding.
 - **Input during animation is dropped, not queued.** Keystrokes made while a
   glide/pan plays used to accumulate and then replay in a burst ("pre-input").
   Each tick now keeps only the most recent buffered keystroke and discards the
