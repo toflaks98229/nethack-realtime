@@ -140,22 +140,9 @@ enum bodypart_types {
     STOMACH   = 18
 };
 
-#define MAX_BMASK 4
-
-struct bubble {
-    coordxy x, y;   /* coordinates of the upper left corner */
-    schar dx, dy; /* the general direction of the bubble's movement */
-    uchar bm[MAX_BMASK + 2];    /* bubble bit mask */
-    struct bubble *prev, *next; /* need to traverse the list up and down */
-    struct container *cons;
-};
-
-enum bubble_contains_types {
-    CONS_OBJ = 0,
-    CONS_MON,
-    CONS_HERO,
-    CONS_TRAP
-};
+/* drifting bubbles and their contents on the water/air levels
+   [struct container gathered here too; see nh_bubble.h] */
+#include "nh_bubble.h"
 
 /* command queue, special keys, and the command dispatch table */
 #include "nh_cmd.h"
@@ -174,12 +161,7 @@ struct c_common_strings {
         *const c_vision_clears, *const c_the_your[2], *const c_fakename[2];
 };
 
-struct container {
-    struct container *next;
-    coordxy x, y;
-    short what;
-    genericptr_t list;
-};
+/* [struct container moved to nh_bubble.h] */
 
 /* [cost_alteration_types and unpaid_cost_flags moved to nh_shop.h] */
 
@@ -434,39 +416,9 @@ struct menucoloring {
     struct menucoloring *next;
 };
 
-enum movemodes {
-    MV_ANY = -1,
-    MV_WALK,
-    MV_RUN,
-    MV_RUSH,
-
-    N_MOVEMODES
-};
-
-enum movementdirs {
-    DIR_ERR = -1,
-    DIR_W,
-    DIR_NW,
-    DIR_N,
-    DIR_NE,
-    DIR_E,
-    DIR_SE,
-    DIR_S,
-    DIR_SW,
-    DIR_DOWN,
-    DIR_UP,
-
-    N_DIRS_Z
-};
-/* N_DIRS_Z, minus up & down */
-#define N_DIRS (N_DIRS_Z - 2)
-/* direction adjustments */
-#define DIR_180(dir) (((dir) + 4) % N_DIRS)
-#define DIR_LEFT(dir) (((dir) + 7) % N_DIRS)
-#define DIR_RIGHT(dir) (((dir) + 1) % N_DIRS)
-#define DIR_LEFT2(dir) (((dir) + 6) % N_DIRS)
-#define DIR_RIGHT2(dir) (((dir) + 2) % N_DIRS)
-#define DIR_CLAMP(dir) (((dir) + N_DIRS) % N_DIRS)
+/* directions, movement styles, and move-attempt outcomes
+   [test_move and m_move values gathered here too; see nh_move.h] */
+#include "nh_move.h"
 
 struct multishot {
     int n, i;
@@ -518,19 +470,9 @@ enum nhcb_calls {
 
 #define NHUUIDSZ 37
 
-struct plinemsg_type {
-    xint16 msgtype;  /* one of MSGTYP_foo */
-    struct nhregex *regex;
-    char *pattern;
-    struct plinemsg_type *next;
-};
-
-#define MSGTYP_NORMAL   0
-#define MSGTYP_NOREP    1
-#define MSGTYP_NOSHOW   2
-#define MSGTYP_STOP     3
-/* bitmask for callers of hide_unhide_msgtypes() */
-#define MSGTYP_MASK_REP_SHOW ((1 << MSGTYP_NOREP) | (1 << MSGTYP_NOSHOW))
+/* message classification, single-argument wrappers, yes/no queries, and
+   custompline() flags [gathered from four places; see nh_msg.h] */
+#include "nh_msg.h"
 
 /* polyself flags */
 enum polyself_flags {
@@ -637,25 +579,9 @@ typedef struct {
     Str_or_Len rname;
 } lev_region;
 
-/* Flags for controlling uptodate */
-#define UTD_CHECKSIZES                 0x01
-#define UTD_CHECKFIELDCOUNTS           0x02
-#define UTD_SKIP_SANITY1               0x04
-#define UTD_SKIP_SAVEFILEINFO          0x08
-#define UTD_WITHOUT_WAITSYNCH_PERFILE  0x10
-#define UTD_QUIETLY                    0x20
-
-/* Values for savefile status */
-#define SF_UPTODATE                     0
-#define SF_OUTDATED                     1
-#define SF_CRITICAL_BYTE_COUNT_MISMATCH 2
-#define SF_DM_IL32LLP64_ON_ILP32LL64    3  /* Wind x64 savefile on x86     */
-#define SF_DM_I32LP64_ON_ILP32LL64      4  /* Unix 64 savefile on x86      */
-#define SF_DM_ILP32LL64_ON_I32LP64      5  /* x86 savefile on Unix 64      */
-#define SF_DM_ILP32LL64_ON_IL32LLP64    6  /* x86 savefile on Wind x64     */
-#define SF_DM_I32LP64_ON_IL32LLP64      7  /* Unix 64 savefile on Wind x64 */
-#define SF_DM_IL32LLP64_ON_I32LP64      8  /* Wind x64 savefile on Unix 64 */
-#define SF_DM_MISMATCH                  9  /* generic savefile byte mismatch */
+/* savefile compatibility flags, NHFILE handle, and serializer mode bits
+   [uptodate/status flags gathered here with the handle; see nh_savefile.h] */
+#include "nh_savefile.h"
 
 #define ENTITIES 2
 struct valuable_data {
@@ -699,20 +625,13 @@ struct xlock_s {
 
 #define MAX_BMASK 4
 
-/* NHFILE handle plus the mode bits shared by the serializers */
-#include "nh_savefile.h"
+/* [NHFILE handle and mode bits now included earlier, with the savefile
+   compatibility flags; see nh_savefile.h] */
 
 /* articles and suppress masks used when naming a monster */
 #include "nh_monnam.h"
 
-/* pline (et al) for a single string argument (suppress compiler warning) */
-#define pline1(cstr) pline("%s", cstr)
-#define Your1(cstr) Your("%s", cstr)
-#define You1(cstr) You("%s", cstr)
-#define verbalize1(cstr) verbalize("%s", cstr)
-#define You_hear1(cstr) You_hear("%s", cstr)
-#define Sprintf1(buf, cstr) Sprintf(buf, "%s", cstr)
-#define panic1(cstr) panic("%s", cstr)
+/* [single-argument pline wrappers moved to nh_msg.h] */
 
 /* directory classes used to locate data and state files */
 #include "nh_fileprefix.h"
@@ -850,59 +769,12 @@ struct xlock_s {
 #define Maybe_Half_Phys(dmg) \
     ((Half_physical_damage) ? (((dmg) + 1) / 2) : (dmg))
 
-/* flags for special ggetobj status returns */
-#define ALL_FINISHED 0x01 /* called routine already finished the job */
+/* object-selection menus: what to offer, by category, and in what order
+   [sortloot flags gathered here too; see nh_objsel.h] */
+#include "nh_objsel.h"
 
-/* flags to control query_objlist() */
-#define BY_NEXTHERE       0x0001 /* follow objlist by nexthere field */
-#define INCLUDE_VENOM     0x0002 /* include venom objects if present */
-#define AUTOSELECT_SINGLE 0x0004 /* if only 1 object, don't ask */
-#define USE_INVLET        0x0008 /* use object's invlet */
-#define INVORDER_SORT     0x0010 /* sort objects by packorder */
-#define SIGNAL_NOMENU     0x0020 /* return -1 rather than 0 if none allowed */
-#define SIGNAL_ESCAPE     0x0040 /* return -2 rather than 0 for ESC */
-#define FEEL_COCKATRICE   0x0080 /* engage cockatrice checks and react */
-#define INCLUDE_HERO      0x0100 /* show hero among engulfer's inventory */
-
-/* Flags to control query_category() */
-/* BY_NEXTHERE and INCLUDE_VENOM are used by query_category() too, so
-   skip 0x0001 and 0x0002 */
-#define UNPAID_TYPES      0x0004
-#define GOLD_TYPES        0x0008
-#define WORN_TYPES        0x0010
-#define ALL_TYPES         0x0020
-#define BILLED_TYPES      0x0040
-#define CHOOSE_ALL        0x0080
-#define BUC_BLESSED       0x0100
-#define BUC_CURSED        0x0200
-#define BUC_UNCURSED      0x0400
-#define BUC_UNKNOWN       0x0800
-#define JUSTPICKED        0x1000
-#define BUC_ALLBKNOWN (BUC_BLESSED | BUC_CURSED | BUC_UNCURSED)
-#define BUCX_TYPES (BUC_ALLBKNOWN | BUC_UNKNOWN)
-#define ALL_TYPES_SELECTED -2
-
-/* Flags for oname(), artifact_exists(), artifact_origin() */
-#define ONAME_NO_FLAGS   0U /* none of the below; they apply to artifacts */
-/*                       0x0001U is reserved for 'exists' */
-/* flags indicating where an artifact came from */
-#define ONAME_VIA_NAMING 0x0002U /* oname() is being called by do_oname();
-                                  * only matters if creating Sting|Orcrist */
-#define ONAME_WISH       0x0004U /* created via wish */
-#define ONAME_GIFT       0x0008U /* created as a divine reward after #offer or
-                                  * special #pray result of being crowned */
-#define ONAME_VIA_DIP    0x0010U /* created Excalibur in a fountain */
-#define ONAME_LEVEL_DEF  0x0020U /* placed by a special level's definition */
-#define ONAME_BONES      0x0040U /* object came from bones; in its original
-                                  * game it had one of the other bits but we
-                                  * don't care which one */
-#define ONAME_RANDOM     0x0080U /* something created an artifact randomly
-                                  * with mk_artifact() (mksboj or mk_player)
-                                  * or m_initweap() (lawful Angel) */
-/* flag controlling potential livelog event of finding an artifact */
-#define ONAME_KNOW_ARTI  0x0100U /* hero is already aware of this artifact */
-/* flag for suppressing perm_invent update when name gets assigned */
-#define ONAME_SKIP_INVUPD 0x0200U /* don't call update_inventory() */
+/* where an artifact came from, recorded when it is named */
+#include "nh_oname.h"
 
 /* Flags to control find_mid() and whereis_mon() */
 #define FM_FMON 0x01    /* search the fmon chain */
@@ -915,39 +787,12 @@ struct xlock_s {
 #define PICK_RANDOM 0
 #define PICK_RIGID 1
 
-/* Flags to control dotrap() and mintrap() in trap.c */
-#define NO_TRAP_FLAGS 0x00U
-#define FORCETRAP     0x01U /* triggering not left to chance */
-#define NOWEBMSG      0x02U /* suppress stumble into web message */
-#define FORCEBUNGLE   0x04U /* adjustments appropriate for bungling */
-#define RECURSIVETRAP 0x08U /* trap changed into another type this same turn */
-#define TOOKPLUNGE    0x10U /* used '>' to enter pit below you */
-#define VIASITTING    0x20U /* #sit while at trap location (affects message) */
-#define FAILEDUNTRAP  0x40U /* trap activated by failed untrap attempt */
-#define HURTLING      0x80U /* monster is hurtling through air */
+/* circumstances under which a trap is being triggered */
+#include "nh_trapflags.h"
 
-/* Flags to control test_move in hack.c */
-#define DO_MOVE 0   /* really doing the move */
-#define TEST_MOVE 1 /* test a normal move (move there next) */
-#define TEST_TRAV 2 /* test a future travel location */
-#define TEST_TRAP 3 /* check if a future travel loc is a trap */
+/* [test_move flags and m_move return values moved to nh_move.h] */
 
-/* m_move return values */
-#define MMOVE_NOTHING 0
-#define MMOVE_MOVED   1 /* monster moved */
-#define MMOVE_DIED    2 /* monster died */
-#define MMOVE_DONE    3 /* monster used up all actions */
-#define MMOVE_NOMOVES 4 /* monster has no valid locations to move to */
-
-/*** some utility macros ***/
-#define y_n(query) yn_function(query, ynchars, 'n', TRUE)
-#define ynq(query) yn_function(query, ynqchars, 'q', TRUE)
-#define ynaq(query) yn_function(query, ynaqchars, 'y', TRUE)
-#define nyaq(query) yn_function(query, ynaqchars, 'n', TRUE)
-#define nyNaq(query) yn_function(query, ynNaqchars, 'n', TRUE)
-#define ynNaq(query) yn_function(query, ynNaqchars, 'y', TRUE)
-/* YN() is same as y_n() except doesn't save the response in do-again buffer */
-#define YN(query) yn_function(query, ynchars, 'n', FALSE)
+/* [yes/no query wrappers moved to nh_msg.h] */
 
 /* Macros for scatter */
 #define VIS_EFFECTS 0x01 /* display visual effects */
@@ -970,12 +815,7 @@ struct xlock_s {
 #define ENL_GAMEOVERALIVE  1 /* ascension, escape, quit, trickery */
 #define ENL_GAMEOVERDEAD   2
 
-/* control flags for sortloot() */
-#define SORTLOOT_PACK   0x01
-#define SORTLOOT_INVLET 0x02
-#define SORTLOOT_LOOT   0x04
-#define SORTLOOT_INUSE  0x08 /* for inventory, in-use items first */
-#define SORTLOOT_PETRIFY 0x20 /* override filter func for c-trice corpses */
+/* [sortloot() control flags moved to nh_objsel.h] */
 
 /* flags for xkilled() [note: meaning of first bit used to be reversed,
    1 to give message and 0 to suppress] */
@@ -984,15 +824,7 @@ struct xlock_s {
 #define XKILL_NOCORPSE  2
 #define XKILL_NOCONDUCT 4
 
-/* pline_flags; mask values for custompline()'s first argument */
-/* #define PLINE_ORDINARY 0 */
-#define PLINE_NOREPEAT   1
-#define OVERRIDE_MSGTYPE 2
-#define SUPPRESS_HISTORY 4
-#define URGENT_MESSAGE   8
-#define PLINE_VERBALIZE 16
-#define PLINE_SPEECH    32
-#define NO_CURS_ON_U    64
+/* [custompline() pline_flags moved to nh_msg.h] */
 
 /* get_count flags */
 #define GC_NOFLAGS   0

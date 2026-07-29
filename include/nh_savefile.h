@@ -40,6 +40,26 @@
 #ifndef NH_SAVEFILE_H
 #define NH_SAVEFILE_H
 
+/* Flags for controlling uptodate */
+#define UTD_CHECKSIZES                 0x01
+#define UTD_CHECKFIELDCOUNTS           0x02
+#define UTD_SKIP_SANITY1               0x04
+#define UTD_SKIP_SAVEFILEINFO          0x08
+#define UTD_WITHOUT_WAITSYNCH_PERFILE  0x10
+#define UTD_QUIETLY                    0x20
+
+/* Values for savefile status */
+#define SF_UPTODATE                     0
+#define SF_OUTDATED                     1
+#define SF_CRITICAL_BYTE_COUNT_MISMATCH 2
+#define SF_DM_IL32LLP64_ON_ILP32LL64    3  /* Wind x64 savefile on x86     */
+#define SF_DM_I32LP64_ON_ILP32LL64      4  /* Unix 64 savefile on x86      */
+#define SF_DM_ILP32LL64_ON_I32LP64      5  /* x86 savefile on Unix 64      */
+#define SF_DM_ILP32LL64_ON_IL32LLP64    6  /* x86 savefile on Wind x64     */
+#define SF_DM_I32LP64_ON_IL32LLP64      7  /* Unix 64 savefile on Wind x64 */
+#define SF_DM_IL32LLP64_ON_I32LP64      8  /* Wind x64 savefile on Unix 64 */
+#define SF_DM_MISMATCH                  9  /* generic savefile byte mismatch */
+
 /* NetHack ftypes */
 #define NHF_LEVELFILE       1
 #define NHF_SAVEFILE        2
