@@ -3,6 +3,46 @@
 /*-Copyright (c) Robert Patrick Rankin, 2011. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file mhitm.c
+ * @brief One monster attacking another.
+ *
+ * The same creature that fights the hero also fights other monsters, but the
+ * hero is not involved: there is no luck to consult, no experience to award,
+ * and often nobody to see it. So monster-versus-monster combat is resolved
+ * separately from mhitu.c and mhitu's counterpart, sharing the attack
+ * definitions but not the machinery around them.
+ *
+ * A creature may have several attacks of different kinds, and each is applied
+ * in turn -- so a single exchange can bite, then claw, then apply a passive
+ * effect back on the attacker.
+ *
+ * @note Much of the difficulty is reporting. What the player is told depends on
+ *       whether either party can be seen, so the same fight produces different
+ *       messages, or none.
+ * @warning Either combatant can die partway through a sequence of attacks, so
+ *          the remaining attacks must not assume both are still there.
+ */
+
+/**
+ * @file mhitm.c
+ * @brief 몬스터가 다른 몬스터를 공격하는 일.
+ *
+ * 영웅과 싸우는 바로 그 생물이 다른 몬스터와도 싸우지만, 거기에 영웅은 개입하지
+ * 않는다. 참조할 운도, 줄 경험치도 없고, 흔히 그것을 볼 사람조차 없다. 그래서
+ * 몬스터 대 몬스터 전투는 mhitu.c 쪽과 별도로 해석되며, 공격 정의는 공유하되 그
+ * 주변 장치는 공유하지 않는다.
+ *
+ * 한 생물이 여러 종류의 공격을 가질 수 있고 각각이 차례로 적용된다. 그래서 한 번의
+ * 교전에서 물고, 할퀴고, 이어서 공격자에게 되돌아오는 수동 효과까지 일어날 수 있다.
+ *
+ * @note 어려움의 상당 부분은 보고에 있다. 플레이어에게 무엇을 알릴지는 양쪽 중
+ *       누구를 볼 수 있는지에 달려 있어서, 같은 싸움이 서로 다른 메시지를 내거나
+ *       아무 메시지도 내지 않는다.
+ * @warning 연속된 공격 도중에 어느 쪽이든 죽을 수 있다. 남은 공격들은 둘이 여전히
+ *          그 자리에 있다고 가정해서는 안 된다.
+ */
+
 #include "hack.h"
 #include "artifact.h"
 

@@ -3,6 +3,39 @@
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file topten.c
+ * @brief The score file: recording how games ended, and showing them back.
+ *
+ * The record outlives the process and is shared between players on a multi-user
+ * installation, so writing it is not simply appending a line. The file is
+ * locked, read, merged with the new entry, trimmed to its limits and rewritten.
+ *
+ * How many entries survive is a policy rather than a constant: a player may be
+ * allowed only so many places, and an unremarkable game may not be kept at all.
+ *
+ * @note Also produces the single-line summary shown when a game ends, from the
+ *       same record it is about to write.
+ * @warning Runs while the game is ending, when the world is already being torn
+ *          down, so it must not depend on game state still being coherent.
+ */
+
+/**
+ * @file topten.c
+ * @brief 점수 파일. 게임이 어떻게 끝났는지 기록하고 다시 보여 주기.
+ *
+ * 이 기록은 프로세스보다 오래 남고 다중 사용자 환경에서는 플레이어들 사이에
+ * 공유되므로, 쓰는 일이 단순히 한 줄을 덧붙이는 것이 아니다. 파일을 잠그고, 읽고,
+ * 새 항목과 합치고, 한도에 맞게 잘라낸 뒤 다시 쓴다.
+ *
+ * 몇 개가 남는지는 상수가 아니라 정책이다. 한 플레이어가 차지할 수 있는 자리가
+ * 제한될 수 있고, 특별할 것 없는 게임은 아예 남지 않을 수도 있다.
+ *
+ * @note 게임이 끝날 때 보여 주는 한 줄 요약도, 곧 기록할 바로 그 항목에서 만든다.
+ * @warning 게임이 끝나는 도중, 이미 세계가 해체되기 시작한 시점에 실행된다.
+ *          따라서 게임 상태가 여전히 온전하다고 기대해서는 안 된다.
+ */
+
 #include "hack.h"
 #include "dlb.h"
 

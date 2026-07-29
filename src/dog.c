@@ -3,6 +3,40 @@
 /*-Copyright (c) Robert Patrick Rankin, 2011. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file dog.c
+ * @brief Pets: acquiring them, keeping them, and what happens when they are
+ *        left behind.
+ *
+ * A pet is an ordinary monster with an @c edog record and a tameness that
+ * decays. Feeding renews it, hitting and neglect erode it, and when it runs out
+ * the creature is simply a monster again -- which is why taming is a state to
+ * be maintained rather than a permanent conversion.
+ *
+ * The awkward part is level changes. A pet adjacent to the hero comes along,
+ * and one that is not gets left where it stands, so this file also deals with
+ * pets travelling between levels and being found again on return.
+ *
+ * @note An unfed pet does not merely become hostile: it eventually starves,
+ *       since it hunts and eats on its own.
+ */
+
+/**
+ * @file dog.c
+ * @brief 애완동물. 얻는 일, 유지하는 일, 그리고 두고 갔을 때 벌어지는 일.
+ *
+ * 애완동물은 @c edog 기록과 시간이 지나면 줄어드는 길들임 수치를 가진 평범한
+ * 몬스터다. 먹이를 주면 회복되고, 때리거나 방치하면 깎이며, 다 떨어지면 그저 다시
+ * 몬스터가 된다. 길들임이 영구적인 전환이 아니라 유지해야 하는 상태인 이유다.
+ *
+ * 까다로운 부분은 레벨 이동이다. 영웅에게 인접한 애완동물은 따라오고 그렇지 않은
+ * 것은 있던 자리에 남는다. 그래서 이 파일은 레벨 사이를 이동하는 애완동물과,
+ * 돌아왔을 때 다시 만나는 일도 다룬다.
+ *
+ * @note 먹이를 주지 않은 애완동물은 적대적으로 변하기만 하는 것이 아니라 결국
+ *       굶어 죽는다. 스스로 사냥하고 먹기 때문이다.
+ */
+
 #include "hack.h"
 
 staticfn int pet_type(void);

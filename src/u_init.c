@@ -3,6 +3,42 @@
 /*-Copyright (c) Robert Patrick Rankin, 2017. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file u_init.c
+ * @brief Making the hero at the start of a game.
+ *
+ * Role, race, gender and alignment are chosen first, and everything else
+ * follows from them: attributes rolled within that role's limits, the skills it
+ * may train, the spells it begins knowing, the equipment it carries, and the
+ * pet that accompanies it.
+ *
+ * The starting inventory is described declaratively per role and then created,
+ * which is why a Valkyrie's long sword and a Wizard's quarterstaff are entries
+ * in a table rather than special cases in code.
+ *
+ * @note Some starting items are pre-identified and some are blessed; that too
+ *       comes from the role's description rather than from the objects.
+ * @warning Runs once, before there is a dungeon. Nothing here may assume a
+ *          level exists.
+ */
+
+/**
+ * @file u_init.c
+ * @brief 게임 시작 시 영웅을 만드는 일.
+ *
+ * 직업, 종족, 성별, 성향이 먼저 정해지고 나머지는 모두 거기서 따라 나온다. 그
+ * 직업의 한계 안에서 굴린 능력치, 익힐 수 있는 기술, 처음부터 아는 주문, 지니고
+ * 시작하는 장비, 그리고 함께하는 애완동물이다.
+ *
+ * 시작 소지품은 직업마다 선언적으로 기술된 뒤 만들어진다. 발키리의 장검과 마법사의
+ * 육척봉이 코드의 특수 처리가 아니라 표의 항목인 이유가 그것이다.
+ *
+ * @note 시작 물품 중 일부는 이미 감정되어 있고 일부는 축복받은 상태다. 그것 역시
+ *       객체가 아니라 직업 기술에서 온다.
+ * @warning 던전이 존재하기 전에 한 번 실행된다. 여기의 어떤 것도 레벨이 있다고
+ *          가정해서는 안 된다.
+ */
+
 #include "hack.h"
 
 struct trobj {

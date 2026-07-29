@@ -2,6 +2,42 @@
 /* Copyright (c) 1996 by Jean-Christophe Collet  */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file region.c
+ * @brief Areas that do something to whoever is standing in them.
+ *
+ * A gas cloud is not a property of the squares it covers -- it is a thing in
+ * its own right, with a shape, a lifetime, and an effect it applies to whatever
+ * enters or remains inside it. Regions give the game somewhere for such an
+ * effect to live between turns.
+ *
+ * They are checked as creatures move and as turns pass, so entering one, being
+ * caught by one that expands, and lingering in one all reach the same effect.
+ *
+ * @note A region remembers who created it, so the game can still attribute a
+ *       death to the hero after the cloud that caused it has dissipated.
+ * @warning Regions outlive the events that made them and are saved with the
+ *          level; an effect that assumed its source still exists would be
+ *          wrong on restore.
+ */
+
+/**
+ * @file region.c
+ * @brief 그 안에 서 있는 자에게 무언가를 하는 영역.
+ *
+ * 가스 구름은 그것이 덮은 칸들의 속성이 아니다. 그 자체로 하나의 사물이며, 형태와
+ * 수명, 그리고 들어오거나 머무는 자에게 적용하는 효과를 가진다. 영역은 그런 효과가
+ * 턴과 턴 사이에 존재할 자리를 제공한다.
+ *
+ * 생물이 움직일 때와 턴이 지날 때 모두 검사되므로, 안으로 들어가는 것과 넓어지는
+ * 영역에 휩쓸리는 것과 그 안에 머무는 것이 모두 같은 효과에 이른다.
+ *
+ * @note 영역은 자신을 만든 이를 기억한다. 그래서 원인이 된 구름이 흩어진 뒤에도
+ *       게임이 죽음의 책임을 영웅에게 돌릴 수 있다.
+ * @warning 영역은 자신을 만든 사건보다 오래 살아남으며 레벨과 함께 저장된다.
+ *          발생원이 여전히 존재한다고 가정한 효과는 복원 후 틀리게 된다.
+ */
+
 #include "hack.h"
 
 /*
