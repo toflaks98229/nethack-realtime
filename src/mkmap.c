@@ -5,20 +5,25 @@
 /**
  * @file mkmap.c
  * @brief Cellular-automaton cave generator and flood-fill room joiner.
- *        셀룰러 오토마타 동굴 생성기 및 플러드필 방 결합기.
  *
  * Builds organic, cavern-style levels: an initial random scatter of
  * foreground terrain is smoothed over several cellular-automaton passes,
  * then flood filling identifies the resulting open regions as rooms and
  * digs corridors to join them.  The public entry point is @c mkmap().
  *
+ * @note Function definition order is intentionally preserved (only file-local
+ *       constants are grouped at the top) to avoid any risk of altering
+ *       behavior; this matches the codebase's conservative reorder policy.
+ */
+
+/**
+ * @file mkmap.c
+ * @brief 셀룰러 오토마타 동굴 생성기 및 플러드필 방 결합기.
+ *
  * 무작위로 흩뿌린 전경 지형을 여러 번의 셀룰러 오토마타 패스로 다듬어
  * 유기적인 동굴형 레벨을 만든다. 이후 플러드필로 열린 영역들을 방으로
  * 인식하고 통로로 연결한다. 공개 진입점은 @c mkmap() 이다.
  *
- * @note Function definition order is intentionally preserved (only file-local
- *       constants are grouped at the top) to avoid any risk of altering
- *       behavior; this matches the codebase's conservative reorder policy.
  * @note 동작 변경 위험을 피하기 위해 함수 정의 순서는 의도적으로 보존하며
  *       (파일 지역 상수만 상단에 모음), 이는 코드베이스의 보수적 재배치
  *       방침과 일치한다.
@@ -27,17 +32,16 @@
 #include "hack.h"
 #include "sp_lev.h"
 
-/** @brief Usable map height, excluding the bottom border row.
- *         하단 경계 행을 제외한 사용 가능한 맵 높이. */
+/** @brief Usable map height, excluding the bottom border row. */
+/** @brief 하단 경계 행을 제외한 사용 가능한 맵 높이. */
 #define HEIGHT (ROWNO - 1)
-/** @brief Usable map width, excluding the left/right border columns.
- *         좌우 경계 열을 제외한 사용 가능한 맵 너비. */
+
+/** @brief Usable map width, excluding the left/right border columns. */
+/** @brief 좌우 경계 열을 제외한 사용 가능한 맵 너비. */
 #define WIDTH (COLNO - 2)
 
-/**
- * @brief Eight-neighbour offset pairs (dx, dy) used by the automaton passes.
- *        오토마타 패스가 사용하는 8방향 이웃 오프셋 쌍 (dx, dy).
- */
+/** @brief Eight-neighbour offset pairs (dx, dy) used by the automaton passes. */
+/** @brief 오토마타 패스가 사용하는 8방향 이웃 오프셋 쌍 (dx, dy). */
 staticfn const int dirs[16] = {
     -1, -1 /**/, -1,  0 /**/, -1, 1 /**/, 0, -1 /**/,
      0,  1 /**/,  1, -1 /**/,  1, 0 /**/, 1,  1
@@ -45,14 +49,18 @@ staticfn const int dirs[16] = {
 
 /**
  * @brief Address a cell in the scratch buffer @c gn.new_locations.
- *        스크래치 버퍼 @c gn.new_locations 의 한 칸을 가리킨다.
- * @param i Column index. / 열 인덱스.
- * @param j Row index. / 행 인덱스.
+ * @param i Column index.
+ * @param j Row index.
+ */
+/**
+ * @brief 스크래치 버퍼 @c gn.new_locations 의 한 칸을 가리킨다.
+ * @param i 열 인덱스.
+ * @param j 행 인덱스.
  */
 #define new_loc(i, j) *(gn.new_locations + ((j) * (WIDTH + 1)) + (i))
 
-/** @brief Iteration counts that tune map generation and smoothing.
- *         맵 생성 및 평활화를 조정하는 반복 횟수. */
+/** @brief Iteration counts that tune map generation and smoothing. */
+/** @brief 맵 생성 및 평활화를 조정하는 반복 횟수. */
 #define N_P1_ITER 1 /* tune map generation via this value */
 #define N_P2_ITER 1 /* tune map generation via this value */
 #define N_P3_ITER 2 /* tune map smoothing via this value */
@@ -71,9 +79,11 @@ void mkmap(lev_init *);
 
 /**
  * @brief Reset every map cell to the background terrain, unlit and roomless.
- *        모든 맵 칸을 배경 지형으로 초기화하고, 소등·무소속 상태로 만든다.
  * @param[in] bg_typ Background terrain type to fill with.
- *                   채울 배경 지형 타입.
+ */
+/**
+ * @brief 모든 맵 칸을 배경 지형으로 초기화하고, 소등·무소속 상태로 만든다.
+ * @param[in] bg_typ 채울 배경 지형 타입.
  */
 staticfn void
 init_map(schar bg_typ)
@@ -90,11 +100,13 @@ init_map(schar bg_typ)
 
 /**
  * @brief Randomly seed foreground cells across the interior of the map.
- *        맵 내부에 전경 칸을 무작위로 흩뿌려 초기 씨앗을 만든다.
  * @param[in] bg_typ Background type currently filling the map.
- *                   현재 맵을 채우고 있는 배경 타입.
  * @param[in] fg_typ Foreground type to scatter over roughly 40% of the area.
- *                   면적의 약 40% 에 흩뿌릴 전경 타입.
+ */
+/**
+ * @brief 맵 내부에 전경 칸을 무작위로 흩뿌려 초기 씨앗을 만든다.
+ * @param[in] bg_typ 현재 맵을 채우고 있는 배경 타입.
+ * @param[in] fg_typ 면적의 약 40% 에 흩뿌릴 전경 타입.
  */
 staticfn void
 init_fill(schar bg_typ, schar fg_typ)
@@ -116,13 +128,17 @@ init_fill(schar bg_typ, schar fg_typ)
 
 /**
  * @brief Read a cell's terrain type, treating out-of-bounds as background.
- *        칸의 지형 타입을 읽되, 범위를 벗어나면 배경으로 간주한다.
- * @param[in] col     Column to sample. / 표본 열.
- * @param[in] row     Row to sample. / 표본 행.
- * @param[in] bg_typ  Value to return for out-of-bounds coordinates.
- *                    범위를 벗어난 좌표에 대해 반환할 값.
+ * @param[in] col    Column to sample.
+ * @param[in] row    Row to sample.
+ * @param[in] bg_typ Value to return for out-of-bounds coordinates.
  * @return The terrain type at (col,row), or @p bg_typ if out of bounds.
- *         (col,row) 의 지형 타입, 범위 밖이면 @p bg_typ.
+ */
+/**
+ * @brief 칸의 지형 타입을 읽되, 범위를 벗어나면 배경으로 간주한다.
+ * @param[in] col    표본 열.
+ * @param[in] row    표본 행.
+ * @param[in] bg_typ 범위를 벗어난 좌표에 대해 반환할 값.
+ * @return (col,row) 의 지형 타입, 범위 밖이면 @p bg_typ.
  */
 staticfn schar
 get_map(coordxy col, coordxy row, schar bg_typ)
@@ -134,11 +150,15 @@ get_map(coordxy col, coordxy row, schar bg_typ)
 
 /**
  * @brief First automaton pass: kill sparse cells and grow dense ones in place.
- *        1차 오토마타 패스: 희박한 칸은 제거하고 밀집한 칸은 즉석에서 키운다.
- * @param[in] bg_typ Background terrain type. / 배경 지형 타입.
- * @param[in] fg_typ Foreground terrain type. / 전경 지형 타입.
+ * @param[in] bg_typ Background terrain type.
+ * @param[in] fg_typ Foreground terrain type.
  * @note Writes results directly into @c levl, so it reads partly updated
  *       neighbours; this is intentional for this pass.
+ */
+/**
+ * @brief 1차 오토마타 패스: 희박한 칸은 제거하고 밀집한 칸은 즉석에서 키운다.
+ * @param[in] bg_typ 배경 지형 타입.
+ * @param[in] fg_typ 전경 지형 타입.
  * @note 결과를 @c levl 에 직접 쓰므로 일부 갱신된 이웃을 읽으며, 이 패스에서는
  *       의도된 동작이다.
  */
@@ -175,11 +195,15 @@ pass_one(schar bg_typ, schar fg_typ)
 
 /**
  * @brief Second automaton pass: thin exactly-five-neighbour cells, buffered.
- *        2차 오토마타 패스: 이웃이 정확히 5인 칸을 솎아내되 버퍼로 처리한다.
- * @param[in] bg_typ Background terrain type. / 배경 지형 타입.
- * @param[in] fg_typ Foreground terrain type. / 전경 지형 타입.
+ * @param[in] bg_typ Background terrain type.
+ * @param[in] fg_typ Foreground terrain type.
  * @note Computes into the @c new_loc scratch buffer first, then commits, so
  *       neighbour reads are from the pre-pass state.
+ */
+/**
+ * @brief 2차 오토마타 패스: 이웃이 정확히 5인 칸을 솎아내되 버퍼로 처리한다.
+ * @param[in] bg_typ 배경 지형 타입.
+ * @param[in] fg_typ 전경 지형 타입.
  * @note @c new_loc 스크래치 버퍼에 먼저 계산한 뒤 반영하므로, 이웃 읽기는
  *       패스 이전 상태를 기준으로 한다.
  */
@@ -209,9 +233,13 @@ pass_two(schar bg_typ, schar fg_typ)
 /**
  * @brief Third automaton pass: smooth away cells with fewer than three
  *        foreground neighbours, buffered.
- *        3차 오토마타 패스: 전경 이웃이 3 미만인 칸을 버퍼로 다듬어 없앤다.
- * @param[in] bg_typ Background terrain type. / 배경 지형 타입.
- * @param[in] fg_typ Foreground terrain type. / 전경 지형 타입.
+ * @param[in] bg_typ Background terrain type.
+ * @param[in] fg_typ Foreground terrain type.
+ */
+/**
+ * @brief 3차 오토마타 패스: 전경 이웃이 3 미만인 칸을 버퍼로 다듬어 없앤다.
+ * @param[in] bg_typ 배경 지형 타입.
+ * @param[in] fg_typ 전경 지형 타입.
  */
 staticfn void
 pass_three(schar bg_typ, schar fg_typ)
@@ -238,28 +266,33 @@ pass_three(schar bg_typ, schar fg_typ)
 
 /**
  * @brief Flood fill a connected region, assigning it a room number.
- *        연결된 영역을 플러드필하여 방 번호를 부여한다.
  *
  * Recursively spreads @p rmno across cells matching the seed terrain (or any
  * room terrain when @p anyroom is set), updating the region bounding box in
  * @c gm.min_rx..max_ry and counting filled cells in @c gn.n_loc_filled.
  *
+ * @param[in] sx      Seed column.
+ * @param[in] sy      Seed row.
+ * @param[in] rmno    Room number to stamp onto the region.
+ * @param[in] lit     Whether the filled cells should be lit.
+ * @param[in] anyroom If true, match any room terrain and include walls;
+ *                    otherwise match the seed cell's exact type.
+ * @warning Recursive; relies on the caller having initialized the
+ *          @c gm.min_rx..max_ry bounds before the top-level call.
+ */
+/**
+ * @brief 연결된 영역을 플러드필하여 방 번호를 부여한다.
+ *
  * 씨앗 지형과 일치하는 칸들(또는 @p anyroom 시 임의의 방 지형)에 걸쳐
  * @p rmno 를 재귀적으로 확산하며, @c gm.min_rx..max_ry 경계 상자와
  * @c gn.n_loc_filled 채운 칸 수를 갱신한다.
  *
- * @param[in] sx      Seed column. / 씨앗 열.
- * @param[in] sy      Seed row. / 씨앗 행.
- * @param[in] rmno    Room number to stamp onto the region.
- *                    영역에 새길 방 번호.
- * @param[in] lit     Whether the filled cells should be lit.
- *                    채운 칸을 밝힐지 여부.
- * @param[in] anyroom If true, match any room terrain and include walls;
- *                    otherwise match the seed cell's exact type.
- *                    참이면 임의의 방 지형을 매칭하고 벽도 포함하며, 아니면
+ * @param[in] sx      씨앗 열.
+ * @param[in] sy      씨앗 행.
+ * @param[in] rmno    영역에 새길 방 번호.
+ * @param[in] lit     채운 칸을 밝힐지 여부.
+ * @param[in] anyroom 참이면 임의의 방 지형을 매칭하고 벽도 포함하며, 아니면
  *                    씨앗 칸의 정확한 타입만 매칭한다.
- * @warning Recursive; relies on the caller having initialized the
- *          @c gm.min_rx..max_ry bounds before the top-level call.
  * @warning 재귀적이며, 최상위 호출 전에 호출자가 @c gm.min_rx..max_ry
  *          경계를 초기화해 두었다고 가정한다.
  */
@@ -357,9 +390,11 @@ flood_fill_rm(
 
 /**
  * @brief Discard the temporary rooms created while joining the map.
- *        맵을 결합하는 동안 만들어진 임시 방들을 정리한다.
  * @note Clears every cell's @c roomno and resets the room/subroom counts and
  *       sentinel entries; call once @c join_map() has dug its corridors.
+ */
+/**
+ * @brief 맵을 결합하는 동안 만들어진 임시 방들을 정리한다.
  * @note 모든 칸의 @c roomno 를 지우고 방/서브룸 카운트와 감시 항목을
  *       재설정한다. @c join_map() 이 통로를 다 판 뒤 한 번 호출한다.
  */
@@ -377,18 +412,22 @@ join_map_cleanup(void)
 
 /**
  * @brief Identify open regions as rooms and dig corridors to connect them.
- *        열린 영역들을 방으로 인식하고 통로를 파서 서로 연결한다.
  *
  * Flood fills each foreground region into a temporary room (erasing tiny
  * pockets that would trap the player), then walks the sorted room list and
  * digs a corridor between successive regions.
  *
+ * @param[in] bg_typ Background terrain type.
+ * @param[in] fg_typ Foreground terrain type carved into corridors.
+ */
+/**
+ * @brief 열린 영역들을 방으로 인식하고 통로를 파서 서로 연결한다.
+ *
  * 각 전경 영역을 임시 방으로 플러드필하고(플레이어를 가둘 만한 작은 구멍은
  * 지운다), 정렬된 방 목록을 따라 이웃한 영역들 사이에 통로를 판다.
  *
- * @param[in] bg_typ Background terrain type. / 배경 지형 타입.
- * @param[in] fg_typ Foreground terrain type carved into corridors.
- *                   통로로 파낼 전경 지형 타입.
+ * @param[in] bg_typ 배경 지형 타입.
+ * @param[in] fg_typ 통로로 파낼 전경 지형 타입.
  */
 staticfn void
 join_map(schar bg_typ, schar fg_typ)
@@ -465,15 +504,19 @@ join_map(schar bg_typ, schar fg_typ)
 
 /**
  * @brief Apply final touches: optional walls, lighting, and lava/ice state.
- *        마무리 처리: 선택적 벽, 조명, 용암/얼음 상태를 적용한다.
- * @param[in] fg_typ    Foreground terrain type. / 전경 지형 타입.
- * @param[in] bg_typ    Background terrain type. / 배경 지형 타입.
+ * @param[in] fg_typ    Foreground terrain type.
+ * @param[in] bg_typ    Background terrain type.
  * @param[in] lit       Whether open terrain and walls should be lit.
- *                      열린 지형과 벽을 밝힐지 여부.
  * @param[in] walled    Whether to wall off the generated cavern.
- *                      생성된 동굴을 벽으로 둘러쌀지 여부.
  * @param[in] icedpools Whether ICE cells came from pools (else moats).
- *                      ICE 칸이 웅덩이 출신인지(아니면 해자인지) 여부.
+ */
+/**
+ * @brief 마무리 처리: 선택적 벽, 조명, 용암/얼음 상태를 적용한다.
+ * @param[in] fg_typ    전경 지형 타입.
+ * @param[in] bg_typ    배경 지형 타입.
+ * @param[in] lit       열린 지형과 벽을 밝힐지 여부.
+ * @param[in] walled    생성된 동굴을 벽으로 둘러쌀지 여부.
+ * @param[in] icedpools ICE 칸이 웅덩이 출신인지(아니면 해자인지) 여부.
  */
 staticfn void
 finish_map(
@@ -512,22 +555,29 @@ finish_map(
 
 /**
  * @brief Remove every room that falls inside a rectangular region.
- *        직사각형 영역 안에 들어오는 모든 방을 제거한다.
  *
  * Rooms fully inside the region [lx,hx) x [ly,hy) are removed; rooms only
  * partially inside are truncated (currently just validated).  Must run before
  * the overlaid MAP's REGIONs or ROOMs are processed.
  *
+ * @param[in] lx Left bound (inclusive).
+ * @param[in] ly Top bound (inclusive).
+ * @param[in] hx Right bound (exclusive).
+ * @param[in] hy Bottom bound (exclusive).
+ * @note Assumes roomno fields inside the region are cleared and those outside
+ *       are set; see the block comment for the full contract.
+ */
+/**
+ * @brief 직사각형 영역 안에 들어오는 모든 방을 제거한다.
+ *
  * 영역 [lx,hx) x [ly,hy) 에 완전히 포함된 방은 제거하고, 일부만 걸친 방은
  * 잘라낸다(현재는 검증만). 덮어씌운 MAP 의 REGION/ROOM 처리 전에 호출해야
  * 한다.
  *
- * @param[in] lx Left bound (inclusive). / 왼쪽 경계(포함).
- * @param[in] ly Top bound (inclusive). / 위쪽 경계(포함).
- * @param[in] hx Right bound (exclusive). / 오른쪽 경계(제외).
- * @param[in] hy Bottom bound (exclusive). / 아래쪽 경계(제외).
- * @note Assumes roomno fields inside the region are cleared and those outside
- *       are set; see the block comment for the full contract.
+ * @param[in] lx 왼쪽 경계(포함).
+ * @param[in] ly 위쪽 경계(포함).
+ * @param[in] hx 오른쪽 경계(제외).
+ * @param[in] hy 아래쪽 경계(제외).
  * @note 영역 내부 roomno 는 지워지고 외부는 설정되어 있다고 가정한다. 전체
  *       계약은 상단 블록 주석을 참고한다.
  */
@@ -558,18 +608,21 @@ remove_rooms(coordxy lx, coordxy ly, coordxy hx, coordxy hy)
 
 /**
  * @brief Remove a single subroom-free room from the rooms array.
- *        서브룸이 없는 방 하나를 방 배열에서 제거한다.
  *
  * Swaps the last room into the removed slot and rewrites the affected cells'
  * @c roomno so the array stays compact.
  *
+ * @param[in] roomno Index of the room to remove.
+ * @warning Only handles rooms with no subrooms; assumes the room's level
+ *          contents have already been reset.
+ */
+/**
+ * @brief 서브룸이 없는 방 하나를 방 배열에서 제거한다.
+ *
  * 마지막 방을 제거되는 슬롯으로 옮기고, 영향을 받는 칸들의 @c roomno 를
  * 다시 써서 배열을 조밀하게 유지한다.
  *
- * @param[in] roomno Index of the room to remove.
- *                   제거할 방의 인덱스.
- * @warning Only handles rooms with no subrooms; assumes the room's level
- *          contents have already been reset.
+ * @param[in] roomno 제거할 방의 인덱스.
  * @warning 서브룸이 없는 방만 처리하며, 해당 방의 레벨 내용이 이미
  *          재설정되었다고 가정한다.
  */
@@ -602,11 +655,15 @@ remove_room(unsigned int roomno)
 
 /**
  * @brief Resolve a lit-state request, rolling randomly when unspecified.
- *        조명 상태 요청을 해석하며, 미지정 시 무작위로 결정한다.
  * @param[in] litstate Explicit 0/1 lit flag, or negative to randomize by depth.
- *                     명시적 0/1 조명 플래그, 음수면 깊이에 따라 무작위.
- * @retval TRUE  The region should be lit. / 영역을 밝혀야 함.
- * @retval FALSE The region should be dark. / 영역을 어둡게 둬야 함.
+ * @retval TRUE  The region should be lit.
+ * @retval FALSE The region should be dark.
+ */
+/**
+ * @brief 조명 상태 요청을 해석하며, 미지정 시 무작위로 결정한다.
+ * @param[in] litstate 명시적 0/1 조명 플래그, 음수면 깊이에 따라 무작위.
+ * @retval TRUE  영역을 밝혀야 함.
+ * @retval FALSE 영역을 어둡게 둬야 함.
  */
 boolean
 litstate_rnd(int litstate)
@@ -618,19 +675,22 @@ litstate_rnd(int litstate)
 
 /**
  * @brief Generate a cavern level from a level-initialization descriptor.
- *        레벨 초기화 서술자로부터 동굴 레벨을 생성한다.
  *
  * Orchestrates the full pipeline: allocate the scratch buffer, seed and smooth
  * the cave via the automaton passes, optionally join regions with corridors,
  * finish lighting/walls, and free the scratch buffer.
  *
+ * @param[in] init_lev Descriptor holding terrain types and generation flags.
+ * @note Allocates @c gn.new_locations for the duration of the call and frees
+ *       it before returning.
+ */
+/**
+ * @brief 레벨 초기화 서술자로부터 동굴 레벨을 생성한다.
+ *
  * 전체 파이프라인을 지휘한다: 스크래치 버퍼 할당, 오토마타 패스로 동굴 씨앗과
  * 평활화, 선택적 통로 결합, 조명/벽 마무리, 스크래치 버퍼 해제.
  *
- * @param[in] init_lev Descriptor holding terrain types and generation flags.
- *                     지형 타입과 생성 플래그를 담은 서술자.
- * @note Allocates @c gn.new_locations for the duration of the call and frees
- *       it before returning.
+ * @param[in] init_lev 지형 타입과 생성 플래그를 담은 서술자.
  * @note 호출 동안 @c gn.new_locations 를 할당하고 반환 전에 해제한다.
  */
 void
