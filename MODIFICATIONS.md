@@ -123,10 +123,31 @@ monst` behind accessors. Measurement redirected it:
 - **`include/nhaccess.h`** — opt-in accessors naming the concepts the raw field
   reads keep repeating (the object `where` predicates alone appear 130+ times).
   Additive; no existing call site was migrated.
+- **`hack.h` decomposition into subsystem headers.** `hack.h` was never merely
+  an include aggregator: ~1,540 of its 1,581 lines were its own definitions for
+  a dozen unrelated subsystems. Cohesive blocks now live in their own headers,
+  which `hack.h` includes **at the exact position the definitions occupied**:
+
+  | header | contents |
+  |---|---|
+  | `nh_cmd.h` | command queue, special keys, command dispatch table |
+  | `nh_dgntopo.h` | special-level topology and its accessor macros |
+  | `nh_savefile.h` | `NHFILE` handle and serializer mode bits |
+  | `nh_progstate.h` | `program_state`/`level_status` phases, `InputState` |
+  | `nh_makemon.h` | `makemon()`/`goodpos()` flags sharing one bit space |
+
+  `hack.h` remains a facade, so every existing source file and the PCH keep
+  working unchanged. It is now 1,276 lines, down from 1,581.
+
+  **Verification.** Each round was checked by preprocessing a `hack.h`-including
+  translation unit against the pre-decomposition baseline and diffing the output
+  with `#line` directives stripped: **15,523 code lines, zero differences.** The
+  refactor is therefore behavior-preserving at the preprocessor level, not
+  merely "it still compiles".
 
 ### What was deliberately not done
-**`hack.h` is not decomposed, and the core structs are not hidden.** Measured
-per-file compile cost settled it:
+**The core structs are not hidden**, and no source file was converted from
+`hack.h` to minimal includes. Measured per-file compile cost settled the latter:
 
 | configuration | ms/file |
 |---|---|
@@ -136,15 +157,14 @@ per-file compile cost settled it:
 
 Converting a file off `hack.h` forces it out of the PCH, making it ~40 ms
 *slower*; across the 138 PCH-using files that would add ~5.5 s to the build.
-The reverse opportunity — making the few PCH-excluded files eligible — is worth
-only ~0.4 s, and `sp_lev.c` cannot share the PCH at all (`IN_SP_LEV_C` changes
-what the headers declare). So decomposition was closed as counterproductive:
-its build-time motivation is now served better, and without touching source,
-by the PCH.
+That is why decomposition kept `hack.h` as a facade rather than trimming each
+file's includes — the structure is split, the build cost is not reintroduced.
 
-`nhfwd.h` and `nhaccess.h` therefore remain **foundations with no adopters
-yet** — intended for code that is newly written or revised, not for a sweeping
-migration.
+Hiding `struct obj` / `struct monst` behind accessors remains out of scope:
+their fields are read directly in 7,000+ places, which no build check can
+validate mechanically. `nhfwd.h` and `nhaccess.h` are therefore **foundations
+with no adopters yet** — intended for code that is newly written or revised,
+not for a sweeping migration.
 
 ---
 
