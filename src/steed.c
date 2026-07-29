@@ -1026,10 +1026,10 @@ place_monster(struct monst *mon, coordxy x, coordxy y)
                    monnm, othnm, x, y, othermon->mstate, mon->mstate, buf);
     }
 #ifdef REALTIME_PROTO
-    /* mon->mx/my still hold the previous square here, which is the only place
-       that pairing is available; hand it to the renderer's motion records so a
-       single step can be drawn as a glide.  Recording only. */
-    rt_note_move(mon->mx, mon->my, x, y);
+    /* tell the interpolation layer which square this monster now occupies; it
+       keeps the drawn position behind so the step can be animated.  Observation
+       only -- see nh_rtvector.h. */
+    rtv_set_square(mon->m_id, x, y);
 #endif
     mon->mx = x, mon->my = y;
     svl.level.monsters[x][y] = mon;

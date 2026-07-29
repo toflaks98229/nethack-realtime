@@ -40,6 +40,8 @@
 #include "winprocs.h"
 #include "vision.h"
 #include "you.h"
+/* continuous positions used to animate grid-square motion (real-time fork) */
+#include "nh_rtvector.h"
 
 #define TELL 1
 #define NOTELL 0

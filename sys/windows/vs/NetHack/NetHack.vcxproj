@@ -184,6 +184,7 @@
     <ClCompile Include="$(SrcDir)rip.c" />
     <ClCompile Include="$(SrcDir)rnd.c" />
     <ClCompile Include="$(SrcDir)role.c" />
+    <ClCompile Include="$(SrcDir)rtvector.c" />
     <ClCompile Include="$(SrcDir)rumors.c" />
     <ClCompile Include="$(SrcDir)save.c" />
     <ClCompile Include="$(SrcDir)selvar.c" />

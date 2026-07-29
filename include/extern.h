@@ -106,8 +106,6 @@ extern void moveloop_core(void);
 extern void moveloop(boolean);
 #ifdef REALTIME_PROTO
 extern boolean rt_world_tick_ready(void);
-extern void rt_note_move(coordxy, coordxy, coordxy, coordxy);
-extern boolean rt_recent_move(coordxy, coordxy, coordxy *, coordxy *, int *);
 #endif
 extern void stop_occupation(void);
 extern void init_sound_disp_gamewindows(void);

@@ -1587,6 +1587,12 @@ u_on_newpos(coordxy x, coordxy y)
     }
     u.ux = x;
     u.uy = y;
+#ifdef REALTIME_PROTO
+    /* record the hero's new square for the interpolation layer; a level change
+       is handled below, where the positions of the level being left would
+       otherwise linger */
+    rtv_set_square(RTV_HERO_ID, x, y);
+#endif
 #ifdef CLIPPING
     cliparound(u.ux, u.uy);
 #endif
@@ -1597,6 +1603,12 @@ u_on_newpos(coordxy x, coordxy y)
     /* when changing levels, don't leave old position set with
        stale values from previous level */
     if (!on_level(&u.uz, &u.uz0)) {
+#ifdef REALTIME_PROTO
+        /* the squares those positions referred to belong to the level being
+           left; forget them, then re-record the hero on the new one */
+        rtv_reset();
+        rtv_set_square(RTV_HERO_ID, u.ux, u.uy);
+#endif
         u.ux0 = u.ux, u.uy0 = u.uy;
         /* sets lastseentyp[u.ux][u.uy]; needed for switch_terrain()
            somewhere back up the call chain */

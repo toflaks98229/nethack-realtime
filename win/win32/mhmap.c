@@ -1289,8 +1289,14 @@ onPaint(HWND hWnd)
     int originY = data->map_orig.y - (data->yPos * data->yFrontTile);
 
 #ifdef REALTIME_PROTO
-    boolean camJumped = rt_cam_seed(data); /* pan if scroll origin jumped */
-    rt_hero_seed(data, camJumped);         /* else glide the hero tile */
+    boolean camJumped;
+
+    /* move the continuous positions on by however much real time has passed
+       since the previous frame, before anything reads them below */
+    rtv_advance();
+
+    camJumped = rt_cam_seed(data);  /* pan if scroll origin jumped */
+    rt_hero_seed(data, camJumped);  /* else glide the hero tile */
     originX += data->camDX; /* apply the smooth-pan offset (0 when idle) */
     originY += data->camDY;
 #endif
@@ -1331,10 +1337,12 @@ onPaint(HWND hWnd)
         SelectObject(data->tileDC, savedTile);
     }
 
-    /* Glide monsters that stepped recently.  The core records arrivals by
-       destination square (it is the only place that knows a monster's previous
-       position), so we ask each visible square whether its occupant just
-       arrived and, if so, draw it partway back toward where it came from.
+    /* Glide monsters using the core's continuous positions.  Those positions
+       are per entity, so two monsters exchanging squares are each drawn from
+       their own, and a monster crossing several squares glides continuously
+       instead of restarting at every step.  We ask by square, which is all a
+       renderer working from a grid of glyphs can name.
+
        Only squares the map is actually showing a monster on are animated, so
        this cannot reveal a monster the player is not entitled to see. */
     {
@@ -1350,8 +1358,7 @@ onPaint(HWND hWnd)
 
         for (i = i0; i <= i1; i++) {
             for (j = j0; j <= j1; j++) {
-                coordxy fx = 0, fy = 0;
-                int pct = 0;
+                double ox = 0.0, oy = 0.0;
                 int glyph = data->map[i][j].glyph;
                 RECT mr;
                 short ntile;
@@ -1361,7 +1368,7 @@ onPaint(HWND hWnd)
                     continue;
                 if (i == (int) u.ux && j == (int) u.uy)
                     continue; /* the hero is handled above */
-                if (!rt_recent_move((coordxy) i, (coordxy) j, &fx, &fy, &pct))
+                if (!rtv_offset_at((coordxy) i, (coordxy) j, &ox, &oy))
                     continue;
                 if (data->bkmap[i][j].glyph == NO_GLYPH)
                     continue; /* no terrain to erase with; leave it static */
@@ -1371,9 +1378,9 @@ onPaint(HWND hWnd)
                 bx = mr.left + data->camDX;
                 by = mr.top + data->camDY;
 
-                /* remaining distance back toward the square it came from */
-                offx = ((fx - i) * data->xFrontTile * (100 - pct)) / 100;
-                offy = ((fy - j) * data->yFrontTile * (100 - pct)) / 100;
+                /* offsets arrive in grid units; scale to this port's tiles */
+                offx = (int) (ox * (double) data->xFrontTile);
+                offy = (int) (oy * (double) data->yFrontTile);
 
                 /* erase the statically drawn monster with its terrain ... */
                 ntile = data->bkmap[i][j].gm.tileidx;
