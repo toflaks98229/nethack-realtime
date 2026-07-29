@@ -3,6 +3,43 @@
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file bones.c
+ * @brief Leaving a level behind for the next game, and taking one over.
+ *
+ * When a hero dies, the level may be preserved so that a later game finds it:
+ * the corpse, the possessions, and a ghost. This is the only way one game's
+ * state reaches another, which is what makes it delicate.
+ *
+ * Loading is therefore an act of sanitation as much as of restoration. The old
+ * hero's belongings must be stripped of anything that would leak knowledge or
+ * advantage into the new game -- identification, custom names, artifacts that
+ * already exist here -- and the ghost must become an ordinary monster of this
+ * level rather than a saved hero.
+ *
+ * @warning A bones file may have been written by a different version, edited,
+ *          or shared between players. Nothing read from it can be trusted the
+ *          way the current game's own save can.
+ */
+
+/**
+ * @file bones.c
+ * @brief 다음 게임을 위해 레벨을 남기는 일과, 남겨진 레벨을 이어받는 일.
+ *
+ * 영웅이 죽으면 그 레벨이 보존되어 나중의 게임이 발견할 수 있다. 시체와 소지품,
+ * 그리고 유령이다. 한 게임의 상태가 다른 게임에 닿는 유일한 경로이며, 그래서
+ * 다루기가 까다롭다.
+ *
+ * 따라서 불러오기는 복원인 만큼이나 정화 작업이다. 예전 영웅의 소지품에서 지식이나
+ * 이점이 새 게임으로 새어 나갈 만한 것 -- 감정 여부, 붙인 이름, 이 게임에 이미
+ * 존재하는 아티팩트 -- 을 모두 걷어내야 하고, 유령은 저장된 영웅이 아니라 이
+ * 레벨의 평범한 몬스터가 되어야 한다.
+ *
+ * @warning 본즈 파일은 다른 버전이 썼거나, 편집되었거나, 플레이어들 사이에
+ *          공유되었을 수 있다. 거기서 읽은 어떤 것도 현재 게임 자신의 저장만큼
+ *          신뢰할 수 없다.
+ */
+
 #include "hack.h"
 
 #ifndef SFCTOOL

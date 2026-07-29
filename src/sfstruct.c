@@ -3,6 +3,41 @@
 /*-Copyright (c) Michael Allison, 2025. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file sfstruct.c
+ * @brief The historical save format: structures written to disk as they sit
+ *        in memory.
+ *
+ * Each type gets a matched pair of routines, one to write and one to read, and
+ * they do essentially nothing -- the bytes of the object go straight out and
+ * straight back in. That is what makes this format fast, and also what ties a
+ * save file to the machine and the build that produced it.
+ *
+ * The pairs exist so that the save code can name what it is writing rather
+ * than counting bytes, and so a different format can be substituted by
+ * swapping the table of routines rather than editing every call site.
+ *
+ * @warning Reading a file written by a build with different integer sizes or
+ *          alignment produces garbage rather than an error; the version and
+ *          data-model checks performed before restoring are what prevent it.
+ */
+
+/**
+ * @file sfstruct.c
+ * @brief 전통 저장 형식. 구조체를 메모리에 놓인 모습 그대로 디스크에 쓴다.
+ *
+ * 타입마다 쓰기와 읽기가 짝을 이루며, 하는 일은 사실상 없다. 객체의 바이트가
+ * 그대로 나가고 그대로 들어온다. 이 형식이 빠른 이유이자, 저장 파일이 그것을
+ * 만든 기계와 빌드에 묶이는 이유이기도 하다.
+ *
+ * 짝을 이루어 두는 것은 저장 코드가 바이트를 세는 대신 무엇을 쓰는지 이름으로
+ * 말할 수 있게 하고, 모든 호출 지점을 고치는 대신 루틴 표만 바꿔 다른 형식으로
+ * 교체할 수 있게 하기 위함이다.
+ *
+ * @warning 정수 크기나 정렬이 다른 빌드가 쓴 파일을 읽으면 오류가 아니라 쓰레기가
+ *          나온다. 복원 전에 수행하는 버전·데이터 모델 검사가 그것을 막는다.
+ */
+
 #include "hack.h"
 #include "sfprocs.h"
 

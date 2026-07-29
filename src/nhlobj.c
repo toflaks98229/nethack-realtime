@@ -2,6 +2,40 @@
 /*      Copyright (c) 2019 by Pasi Kallinen */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file nhlobj.c
+ * @brief NetHack objects as seen from Lua.
+ *
+ * Level scripts need to create objects, look at them, and place them, but they
+ * must not be handed a raw @c struct obj -- a script could outlive the object,
+ * or keep a reference to one the game has already freed.
+ *
+ * So each object reachable from Lua is wrapped in a small userdata that records
+ * whether the object still belongs to the game or to the script, and every
+ * access checks that the wrapper is still valid before touching anything.
+ *
+ * @warning Ownership is the whole difficulty here. An object a script created
+ *          but never placed must be freed with the script; one that has been
+ *          placed on the map belongs to the game and must not be.
+ */
+
+/**
+ * @file nhlobj.c
+ * @brief Lua 에서 바라본 NetHack 객체.
+ *
+ * 레벨 스크립트는 객체를 만들고, 살펴보고, 배치해야 하지만 날것의
+ * @c struct obj 를 건네받아서는 안 된다. 스크립트가 객체보다 오래 살 수도 있고,
+ * 게임이 이미 해제한 객체를 계속 참조할 수도 있기 때문이다.
+ *
+ * 그래서 Lua 에서 닿을 수 있는 객체는 작은 userdata 로 감싸며, 그 객체가 여전히
+ * 게임의 것인지 스크립트의 것인지를 기록한다. 모든 접근은 무언가를 건드리기 전에
+ * 래퍼가 아직 유효한지 확인한다.
+ *
+ * @warning 여기서 어려운 것은 전적으로 소유권이다. 스크립트가 만들었지만 배치하지
+ *          않은 객체는 스크립트와 함께 해제되어야 하고, 지도에 놓인 객체는 게임의
+ *          것이므로 그래서는 안 된다.
+ */
+
 #include "hack.h"
 #include "sp_lev.h"
 

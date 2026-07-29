@@ -3,6 +3,39 @@
 /*-Copyright (c) Pasi Kallinen, 2026. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file iactions.c
+ * @brief Offering the player what they can actually do with an item.
+ *
+ * Rather than requiring the player to know that a wand is zapped, a scroll
+ * read and a potion quaffed, this builds a menu of the actions that make sense
+ * for the item in hand -- and only those, so an item the hero cannot currently
+ * use does not offer to be used.
+ *
+ * The classification helpers answer that question for each kind of action:
+ * whether the object can be named, read, applied, and so on, in the hero's
+ * present situation.
+ *
+ * @note What is offered depends on the hero as much as on the object -- being
+ *       blind, having no free hands, or standing somewhere unsuitable all
+ *       remove entries.
+ */
+
+/**
+ * @file iactions.c
+ * @brief 어떤 물건으로 실제로 무엇을 할 수 있는지 플레이어에게 제시하기.
+ *
+ * 지팡이는 쏘고 두루마리는 읽고 물약은 마신다는 것을 플레이어가 외우고 있어야
+ * 하는 대신, 손에 든 물건에 대해 말이 되는 행동들의 메뉴를 만든다. 오직 그것들만
+ * 제시하므로, 지금 쓸 수 없는 물건이 쓰겠느냐고 묻지 않는다.
+ *
+ * 분류 도우미들이 행동 종류마다 그 질문에 답한다. 지금 영웅의 상황에서 그 물건에
+ * 이름을 붙일 수 있는지, 읽을 수 있는지, 사용할 수 있는지 같은 것들이다.
+ *
+ * @note 무엇이 제시되는지는 물건만큼이나 영웅에 달려 있다. 눈이 멀었거나, 손이
+ *       비어 있지 않거나, 적절하지 않은 곳에 서 있으면 항목이 사라진다.
+ */
+
 #include "hack.h"
 
 staticfn boolean item_naming_classification(struct obj *, char *, char *);
