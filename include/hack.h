@@ -617,71 +617,8 @@ struct selectionvar {
     char *map;
 };
 
-/* structure for 'program_state'; not saved and restored */
-struct sinfo {
-    int gameover;               /* self-explanatory? */
-    int stopprint;              /* inhibit further end of game disclosure */
-#ifdef HANGUPHANDLING
-    volatile int done_hup;      /* SIGHUP or moral equivalent received
-                                 * -- no more screen output */
-    int preserve_locks;         /* don't remove level files prior to exit */
-#endif
-    int something_worth_saving; /* in case of panic */
-    int panicking;              /* `panic' is in progress */
-    int exiting;                /* an exit handler is executing */
-    int saving;                 /* creating a save file */
-    int restoring;              /* reloading a save file */
-    int freeingdata;            /* in saveobjchn(), mode FREEING */
-    int in_getlev;              /* in getlev() */
-    int in_moveloop;            /* normal gameplay in progress */
-    int in_impossible;          /* reporting a warning */
-    int in_docrt;               /* in docrt(): redrawing the whole screen */
-    int in_self_recover;        /* processing orphaned level files */
-    int in_checkpoint;          /* saving insurance checkpoint */
-    int in_parseoptions;        /* in parseoptions */
-    int in_role_selection;      /* role/race/&c selection menus in progress */
-    int in_getlin;              /* inside interface getlin routine */
-    int in_sanity_check;        /* for impossible() during sanity checking */
-    int config_error_ready;     /* config_error_add is ready, available */
-    int beyond_savefile_load;   /* set when past savefile loading */
-    int savefile_completed;     /* savefile has completed writing */
-    int reading_bonesfile;      /* in the midst of trying to read bones file */
-#ifdef PANICLOG
-    int in_paniclog;            /* writing a panicloc entry */
-#endif
-    int wizkit_wishing;         /* starting wizard mode game w/ WIZKIT file */
-    /* input_state:  used in the core for the 'altmeta' option to process ESC;
-       used in the curses interface to avoid arrow keys when user is doing
-       something other than entering a command or direction and in the Qt
-       interface to suppress menu commands in similar conditions;
-       readchar() always resets it to 'otherInp' prior to returning */
-    int input_state; /* whether next key pressed will be entering a command */
-    int early_options; /* inside early_options processing */
-#ifdef TTY_GRAPHICS
-    /* resize_pending only matters when handling a SIGWINCH signal for tty;
-       getting_char is used along with that and also separately for UNIX;
-       we minimize #if conditionals for them to avoid unnecessary clutter */
-    volatile int resize_pending; /* set by signal handler */
-    volatile int getting_char;  /* referenced during signal handling */
-#endif
-};
-
-/* structure for current 'level_status'; not saved and restored */
-struct levelstatus {
-    int making;                 /* makelevel has begun */
-    int loading;                /* level loading has begun */
-    int shkready;               /* shops ready */
-    int ready;                  /* level is ready */
-};
-
-/* value of program_state.input_state, significant during readchar();
-   get_count() expects digits then a command so sets it to commandInp */
-enum InputState {
-    otherInp   = 0, /* 'other' */
-    commandInp = 1, /* readchar() */
-    getposInp  = 2, /* getpos() */
-    getdirInp  = 3, /* getdir() */
-};
+/* program_state / level_status phases and input-state enum */
+#include "nh_progstate.h"
 
 /* sortloot() return type; needed before extern.h */
 struct sortloot_item {
@@ -939,41 +876,8 @@ struct xlock_s {
          || (svc.context.warntype.species                                 \
              && (svc.context.warntype.species == (mon)->data))))
 
-typedef uint32_t mmflags_nht;     /* makemon MM_ flags */
-
-
-/* flags to control makemon(); goodpos() uses some plus has some of its own*/
-#define NO_MM_FLAGS     0x00000000L /* use this rather than plain 0 */
-#define NO_MINVENT      0x00000001L /* suppress minvent when creating mon */
-#define MM_NOWAIT       0x00000002L /* don't set STRAT_WAITMASK flags */
-#define MM_NOCOUNTBIRTH 0x00000004L /* don't incr born count (for revival) */
-#define MM_IGNOREWATER  0x00000008L /* ignore water when positioning */
-#define MM_ADJACENTOK   0x00000010L /* ok to use adjacent coordinates */
-#define MM_ANGRY        0x00000020L /* monster is created angry */
-#define MM_NONAME       0x00000040L /* monster is not christened */
-#define MM_EGD          0x00000080L /* add egd structure */
-#define MM_EPRI         0x00000100L /* add epri structure */
-#define MM_ESHK         0x00000200L /* add eshk structure */
-#define MM_EMIN         0x00000400L /* add emin structure */
-#define MM_EDOG         0x00000800L /* add edog structure */
-#define MM_ASLEEP       0x00001000L /* monsters should be generated asleep */
-#define MM_NOGRP        0x00002000L /* suppress creation of monster groups */
-#define MM_NOTAIL       0x00004000L /* if a long worm, don't give it a tail */
-#define MM_MALE         0x00008000L /* male variation */
-#define MM_FEMALE       0x00010000L /* female variation */
-#define MM_NOMSG        0x00020000L /* no appear message */
-#define MM_NOEXCLAM     0x00040000L /* more sedate "<mon> appears."
-                                     * mesg for ^G */
-#define MM_IGNORELAVA   0x00080000L /* ignore lava when positioning */
-#define MM_MINVIS       0x00100000L /* for ^G/create_particular */
-/* if more MM_ flag masks are added, skip or renumber the GP_ one(s) */
-#define GP_ALLOW_XY     0x00200000L /* [actually used by enexto() to decide
-                                     * whether to make an extra call to
-                                     * goodpos()] */
-#define GP_ALLOW_U      0x00400000L /* don't reject hero's location */
-#define GP_CHECKSCARY   0x00800000L /* check monster for onscary() */
-#define GP_AVOID_MONPOS 0x01000000L /* don't accept existing mon location */
-/* 25 bits used */
+/* makemon()/goodpos() control flags, sharing one bit space */
+#include "nh_makemon.h"
 
 /* flags for mhidden_description() (pager.c; used for mimics and hiders) */
 #define MHID_PREFIX  1 /* include ", mimicking " prefix */
