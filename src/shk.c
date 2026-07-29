@@ -3,6 +3,45 @@
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file shk.c
+ * @brief Shopkeepers: the bill, the door, and the consequences of not paying.
+ *
+ * A shopkeeper is a monster that also runs an economy. Objects in the shop are
+ * theirs, picking one up creates a debt, using or damaging one is charged for,
+ * and the doorway is watched -- so a shop is enforced by a creature standing in
+ * it rather than by rules attached to the squares.
+ *
+ * Prices are not fixed. They depend on the object, on the hero's charisma and
+ * apparent wealth, and on whether the shopkeeper suspects the hero of trying to
+ * cheat, so the same item is quoted differently to different heroes.
+ *
+ * @note Selling, billing, repossession and the shopkeeper turning hostile are
+ *       all one relationship rather than separate features, which is why they
+ *       share a file.
+ * @warning An unpaid object leaving the shop is theft, and theft is remembered:
+ *          the shopkeeper pursues, and other shopkeepers know. Removing an
+ *          object from the bill without settling it silently forgives that.
+ */
+
+/**
+ * @file shk.c
+ * @brief 상점 주인. 청구서, 문, 그리고 값을 치르지 않았을 때의 결과.
+ *
+ * 상점 주인은 경제도 함께 운영하는 몬스터다. 상점 안의 물건은 그의 것이고, 하나를
+ * 집으면 빚이 생기며, 쓰거나 망가뜨리면 값이 청구되고, 출입구는 감시된다. 상점은 칸에
+ * 붙은 규칙이 아니라 거기 서 있는 생물에 의해 집행되는 셈이다.
+ *
+ * 가격은 고정이 아니다. 물건에, 영웅의 매력과 겉보기 재산에, 그리고 주인이 영웅을 속일
+ * 셈이라고 의심하는지에 달려 있다. 그래서 같은 물건이 영웅마다 다르게 불린다.
+ *
+ * @note 팔기, 청구, 회수, 주인이 적대적으로 돌아서는 일은 별개의 기능이 아니라 하나의
+ *       관계다. 그래서 한 파일에 있다.
+ * @warning 값을 치르지 않은 물건이 상점을 나가면 절도이며, 절도는 기억된다. 주인은
+ *          쫓아오고 다른 주인들도 알게 된다. 청구서에서 물건을 정산 없이 지우는 것은
+ *          그것을 조용히 없던 일로 만드는 셈이다.
+ */
+
 #include "hack.h"
 
 /*

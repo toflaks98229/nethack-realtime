@@ -3,6 +3,44 @@
 /*-Copyright (c) Robert Patrick Rankin, 2013. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file zap.c
+ * @brief Wands, attack spells, and the beams and rays they produce.
+ *
+ * A zap is not applied to a target; it travels. A beam moves square by square
+ * affecting what it meets, and a ray does the same but bounces off walls, so
+ * where it ends up is not something the caster chose -- a ray can come back and
+ * hit the hero who fired it.
+ *
+ * The effects themselves are shared: the same code turns something to stone,
+ * makes it invisible, or destroys it, whether it came from a wand, a spell, a
+ * monster's breath or a trap.
+ *
+ * @note Wands can be engraved with to identify them, and can be broken for a
+ *       larger effect, so a wand is not only a thing that is pointed.
+ * @warning A zap can destroy objects and monsters along its path, including the
+ *          zapper, so nothing observed before it may be relied on after -- and
+ *          a bouncing ray may pass over the same square more than once.
+ */
+
+/**
+ * @file zap.c
+ * @brief 지팡이와 공격 주문, 그리고 그것들이 만들어 내는 광선과 빔.
+ *
+ * 쏘는 일은 대상에 적용되는 것이 아니라 날아가는 것이다. 빔은 칸을 하나씩 지나며 만나는
+ * 것에 작용하고, 광선은 같은 일을 하되 벽에 반사된다. 그래서 그것이 어디서 끝날지는
+ * 시전자가 고른 것이 아니며, 광선은 되돌아와 쏜 영웅을 맞힐 수 있다.
+ *
+ * 효과 자체는 공유된다. 무언가를 돌로 만들거나, 투명하게 하거나, 파괴하는 코드는 그것이
+ * 지팡이에서 왔든 주문에서 왔든 몬스터의 숨결이나 함정에서 왔든 같다.
+ *
+ * @note 지팡이는 각인해 보아 정체를 알아낼 수 있고, 부러뜨려 더 큰 효과를 낼 수도 있다.
+ *       지팡이는 겨누기만 하는 물건이 아니다.
+ * @warning 쏜 것은 경로 위의 객체와 몬스터를 파괴할 수 있으며 쏜 자도 예외가 아니다.
+ *          그래서 그 전에 관찰한 것은 그 뒤에 믿을 수 없고, 반사되는 광선은 같은 칸을
+ *          두 번 이상 지날 수 있다.
+ */
+
 #include "hack.h"
 
 /* Disintegration rays have special treatment; corpses are never left.

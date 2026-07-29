@@ -6,6 +6,44 @@
    speed to whole turns under REALTIME_PROTO, so kiting is allowed; see
    MODIFICATIONS.md.  This file differs from the upstream NetHack. */
 
+/**
+ * @file mon.c
+ * @brief The lives of monsters: existing, acting, dying, and being accounted
+ *        for.
+ *
+ * The monster chain, the movement allowance that decides how often each acts,
+ * placement on the map, death and what it leaves behind, migration between
+ * levels, and the tallies of what has been born and killed.
+ *
+ * Movement is an allowance rather than a turn: each monster accumulates points
+ * from its speed and spends them, so a fast creature acts several times while a
+ * slow one waits -- which is what makes speed meaningful without a scheduler.
+ *
+ * @note Killing a monster is several distinct things -- removing it from the
+ *       map, from the chain, leaving a corpse, awarding experience, updating
+ *       the tallies -- and they are deliberately separable, since not every
+ *       death does all of them.
+ * @warning A monster can be freed during iteration over the chain, so loops
+ *          here take the next pointer before acting rather than after.
+ */
+
+/**
+ * @file mon.c
+ * @brief 몬스터의 삶. 존재하고, 행동하고, 죽고, 집계되는 일.
+ *
+ * 몬스터 사슬, 각자가 얼마나 자주 행동하는지 정하는 이동력, 지도 위 배치, 죽음과 그것이
+ * 남기는 것, 레벨 사이의 이주, 그리고 태어나고 죽은 것들의 집계다.
+ *
+ * 이동은 턴이 아니라 배당이다. 몬스터마다 속도에서 점수를 쌓아 소비하므로, 빠른 생물은
+ * 여러 번 행동하고 느린 것은 기다린다. 스케줄러 없이도 속도가 의미를 갖게 하는 방식이다.
+ *
+ * @note 몬스터를 죽이는 일은 서로 구별되는 여러 가지다. 지도에서 없애기, 사슬에서 빼기,
+ *       시체 남기기, 경험치 주기, 집계 갱신하기다. 모든 죽음이 그 전부를 하는 것은
+ *       아니므로 의도적으로 분리되어 있다.
+ * @warning 사슬을 순회하는 도중에 몬스터가 해제될 수 있다. 그래서 여기의 반복문은 다음
+ *          포인터를 행동한 뒤가 아니라 행동하기 전에 확보한다.
+ */
+
 #include "hack.h"
 #include "mfndpos.h"
 

@@ -3,6 +3,45 @@
 /*-Copyright (c) Robert Patrick Rankin, 2013. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file cmd.c
+ * @brief Turning keystrokes into commands.
+ *
+ * A key does not name a command directly. It is looked up in bindings the
+ * player may have changed, may be preceded by a repeat count, may be a prefix
+ * that modifies the command after it, and may mean different things depending
+ * on whether the number pad is in use.
+ *
+ * Commands are dispatched through a table rather than a switch, so an extended
+ * command, a key, a mouse click and a command the game generated itself all
+ * arrive the same way -- which is what makes the command queue possible.
+ *
+ * @note The queue lets the game supply commands as though the player had typed
+ *       them, and is consumed before the keyboard is read; this fork uses it to
+ *       inject movement (MODIFICATIONS.md).
+ * @warning Commands differ in whether they consume game time, and getting that
+ *          wrong is not cosmetic -- a command that takes time when it should
+ *          not lets the world act for free.
+ */
+
+/**
+ * @file cmd.c
+ * @brief 키 입력을 명령으로 바꾸는 일.
+ *
+ * 키가 곧바로 명령을 가리키지는 않는다. 플레이어가 바꿨을 수도 있는 바인딩에서 찾아야
+ * 하고, 앞에 반복 횟수가 붙을 수 있으며, 뒤따르는 명령을 수식하는 접두 키일 수도 있고,
+ * 숫자 패드 사용 여부에 따라 다른 것을 뜻할 수도 있다.
+ *
+ * 명령은 switch 가 아니라 표를 통해 디스패치된다. 그래서 확장 명령, 키, 마우스 클릭,
+ * 게임이 스스로 만들어 낸 명령이 모두 같은 방식으로 도착한다. 명령 큐가 가능한 이유가
+ * 그것이다.
+ *
+ * @note 큐는 게임이 플레이어가 입력한 것처럼 명령을 공급하게 해 주며, 키보드를 읽기
+ *       전에 먼저 소비된다. 이 포크는 이동을 주입하는 데 이것을 쓴다(MODIFICATIONS.md).
+ * @warning 명령마다 게임 시간을 소모하는지가 다르고, 이를 틀리는 것은 표시상의 문제가
+ *          아니다. 소모하지 말아야 할 명령이 시간을 쓰면 세계가 공짜로 한 번 움직인다.
+ */
+
 #include "hack.h"
 #include "func_tab.h"
 

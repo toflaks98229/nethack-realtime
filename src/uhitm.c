@@ -3,6 +3,44 @@
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file uhitm.c
+ * @brief The hero attacking a monster.
+ *
+ * The counterpart to mhitu.c. Whether the blow lands depends on the hero's
+ * skill with the weapon, their luck, the target's armour and what it is; what
+ * the blow does then depends on the weapon, on any artifact it may be, and on
+ * whether the target resists the kind of harm it deals.
+ *
+ * A polymorphed hero attacks with the form's attacks rather than a weapon, so
+ * the same command reaches quite different code depending on what the hero
+ * currently is.
+ *
+ * @note Touching some creatures is itself dangerous, so an attack can hurt the
+ *       hero even when it succeeds -- passive defences resolve here.
+ * @warning The target may die partway through a sequence of attacks, and
+ *          killing it can change the hero -- absorbed intrinsics, a level
+ *          gained -- so neither party can be assumed unchanged afterwards.
+ */
+
+/**
+ * @file uhitm.c
+ * @brief 영웅이 몬스터를 공격하는 일.
+ *
+ * mhitu.c 의 짝이다. 타격이 맞는지는 영웅의 무기 숙련과 운, 대상의 방어도와 그것이
+ * 무엇인지에 달려 있다. 맞은 뒤 무슨 일이 일어나는지는 무기와, 그것이 아티팩트라면
+ * 그 성질과, 대상이 그 종류의 해악에 저항하는지에 달려 있다.
+ *
+ * 변신한 영웅은 무기가 아니라 그 형태의 공격으로 때린다. 그래서 같은 명령이 지금 영웅이
+ * 무엇이냐에 따라 꽤 다른 코드에 이른다.
+ *
+ * @note 어떤 생물은 닿는 것 자체가 위험하다. 그래서 공격이 성공해도 영웅이 다칠 수 있다.
+ *       수동 방어가 여기서 해석된다.
+ * @warning 연속된 공격 도중에 대상이 죽을 수 있고, 죽이는 일이 영웅을 바꿀 수도 있다.
+ *          흡수한 고유 능력이나 오른 레벨 같은 것이다. 그래서 이후에 어느 쪽도 그대로
+ *          라고 가정할 수 없다.
+ */
+
 #include "hack.h"
 
 static const char brief_feeling[] =
