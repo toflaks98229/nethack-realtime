@@ -3,6 +3,45 @@
 /*-Copyright (c) Robert Patrick Rankin, 2018. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file timeout.c
+ * @brief Things that are due to happen later.
+ *
+ * Much of the game is scheduled rather than immediate: poison wearing off,
+ * a corpse rotting, a lamp burning out, an egg hatching, sickness killing.
+ * Rather than have every subsystem count its own turns, they place a timer
+ * against a turn number and this fires it when that turn arrives.
+ *
+ * Timers can be attached to an object or a monster, which is what lets them
+ * survive being picked up, carried between levels and saved -- and be cancelled
+ * when whatever they belonged to ceases to exist.
+ *
+ * @note Intrinsic properties with a duration are handled here too, so their
+ *       expiry and the messages announcing it happen in one place rather than
+ *       wherever they were granted.
+ * @warning A timer that fires may destroy the thing it was attached to, and may
+ *          create or cancel other timers, so the list is not safe to iterate
+ *          naively while firing.
+ */
+
+/**
+ * @file timeout.c
+ * @brief 나중에 일어나기로 예정된 일들.
+ *
+ * 게임의 많은 부분이 즉시가 아니라 예약이다. 독이 풀리고, 시체가 썩고, 등불이 다
+ * 타고, 알이 부화하고, 병이 목숨을 앗아 가는 일이다. 서브시스템마다 제 턴을 세게
+ * 하는 대신, 그것들은 특정 턴 번호에 타이머를 걸어 두고 그 턴이 오면 여기서 발동한다.
+ *
+ * 타이머는 객체나 몬스터에 붙일 수 있다. 덕분에 그것이 주워지고, 레벨 사이를 옮겨
+ * 다니고, 저장되어도 살아남으며, 붙어 있던 대상이 사라지면 함께 취소된다.
+ *
+ * @note 지속 시간이 있는 고유 능력도 여기서 다룬다. 그래야 만료와 그것을 알리는
+ *       메시지가 능력을 부여한 곳마다가 아니라 한 곳에서 일어난다.
+ * @warning 발동한 타이머는 자신이 붙어 있던 대상을 파괴할 수 있고, 다른 타이머를
+ *          만들거나 취소할 수도 있다. 그래서 발동 중에 목록을 순진하게 순회해서는
+ *          안 된다.
+ */
+
 #include "hack.h"
 
 #ifndef SFCTOOL

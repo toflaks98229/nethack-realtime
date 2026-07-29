@@ -3,6 +3,43 @@
 /*-Copyright (c) Alex Smith, 2017. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file mklev.c
+ * @brief Building an ordinary level: rooms, corridors, and what fills them.
+ *
+ * Rooms are placed first and then joined, and the joining is what makes a level
+ * playable rather than a collection of boxes: every room must be reachable, so
+ * corridors are dug between them until the whole is connected.
+ *
+ * Only then is the level furnished. Stairs must exist and be reachable, and
+ * doors, traps, objects, monsters and the occasional special room -- a shop, a
+ * temple, a zoo -- are placed into the structure rather than alongside it.
+ *
+ * @note Special levels do not come through here; they are laid out from data
+ *       files. This is what "a level" means when nothing has specified one.
+ * @warning A level that fails to connect is unplayable rather than merely
+ *          awkward, which is why connectivity is established before anything is
+ *          placed and not checked afterwards.
+ */
+
+/**
+ * @file mklev.c
+ * @brief 평범한 레벨을 짓는 일. 방, 통로, 그리고 그 안을 채우는 것들.
+ *
+ * 방을 먼저 놓고 그다음 잇는다. 그 잇는 일이 레벨을 상자 모음이 아니라 플레이할 수
+ * 있는 것으로 만든다. 모든 방에 닿을 수 있어야 하므로, 전체가 연결될 때까지 방 사이를
+ * 통로로 판다.
+ *
+ * 그러고 나서야 레벨을 채운다. 계단이 반드시 있고 닿을 수 있어야 하며, 문·함정·물건·
+ * 몬스터와 때때로 등장하는 특수한 방 -- 상점, 신전, 동물원 -- 이 구조와 나란히가
+ * 아니라 그 구조 안으로 놓인다.
+ *
+ * @note 특수 레벨은 여기를 거치지 않는다. 그것들은 데이터 파일에서 배치된다. 이 파일은
+ *       아무것도 지정되지 않았을 때 "레벨"이 무엇을 뜻하는지를 정한다.
+ * @warning 연결에 실패한 레벨은 어색한 정도가 아니라 플레이할 수 없다. 그래서 연결성은
+ *          무엇을 놓기 전에 확보하며, 나중에 검사하지 않는다.
+ */
+
 #include "hack.h"
 
 /* for UNIX, Rand #def'd to (long)lrand48() or (long)random() */

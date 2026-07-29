@@ -2,6 +2,43 @@
 /* Copyright (c) Benson I. Margulies, Mike Stephenson, Steve Linhart, 1989. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file pray.c
+ * @brief Praying, sacrificing, and the standing a god keeps with the hero.
+ *
+ * A god's response is not random. It is decided from a relationship the hero
+ * has been building all game: alignment record, luck, how recently they last
+ * prayed, and whether they are praying to their own god or another's.
+ *
+ * Prayer is meant for trouble, and the troubles are ranked -- starving,
+ * choking, turning to stone -- so a god fixes the worst thing first, and
+ * praying without trouble is itself an imposition that costs standing.
+ *
+ * @note Sacrificing at an altar is the other half of the same relationship: it
+ *       is how standing is repaired, and how a gift may eventually be earned.
+ * @warning Praying too soon is worse than not praying. The timeout is part of
+ *          the bargain rather than a cooldown, and ignoring it can turn help
+ *          into punishment.
+ */
+
+/**
+ * @file pray.c
+ * @brief 기도와 봉헌, 그리고 신이 영웅에 대해 지니는 평가.
+ *
+ * 신의 응답은 무작위가 아니다. 영웅이 게임 내내 쌓아 온 관계에서 결정된다. 성향 기록,
+ * 운, 마지막으로 기도한 지 얼마나 되었는지, 그리고 자기 신에게 비는지 다른 신에게
+ * 비는지다.
+ *
+ * 기도는 곤경을 위한 것이며 곤경에는 순위가 있다. 굶주림, 질식, 석화 같은 것들이다.
+ * 그래서 신은 가장 나쁜 것부터 고쳐 주고, 곤경 없이 비는 일은 그 자체로 무례이며
+ * 평가를 깎는다.
+ *
+ * @note 제단에서의 봉헌은 같은 관계의 나머지 절반이다. 평가를 회복하는 방법이자,
+ *       결국 선물을 얻어 낼 수 있는 방법이다.
+ * @warning 너무 이르게 기도하는 것은 기도하지 않는 것보다 나쁘다. 대기 시간은
+ *          쿨다운이 아니라 계약의 일부이며, 이를 무시하면 도움이 처벌로 바뀔 수 있다.
+ */
+
 #include "hack.h"
 
 staticfn int prayer_done(void);

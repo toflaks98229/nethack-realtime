@@ -3,6 +3,44 @@
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file makemon.c
+ * @brief Bringing a monster into existence.
+ *
+ * Choosing *what* to create is most of the work. A random monster must suit the
+ * depth and the level's character, must not be one that has been genocided or
+ * whose kind is used up, and unique creatures may only ever exist once -- so
+ * selection is a filtered draw rather than a roll.
+ *
+ * Creation then furnishes it: hit points and level from the species, a suitable
+ * inventory, an extension structure if its role needs one, and possibly a group
+ * of companions, since some creatures never arrive alone.
+ *
+ * @note Also handles growing up. A monster that advances becomes a different
+ *       species while remaining the same individual, which is why that lives
+ *       here rather than with combat.
+ * @warning Creation can fail -- nowhere to put it, nothing eligible to create --
+ *          and callers must expect no monster rather than assume one.
+ */
+
+/**
+ * @file makemon.c
+ * @brief 몬스터를 존재하게 만드는 일.
+ *
+ * *무엇을* 만들지 고르는 것이 작업의 대부분이다. 무작위 몬스터는 깊이와 그 레벨의
+ * 성격에 맞아야 하고, 절멸되었거나 종이 소진된 것이어서는 안 되며, 고유한 생물은
+ * 오직 한 번만 존재할 수 있다. 그래서 선택은 주사위 굴림이 아니라 걸러 낸 추첨이다.
+ *
+ * 그다음 생성이 그것을 갖춘다. 종에서 오는 체력과 등급, 어울리는 소지품, 역할에
+ * 필요하다면 확장 구조체, 그리고 경우에 따라 동행 무리다. 어떤 생물은 결코 혼자
+ * 오지 않기 때문이다.
+ *
+ * @note 성장도 여기서 처리한다. 성장한 몬스터는 같은 개체로 남은 채 다른 종이 되며,
+ *       그래서 이 일이 전투가 아니라 여기에 있다.
+ * @warning 생성은 실패할 수 있다. 놓을 곳이 없거나, 만들 만한 대상이 없을 때다.
+ *          호출자는 몬스터가 있다고 가정하지 말고 없을 수 있다고 예상해야 한다.
+ */
+
 #include "hack.h"
 
 /* this assumes that a human quest leader or nemesis is an archetype

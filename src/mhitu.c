@@ -3,6 +3,42 @@
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file mhitu.c
+ * @brief A monster attacking the hero.
+ *
+ * The counterpart to uhitm.c, and unlike mhitm.c the hero is involved -- so
+ * armour class, luck, protection and the hero's own passive defences all take
+ * part, and everything must be reported.
+ *
+ * A creature applies each of its attacks in turn, and their kinds differ
+ * greatly: a bite is not a gaze, a touch that steals is not damage at all, and
+ * being engulfed removes the hero from the map into the monster.
+ *
+ * @note Passive defences fire back from here, so an attacker can be hurt or
+ *       killed by the very blow it landed.
+ * @warning A single exchange may kill the hero partway through a sequence of
+ *          attacks; the remaining ones must not proceed as if there were still
+ *          someone to hit.
+ */
+
+/**
+ * @file mhitu.c
+ * @brief 몬스터가 영웅을 공격하는 일.
+ *
+ * uhitm.c 의 짝이며, mhitm.c 와 달리 여기에는 영웅이 개입한다. 그래서 방어도와 운,
+ * 보호, 그리고 영웅 자신의 수동 방어가 모두 관여하고, 모든 것을 알려야 한다.
+ *
+ * 생물은 자신의 공격을 하나씩 차례로 적용하며, 그 종류는 크게 다르다. 물기는 응시가
+ * 아니고, 훔치는 접촉은 애초에 피해가 아니며, 삼켜지는 것은 영웅을 지도에서 몬스터
+ * 안으로 옮기는 일이다.
+ *
+ * @note 수동 방어가 여기서 되받아친다. 그래서 공격자가 자신이 성공시킨 바로 그 타격
+ *       때문에 다치거나 죽을 수 있다.
+ * @warning 한 번의 교전이 연속된 공격 도중에 영웅을 죽일 수 있다. 남은 공격들이
+ *          여전히 때릴 상대가 있는 것처럼 진행해서는 안 된다.
+ */
+
 #include "hack.h"
 #include "artifact.h"
 
