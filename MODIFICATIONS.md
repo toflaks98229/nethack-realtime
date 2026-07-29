@@ -135,14 +135,25 @@ monst` behind accessors. Measurement redirected it:
   | `nh_savefile.h` | `NHFILE` handle and serializer mode bits |
   | `nh_progstate.h` | `program_state`/`level_status` phases, `InputState` |
   | `nh_makemon.h` | `makemon()`/`goodpos()` flags sharing one bit space |
+  | `nh_monnam.h` | articles and suppress masks for naming a monster |
+  | `nh_fileprefix.h` | directory classes locating data and state files |
+  | `nh_corpstat.h` | corpse/statue creation flags stored in `obj->spe` |
 
   `hack.h` remains a facade, so every existing source file and the PCH keep
-  working unchanged. It is now 1,276 lines, down from 1,581.
+  working unchanged. It is now 1,227 lines, down from 1,581.
 
-  **Verification.** Each round was checked by preprocessing a `hack.h`-including
-  translation unit against the pre-decomposition baseline and diffing the output
-  with `#line` directives stripped: **15,523 code lines, zero differences.** The
-  refactor is therefore behavior-preserving at the preprocessor level, not
+  **Verification.** Each round is checked against the pre-decomposition
+  baseline by two preprocessor comparisons, both of which must show zero
+  differences:
+
+  1. Preprocess a `hack.h`-including translation unit both ways and diff the
+     output with `#line` directives stripped — **15,523 code lines, identical**.
+     This covers structs, enums, and typedefs.
+  2. Preprocess a probe that forces every extracted macro to expand into a
+     value, and diff that — this covers the `#define`s, which check 1 cannot
+     see, because stripping lines that begin with `#` also strips them.
+
+  The refactor is therefore behavior-preserving at the preprocessor level, not
   merely "it still compiles".
 
 ### What was deliberately not done
