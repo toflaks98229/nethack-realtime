@@ -138,9 +138,15 @@ monst` behind accessors. Measurement redirected it:
   | `nh_monnam.h` | articles and suppress masks for naming a monster |
   | `nh_fileprefix.h` | directory classes locating data and state files |
   | `nh_corpstat.h` | corpse/statue creation flags stored in `obj->spe` |
+  | `nh_shop.h` | shopkeeper billing: selling states, damage prices, devaluation, repossession |
 
   `hack.h` remains a facade, so every existing source file and the PCH keep
-  working unchanged. It is now 1,227 lines, down from 1,581.
+  working unchanged. It is now 1,186 lines, down from 1,581.
+
+  Most headers are straight extractions of a contiguous block, included at the
+  position it occupied. `nh_shop.h` is the exception: its definitions sat in
+  four separate places, and are gathered at the position of the earliest, so
+  each becomes available no later than before.
 
   **Verification.** Each round is checked against the pre-decomposition
   baseline by two preprocessor comparisons, both of which must show zero
