@@ -1276,6 +1276,37 @@ rt_drive_hero(HWND hWnd)
 }
 
 /*
+ * The tile to paint over an entity that is being drawn somewhere else.
+ *
+ * The background glyph the core sends with each square is not usable for this:
+ * where a monster or the hero stands it is frequently the all-black unexplored
+ * tile, so erasing with it left a black hole under everything that moved. Ask
+ * the core what the *terrain* is instead -- back_to_glyph() answers ignoring
+ * whoever is standing on it, which is exactly the question being asked.
+ *
+ * Returns FALSE when no usable terrain tile can be had, in which case the
+ * caller should leave the entity drawn on its square rather than erase it with
+ * something wrong.
+ */
+static boolean
+rt_terrain_tile(coordxy x, coordxy y, short *tileidx)
+{
+    glyph_info gi;
+    int tglyph;
+
+    if (!isok(x, y))
+        return FALSE;
+    tglyph = back_to_glyph(x, y);
+    if (tglyph == NO_GLYPH || glyph_is_unexplored(tglyph))
+        return FALSE;
+    map_glyphinfo(x, y, tglyph, 0U, &gi);
+    if (gi.glyph == NO_GLYPH)
+        return FALSE;
+    *tileidx = gi.gm.tileidx;
+    return TRUE;
+}
+
+/*
  * Derive this frame's hero and camera offsets from the hero's continuous
  * position.
  *
@@ -1317,8 +1348,11 @@ rt_frame_offsets(PNHMapWindow data)
         data->heroDX = (int) (hx * (double) data->xFrontTile);
         data->heroDY = (int) (hy * (double) data->yFrontTile);
         /* only glide where there is terrain to erase the static hero with */
-        data->heroSlideActive =
-            (data->bkmap[u.ux][u.uy].glyph != NO_GLYPH);
+        {
+            short unused;
+
+            data->heroSlideActive = rt_terrain_tile(u.ux, u.uy, &unused);
+        }
     }
     rt_anim_start_timer(data);
 }
@@ -1372,11 +1406,12 @@ onPaint(HWND hWnd)
         bx = hr.left + data->camDX; /* align with the (possibly) panned world */
         by = hr.top + data->camDY;
 
-        /* (a) erase the static hero by repainting the terrain (bkglyph) */
-        ntile = data->bkmap[u.ux][u.uy].gm.tileidx;
-        StretchBlt(hFrontBufferDC, bx, by, data->xFrontTile, data->yFrontTile,
-                   data->tileDC, TILEBMP_X(ntile), TILEBMP_Y(ntile),
-                   GetNHApp()->mapTile_X, GetNHApp()->mapTile_Y, SRCCOPY);
+        /* (a) erase the static hero by repainting the terrain it stands on */
+        if (rt_terrain_tile(u.ux, u.uy, &ntile))
+            StretchBlt(hFrontBufferDC, bx, by, data->xFrontTile,
+                       data->yFrontTile, data->tileDC, TILEBMP_X(ntile),
+                       TILEBMP_Y(ntile), GetNHApp()->mapTile_X,
+                       GetNHApp()->mapTile_Y, SRCCOPY);
 
         /* (b) draw the hero at the interpolated position, transparently */
         ntile = data->map[u.ux][u.uy].gm.tileidx;
@@ -1422,7 +1457,7 @@ onPaint(HWND hWnd)
                     continue; /* the hero is handled above */
                 if (!rtv_offset_at((coordxy) i, (coordxy) j, &ox, &oy))
                     continue;
-                if (data->bkmap[i][j].glyph == NO_GLYPH)
+                if (!rt_terrain_tile((coordxy) i, (coordxy) j, &ntile))
                     continue; /* no terrain to erase with; leave it static */
 
                 anyMoving = TRUE;
@@ -1435,7 +1470,6 @@ onPaint(HWND hWnd)
                 offy = (int) (oy * (double) data->yFrontTile);
 
                 /* erase the statically drawn monster with its terrain ... */
-                ntile = data->bkmap[i][j].gm.tileidx;
                 StretchBlt(hFrontBufferDC, bx, by, data->xFrontTile,
                            data->yFrontTile, data->tileDC, TILEBMP_X(ntile),
                            TILEBMP_Y(ntile), GetNHApp()->mapTile_X,

@@ -100,7 +100,9 @@ static unsigned long rtv_free_tick = 0;
 static boolean rtv_step_pending = FALSE;
 static coordxy rtv_step_sqx, rtv_step_sqy;     /* square the step asked for */
 static coordxy rtv_step_fromx, rtv_step_fromy; /* square it was asked from */
-static unsigned long rtv_step_tick = 0;        /* when it was asked */
+static long rtv_step_moves = 0;                /* svm.moves when it was asked */
+static coordxy rtv_blocked_x, rtv_blocked_y;   /* square that just refused us */
+static unsigned long rtv_blocked_tick = 0;     /* when it refused */
 
 staticfn struct rtv_slot *rtv_find(unsigned);
 staticfn struct rtv_slot *rtv_claim(unsigned);
@@ -326,10 +328,18 @@ rtv_hero_free_move(double dx, double dy, coordxy *sx, coordxy *sy)
             rtv_fx = (double) u.ux;
             rtv_fy = (double) u.uy;
             rtv_step_pending = FALSE;
-        } else if (now - rtv_step_tick > (unsigned long) (RT_TURN_MS * 2)) {
-            /* still on the square it started from long after asking: refused */
-            rtv_fx = (double) u.ux;
-            rtv_fy = (double) u.uy;
+        } else if (svm.moves != rtv_step_moves) {
+            /* the game has taken a turn and the hero is still where it was:
+               refused.  Rest against whatever refused us rather than snapping
+               back to the middle of the square -- walking into a wall should
+               stop the hero at the wall, not a square short of it. */
+            rtv_fx = (double) u.ux
+                     + (double) (rtv_step_sqx - u.ux) * RTV_EDGE;
+            rtv_fy = (double) u.uy
+                     + (double) (rtv_step_sqy - u.uy) * RTV_EDGE;
+            rtv_blocked_x = rtv_step_sqx;
+            rtv_blocked_y = rtv_step_sqy;
+            rtv_blocked_tick = now;
             rtv_step_pending = FALSE;
         }
     } else if ((coordxy) RT_ROUND(rtv_fx) != u.ux
@@ -372,8 +382,12 @@ rtv_hero_free_move(double dx, double dy, coordxy *sx, coordxy *sy)
            the position is already legitimately past the boundary. */
         return FALSE;
     }
-    if (!isok(tx, ty)) {
-        /* the map ends here; stop just short of the edge */
+    if (!isok(tx, ty)
+        || ((tx == rtv_blocked_x && ty == rtv_blocked_y)
+            && now - rtv_blocked_tick < (unsigned long) RT_TURN_MS)) {
+        /* the map ends here, or this square just refused us: rest against it.
+           Retrying every frame would ask the game to walk into the same wall
+           sixty times a second, and say so each time. */
         if (nx > (double) u.ux + RTV_EDGE)
             nx = (double) u.ux + RTV_EDGE;
         else if (nx < (double) u.ux - RTV_EDGE)
@@ -395,7 +409,7 @@ rtv_hero_free_move(double dx, double dy, coordxy *sx, coordxy *sy)
             rtv_step_sqy = ty;
             rtv_step_fromx = u.ux;
             rtv_step_fromy = u.uy;
-            rtv_step_tick = now;
+            rtv_step_moves = svm.moves;
             rtv_fx = nx;
             rtv_fy = ny;
             *sx = (coordxy) (tx - u.ux);
