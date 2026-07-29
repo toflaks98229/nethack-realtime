@@ -77,6 +77,21 @@ core-side motion source, is possible future work.
 - During occupations/running, pacing falls back toward stock behavior.
 - Smoothing covers the camera pan and the hero's own movement; other monster
   sprites still step grid-to-grid rather than sliding.
+- **Input is buffered during animation.** Keystrokes pressed while a glide/pan
+  is playing are queued and then executed in a burst on the next tick, so fast
+  play can feel like it "pre-inputs" moves. This is inherent to the current
+  turn-buffered input model.
+
+### Future direction: vector positions (recorded)
+The buffered-input problem above and the grid-stepped monster motion both stem
+from the same root: positions are **tile/grid quantized** and time is sliced
+into discrete turns. The intended long-term fix is to move entities to
+**continuous vector positions** (real-valued x/y with velocity), sampling input
+continuously and integrating motion per frame, with the grid retained only for
+collision/pathfinding/game rules. That removes per-turn input buffering and
+makes true sub-tile motion (all entities) natural rather than a rendering
+overlay. This is a large engine change and is noted here as the target
+architecture, not yet implemented.
 
 ---
 
