@@ -98,7 +98,9 @@ static double rtv_fx, rtv_fy;         /* the hero's real position */
 static boolean rtv_free_init = FALSE;
 static unsigned long rtv_free_tick = 0;
 static boolean rtv_step_pending = FALSE;
-static coordxy rtv_step_sqx, rtv_step_sqy; /* square the step asked for */
+static coordxy rtv_step_sqx, rtv_step_sqy;     /* square the step asked for */
+static coordxy rtv_step_fromx, rtv_step_fromy; /* square it was asked from */
+static unsigned long rtv_step_tick = 0;        /* when it was asked */
 
 staticfn struct rtv_slot *rtv_find(unsigned);
 staticfn struct rtv_slot *rtv_claim(unsigned);
@@ -294,8 +296,8 @@ rtv_hero_offset(double *ox, double *oy)
 #define RTV_EDGE 0.48
 
 /* interface documented in nh_rtvector.h */
-void
-rtv_hero_free_move(double dx, double dy)
+boolean
+rtv_hero_free_move(double dx, double dy, coordxy *sx, coordxy *sy)
 {
     unsigned long now = nt_ticks(), elapsed;
     double len, speed, nx, ny;
@@ -308,20 +310,24 @@ rtv_hero_free_move(double dx, double dy)
         rtv_free_init = TRUE;
         rtv_free_tick = now ? now : 1;
         rtv_step_pending = FALSE;
-        return;
+        return FALSE;
     }
 
-    /* reconcile: see what the game did with the step we asked for.  Wait until
-       the queued key has actually been consumed -- judging sooner would call
-       every step refused in the frames before the game gets to act on it, and
-       the hero would stutter back and forth. */
+    /* Reconcile: see what the game did with the step we asked for.
+       While it is outstanding the position is left exactly where it was.  It
+       must not be pulled back toward the square the hero has not left yet --
+       doing that made the hero visibly jump backwards on every step. */
     if (rtv_step_pending) {
-        if (cmdq_peek(CQ_CANNED)) {
-            /* still waiting for the game to take it */
-        } else if (u.ux == rtv_step_sqx && u.uy == rtv_step_sqy) {
+        if (u.ux == rtv_step_sqx && u.uy == rtv_step_sqy) {
             rtv_step_pending = FALSE; /* accepted; keep the predicted position */
-        } else {
-            /* refused, or the hero was moved by something other than us */
+        } else if (u.ux != rtv_step_fromx || u.uy != rtv_step_fromy) {
+            /* somewhere neither predicted nor left from: the hero was moved by
+               something other than us, so the prediction describes nothing */
+            rtv_fx = (double) u.ux;
+            rtv_fy = (double) u.uy;
+            rtv_step_pending = FALSE;
+        } else if (now - rtv_step_tick > (unsigned long) (RT_TURN_MS * 2)) {
+            /* still on the square it started from long after asking: refused */
             rtv_fx = (double) u.ux;
             rtv_fy = (double) u.uy;
             rtv_step_pending = FALSE;
@@ -339,7 +345,7 @@ rtv_hero_free_move(double dx, double dy)
     if (elapsed > (unsigned long) RT_TURN_MS)
         elapsed = (unsigned long) RT_TURN_MS; /* a stall must not lurch */
     if (dx == 0.0 && dy == 0.0)
-        return;
+        return FALSE;
 
     /* a diagonal must not cover more ground than a straight line; input is
        eight-directional, so the only case to correct is both axes at once and
@@ -358,11 +364,16 @@ rtv_hero_free_move(double dx, double dy)
     if (tx == u.ux && ty == u.uy) {
         rtv_fx = nx; /* still the same square: nothing to ask the game */
         rtv_fy = ny;
-        return;
+        return FALSE;
     }
-    if (!isok(tx, ty) || rtv_step_pending) {
-        /* off the map, or we already have a step outstanding: hold at the edge
-           rather than drift into a square we may not be allowed to occupy */
+    if (rtv_step_pending) {
+        /* a step is already outstanding: hold position rather than run ahead
+           of a move the game has not made yet.  Holding, not pulling back --
+           the position is already legitimately past the boundary. */
+        return FALSE;
+    }
+    if (!isok(tx, ty)) {
+        /* the map ends here; stop just short of the edge */
         if (nx > (double) u.ux + RTV_EDGE)
             nx = (double) u.ux + RTV_EDGE;
         else if (nx < (double) u.ux - RTV_EDGE)
@@ -373,25 +384,26 @@ rtv_hero_free_move(double dx, double dy)
             ny = (double) u.uy - RTV_EDGE;
         rtv_fx = nx;
         rtv_fy = ny;
-        return;
+        return FALSE;
     }
 
-    /* crossing into a new square: ask the game to take that step */
+    /* crossing into a new square: report the step for the caller to deliver */
     for (i = 0; i < 8; i++) {
         if (xdir[i] == (schar) (tx - u.ux) && ydir[i] == (schar) (ty - u.uy)) {
-            const char *dc = gc.Cmd.dirchars;
-
-            if (dc && dc[i]) {
-                cmdq_add_key(CQ_CANNED, dc[i]);
-                rtv_step_pending = TRUE;
-                rtv_step_sqx = tx;
-                rtv_step_sqy = ty;
-                rtv_fx = nx;
-                rtv_fy = ny;
-            }
-            return;
+            rtv_step_pending = TRUE;
+            rtv_step_sqx = tx;
+            rtv_step_sqy = ty;
+            rtv_step_fromx = u.ux;
+            rtv_step_fromy = u.uy;
+            rtv_step_tick = now;
+            rtv_fx = nx;
+            rtv_fy = ny;
+            *sx = (coordxy) (tx - u.ux);
+            *sy = (coordxy) (ty - u.uy);
+            return TRUE;
         }
     }
+    return FALSE;
 }
 
 /* interface documented in nh_rtvector.h */

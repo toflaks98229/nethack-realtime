@@ -1222,7 +1222,8 @@ rt_anim_start_timer(PNHMapWindow data)
 static void
 rt_drive_hero(HWND hWnd)
 {
-    int dx = 0, dy = 0;
+    int dx = 0, dy = 0, i;
+    coordxy sx = 0, sy = 0;
 
     /* Only while the game is waiting for a command, and only while this
        application is the one being typed at.
@@ -1237,7 +1238,8 @@ rt_drive_hero(HWND hWnd)
        focus and testing for it here would refuse to move the hero at all. */
     if (!mswin_rt_awaiting_cmd
         || GetForegroundWindow() != GetNHApp()->hMainWnd) {
-        rtv_hero_free_move(0.0, 0.0); /* keep time accounted for, but stand */
+        /* keep time accounted for, but stand still */
+        (void) rtv_hero_free_move(0.0, 0.0, &sx, &sy);
         return;
     }
     nhUse(hWnd);
@@ -1253,9 +1255,24 @@ rt_drive_hero(HWND hWnd)
         dy = 1;
 #undef RT_HELD
 
-    /* the layer moves the hero's real position and asks the game for a step
-       whenever that position crosses into another square */
-    rtv_hero_free_move((double) dx, (double) dy);
+    /* the layer moves the hero's real position and reports a step whenever it
+       crosses into another square */
+    if (!rtv_hero_free_move((double) dx, (double) dy, &sx, &sy))
+        return;
+
+    /* Deliver it as input rather than on the command queue.  The game is
+       waiting for input right now, so this is consumed by that wait and paced
+       by it; a command-queue entry would instead be taken on the next pass
+       without waiting, which cost the pacing and spent a turn resting first. */
+    for (i = 0; i < 8; i++) {
+        if (xdir[i] == sx && ydir[i] == sy) {
+            const char *dc = gc.Cmd.dirchars;
+
+            if (dc && dc[i])
+                NHEVENT_KBD(dc[i]);
+            return;
+        }
+    }
 }
 
 /*

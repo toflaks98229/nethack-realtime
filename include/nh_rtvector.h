@@ -195,8 +195,16 @@ extern boolean rtv_hero_offset(double *ox, double *oy);
  * put it, and one that is refused pulls it back into the square the hero is
  * really in. That is what stops the drawn hero from walking through walls.
  *
- * @param[in] dx Horizontal input, -1 to 1; need not be normalized.
- * @param[in] dy Vertical input, -1 to 1; need not be normalized.
+ * @param[in]  dx Horizontal input, -1 to 1; need not be normalized.
+ * @param[in]  dy Vertical input, -1 to 1; need not be normalized.
+ * @param[out] sx Receives the horizontal component of the step to take.
+ * @param[out] sy Receives the vertical component of the step to take.
+ * @retval TRUE  A square boundary was crossed; deliver this step to the game.
+ * @retval FALSE Nothing to do this frame.
+ * @note The step is reported rather than submitted, so the port chooses how to
+ *       deliver it. That matters: a step placed on the command queue is taken
+ *       without the game waiting, which loses the pacing, whereas one delivered
+ *       as input is consumed by the wait already in progress.
  * @note Diagonals are scaled so that moving corner-wise is no faster than
  *       moving straight.
  * @note Call every frame, including with (0,0) when nothing is held, so that
@@ -218,8 +226,16 @@ extern boolean rtv_hero_offset(double *ox, double *oy);
  * 플레이어가 둔 자리에 남기고, 거부된 걸음은 위치를 영웅이 실제로 있는 칸으로
  * 되돌린다. 그려지는 영웅이 벽을 통과하지 않는 이유가 이것이다.
  *
- * @param[in] dx 수평 입력. -1에서 1 사이이며 정규화되어 있지 않아도 된다.
- * @param[in] dy 수직 입력. -1에서 1 사이이며 정규화되어 있지 않아도 된다.
+ * @param[in]  dx 수평 입력. -1에서 1 사이이며 정규화되어 있지 않아도 된다.
+ * @param[in]  dy 수직 입력. -1에서 1 사이이며 정규화되어 있지 않아도 된다.
+ * @param[out] sx 내디딜 걸음의 수평 성분을 받는다.
+ * @param[out] sy 내디딜 걸음의 수직 성분을 받는다.
+ * @retval TRUE  칸 경계를 넘었다. 이 걸음을 게임에 전달할 것.
+ * @retval FALSE 이번 프레임에 할 일이 없다.
+ * @note 걸음을 직접 제출하지 않고 보고만 하므로, 전달 방식은 포팅이 고른다.
+ *       이는 중요하다. 명령 큐에 놓인 걸음은 게임이 기다리지 않고 곧바로
+ *       처리해 페이싱을 잃지만, 입력으로 전달된 걸음은 이미 진행 중인 대기가
+ *       소비하기 때문이다.
  * @note 대각선은 모서리 방향 이동이 직선 이동보다 빠르지 않도록 보정된다.
  * @note 아무것도 눌리지 않았을 때 (0,0) 으로도 매 프레임 호출할 것. 그래야 경과
  *       시간이 반영되고, 멈춰 있던 시간이 한꺼번에 튀지 않는다.
@@ -227,7 +243,8 @@ extern boolean rtv_hero_offset(double *ox, double *oy);
  *          않은 동안에는, 들어가지 못할 수도 있는 칸으로 계속 나아가는 대신
  *          위치를 경계에 붙잡아 둔다.
  */
-extern void rtv_hero_free_move(double dx, double dy);
+extern boolean rtv_hero_free_move(double dx, double dy,
+                                  coordxy *sx, coordxy *sy);
 
 /**
  * @brief Forget every tracked position.
