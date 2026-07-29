@@ -1,6 +1,9 @@
 /* NetHack 5.0	mhmap.c	$NHDT-Date: 1781973103 2026/06/20 16:31:43 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.115 $ */
 /* Copyright (C) 2001 by Alex Kompel      */
 /* NetHack may be freely redistributed.  See license for details. */
+/* MODIFIED 2026-07 (real-time fork): added smooth-camera pan interpolation
+   (REALTIME_PROTO) so the tile view slides instead of snapping when the hero
+   moves; see MODIFICATIONS.md.  This file differs from the upstream NetHack. */
 
 #include "win10.h"
 #include "winMS.h"
@@ -23,6 +26,15 @@
 
 #define CURSOR_BLINK_INTERVAL 1000 // milliseconds
 #define CURSOR_HEIGHT 2 // pixels
+
+#ifdef REALTIME_PROTO
+/* smooth-camera pan (stage 3).  The cursor-blink timer uses id 0; the pan
+   animation uses a distinct id and fires every RT_CAM_FRAME_MS while active.
+   A pan completes in about RT_TURN_MS (from config.h), matching game pace. */
+#define RT_CAM_TIMER_ID 1
+#define RT_CAM_FRAME_MS 16 /* ~60 fps while panning */
+#define RT_CAM_MAX_TILES 2 /* clamp pan lag to this many tiles */
+#endif
 
 #define TILEBMP_X(ntile) \
     ((ntile % GetNHApp()->mapTilesPerLine) * GetNHApp()->mapTile_X)
@@ -71,6 +83,15 @@ typedef struct mswin_nethack_map_window {
 
     HDC tileDC;                /* tile drawing context */
 
+#ifdef REALTIME_PROTO
+    /* smooth-camera state (stage 3): when the hero moves, the scroll origin
+       jumps by whole tiles; we render at a fractional pixel offset that
+       decays to zero so the view pans smoothly instead of snapping */
+    int camDX, camDY;           /* current pan offset, front-buffer pixels */
+    int camLastXPos, camLastYPos; /* scroll pos observed at last pan seed */
+    boolean camInit;            /* camLast{X,Y}Pos have been initialized */
+    boolean camAnimating;       /* pan timer is currently running */
+#endif
 } NHMapWindow, *PNHMapWindow;
 
 static TCHAR szNHMapWindowClass[] = TEXT("MSNethackMapWndClass");
@@ -645,6 +666,28 @@ MapWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_TIMER:
+#ifdef REALTIME_PROTO
+        if (wParam == RT_CAM_TIMER_ID) {
+            /* decay the smooth-pan offset toward zero, ~RT_TURN_MS total */
+            int stepx = data->xFrontTile * RT_CAM_FRAME_MS / RT_TURN_MS;
+            int stepy = data->yFrontTile * RT_CAM_FRAME_MS / RT_TURN_MS;
+
+            if (stepx < 1)
+                stepx = 1;
+            if (stepy < 1)
+                stepy = 1;
+            data->camDX = (data->camDX > 0) ? max(0, data->camDX - stepx)
+                                            : min(0, data->camDX + stepx);
+            data->camDY = (data->camDY > 0) ? max(0, data->camDY - stepy)
+                                            : min(0, data->camDY + stepy);
+            InvalidateRect(hWnd, NULL, FALSE); /* repaint at new offset */
+            if (data->camDX == 0 && data->camDY == 0) {
+                KillTimer(hWnd, RT_CAM_TIMER_ID);
+                data->camAnimating = FALSE;
+            }
+            break;
+        }
+#endif
         data->cursorOn = !data->cursorOn;
         dirty(data, data->xCur, data->yCur);
         break;
@@ -1121,6 +1164,43 @@ paint(PNHMapWindow data, int i, int j)
 }
 
 
+#ifdef REALTIME_PROTO
+/* Detect a whole-tile jump of the scroll origin (which happens when the hero
+   walks and the view re-centers) and seed a fractional pan offset so the view
+   starts at the OLD position and slides to the new one.  The WM_TIMER handler
+   decays camD{X,Y} back to zero over ~RT_TURN_MS.  Contained to this window;
+   if the offset is zero the render is pixel-identical to stock. */
+static void
+rt_cam_seed(PNHMapWindow data)
+{
+    int maxdx, maxdy;
+
+    if (!data->camInit) { /* first paint: adopt current pos, don't pan */
+        data->camLastXPos = data->xPos;
+        data->camLastYPos = data->yPos;
+        data->camInit = TRUE;
+        return;
+    }
+    if (data->xPos != data->camLastXPos || data->yPos != data->camLastYPos) {
+        data->camDX += (data->camLastXPos - data->xPos) * data->xFrontTile;
+        data->camDY += (data->camLastYPos - data->yPos) * data->yFrontTile;
+        data->camLastXPos = data->xPos;
+        data->camLastYPos = data->yPos;
+
+        /* clamp lag so a burst of fast moves can't fling the view far */
+        maxdx = RT_CAM_MAX_TILES * data->xFrontTile;
+        maxdy = RT_CAM_MAX_TILES * data->yFrontTile;
+        data->camDX = max(-maxdx, min(maxdx, data->camDX));
+        data->camDY = max(-maxdy, min(maxdy, data->camDY));
+
+        if (!data->camAnimating) {
+            SetTimer(data->hWnd, RT_CAM_TIMER_ID, RT_CAM_FRAME_MS, NULL);
+            data->camAnimating = TRUE;
+        }
+    }
+}
+#endif /* REALTIME_PROTO */
+
 /* on WM_PAINT */
 void
 onPaint(HWND hWnd)
@@ -1133,10 +1213,16 @@ onPaint(HWND hWnd)
     /* stretch back buffer onto front buffer window */
     int frontWidth = COLNO * data->xFrontTile;
     int frontHeight = ROWNO * data->yFrontTile;
+    int originX = data->map_orig.x - (data->xPos * data->xFrontTile);
+    int originY = data->map_orig.y - (data->yPos * data->yFrontTile);
 
-    StretchBlt(hFrontBufferDC,
-        data->map_orig.x - (data->xPos * data->xFrontTile),
-        data->map_orig.y - (data->yPos * data->yFrontTile), frontWidth, frontHeight,
+#ifdef REALTIME_PROTO
+    rt_cam_seed(data);      /* seed a pan if the scroll origin just jumped */
+    originX += data->camDX; /* apply the smooth-pan offset (0 when idle) */
+    originY += data->camDY;
+#endif
+
+    StretchBlt(hFrontBufferDC, originX, originY, frontWidth, frontHeight,
                 data->backBufferDC, 0, 0, data->backWidth, data->backHeight, SRCCOPY);
 
     EndPaint(hWnd, &ps);
