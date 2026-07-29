@@ -77,10 +77,12 @@ core-side motion source, is possible future work.
 - During occupations/running, pacing falls back toward stock behavior.
 - Smoothing covers the camera pan and the hero's own movement; other monster
   sprites still step grid-to-grid rather than sliding.
-- **Input is buffered during animation.** Keystrokes pressed while a glide/pan
-  is playing are queued and then executed in a burst on the next tick, so fast
-  play can feel like it "pre-inputs" moves. This is inherent to the current
-  turn-buffered input model.
+- **Input during animation is dropped, not queued.** Keystrokes made while a
+  glide/pan plays used to accumulate and then replay in a burst ("pre-input").
+  Each tick now keeps only the most recent buffered keystroke and discards the
+  rest, on both the console and win32 paths, so the hero acts on live intent.
+  The trade-off is deliberate: rapid multi-key sequences entered mid-animation
+  are not all honored.
 
 ### Future direction: vector positions (recorded)
 The buffered-input problem above and the grid-stepped monster motion both stem
@@ -92,6 +94,57 @@ collision/pathfinding/game rules. That removes per-turn input buffering and
 makes true sub-tile motion (all entities) natural rather than a rendering
 overlay. This is a large engine change and is noted here as the target
 architecture, not yet implemented.
+
+---
+
+## Build and structure changes — 2026-07
+
+Work aimed at the `hack.h` "god header", which every source file includes and
+which pulls in ~35 sub-headers.
+
+### What was measured first
+The original plan was to decompose `hack.h` and hide `struct obj` / `struct
+monst` behind accessors. Measurement redirected it:
+
+- The header graph is a **star centered on `hack.h`, with no cycles** — the
+  sub-headers are each included by only that one header.
+- Struct fields are read **directly in 7,000+ places** (`obj->…` ~3,081,
+  `mtmp->…` ~4,187), so wholesale struct hiding is not safely mechanizable.
+- The build cost came from **no precompiled header being configured**, not from
+  header coupling.
+
+### What was done
+- **`include/nhfwd.h`** — canonical forward declarations for the core
+  aggregates. A foundation for decomposition; additive and currently unused.
+- **Precompiled headers** (`NetHack.vcxproj`, `NetHackW.vcxproj`) — `hack.h` is
+  the through-header, `allmain.c` creates the PCH, and files that don't include
+  `hack.h` first are excluded after a full conformance scan of every
+  `ClCompile` entry. **No source changes.**
+- **`include/nhaccess.h`** — opt-in accessors naming the concepts the raw field
+  reads keep repeating (the object `where` predicates alone appear 130+ times).
+  Additive; no existing call site was migrated.
+
+### What was deliberately not done
+**`hack.h` is not decomposed, and the core structs are not hidden.** Measured
+per-file compile cost settled it:
+
+| configuration | ms/file |
+|---|---|
+| `hack.h` + PCH (current) | 56 |
+| minimal include, no PCH | 96 |
+| `hack.h`, no PCH (before) | 138 |
+
+Converting a file off `hack.h` forces it out of the PCH, making it ~40 ms
+*slower*; across the 138 PCH-using files that would add ~5.5 s to the build.
+The reverse opportunity — making the few PCH-excluded files eligible — is worth
+only ~0.4 s, and `sp_lev.c` cannot share the PCH at all (`IN_SP_LEV_C` changes
+what the headers declare). So decomposition was closed as counterproductive:
+its build-time motivation is now served better, and without touching source,
+by the PCH.
+
+`nhfwd.h` and `nhaccess.h` therefore remain **foundations with no adopters
+yet** — intended for code that is newly written or revised, not for a sweeping
+migration.
 
 ---
 
