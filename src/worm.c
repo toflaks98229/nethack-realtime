@@ -3,6 +3,49 @@
 /*-Copyright (c) Robert Patrick Rankin, 2009. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file worm.c
+ * @brief Long worms: one monster that occupies many squares.
+ *
+ * A long worm is a single @c monst -- the head -- trailing a list of light
+ * @c wseg segments that occupy squares of their own. Only the head has hit
+ * points, an inventory, or a place in the monster chain, which is what keeps
+ * probing, damage, and death from having to understand a creature made of
+ * parts.
+ *
+ * Movement is by adding a segment at the head and dropping one at the tail, so
+ * a worm grows simply by not dropping it, and shrinks when its head is blocked
+ * while its tail keeps travelling.
+ *
+ * @note The detailed description of the segment lists, and why the head's own
+ *       segment sits at the end of the tail list, follows below in the original
+ *       implementation comment.
+ * @warning A worm cutting or dying has to unwind several parallel structures --
+ *          the segment lists, the map, and possibly a second monster made from
+ *          the severed half -- so the functions here are not interchangeable
+ *          with the ordinary monster ones.
+ */
+
+/**
+ * @file worm.c
+ * @brief 긴 지렁이: 여러 칸을 차지하는 하나의 몬스터.
+ *
+ * 긴 지렁이는 하나의 @c monst -- 머리 -- 가 가벼운 @c wseg 조각들의 목록을
+ * 끌고 다니는 형태이며, 그 조각들이 각자 칸을 차지한다. 체력과 소지품, 몬스터
+ * 사슬에서의 자리를 갖는 것은 머리뿐이다. 덕분에 탐지·피해·죽음 처리가 여러
+ * 부분으로 이루어진 생물을 이해할 필요가 없다.
+ *
+ * 이동은 머리 쪽에 조각을 더하고 꼬리 쪽 조각을 버리는 방식이다. 그래서 버리지
+ * 않으면 그대로 자라고, 머리가 막힌 채 꼬리만 계속 나아가면 줄어든다.
+ *
+ * @note 조각 목록의 자세한 구조와, 머리 자신의 조각이 꼬리 목록의 끝에 놓이는
+ *       이유는 아래의 원본 구현 주석에 이어진다.
+ * @warning 지렁이가 잘리거나 죽을 때는 여러 병렬 구조를 함께 풀어야 한다. 조각
+ *          목록, 지도, 그리고 잘려 나간 절반으로 만들어질 수 있는 두 번째
+ *          몬스터까지다. 그래서 여기 함수들은 일반 몬스터용 함수와 바꿔 쓸 수
+ *          없다.
+ */
+
 #include "hack.h"
 
 #define newseg() (struct wseg *) alloc(sizeof (struct wseg))
@@ -192,6 +235,26 @@ shrink_worm(int wnum) /* worm number */
  *
  *  Move the worm.  Maybe grow.
  */
+/**
+ * @brief Drag the tail along after the head has moved, growing if it is time.
+ * @param[in,out] worm The worm's head.
+ * @note Called *after* the head has already been moved, so the square the head
+ *       just left becomes the newest segment.
+ * @note Growth is simply not dropping the tail segment this time, and it also
+ *       grants hit points -- length and toughness are the same thing here.
+ * @warning The caller must confirm @c worm->wormno first; a worm without a
+ *          tail has no segment lists to walk.
+ */
+/**
+ * @brief 머리가 움직인 뒤 꼬리를 끌어오며, 때가 되었으면 자라게 한다.
+ * @param[in,out] worm 지렁이의 머리.
+ * @note 머리가 이미 이동한 *뒤에* 호출된다. 그래서 머리가 방금 떠난 칸이 가장
+ *       새로운 조각이 된다.
+ * @note 성장은 이번에 꼬리 조각을 버리지 않는 것일 뿐이며, 체력도 함께 준다.
+ *       여기서는 길이와 강인함이 같은 것이다.
+ * @warning 호출자가 먼저 @c worm->wormno 를 확인해야 한다. 꼬리가 없는 지렁이는
+ *          순회할 조각 목록 자체가 없다.
+ */
 void
 worm_move(struct monst *worm)
 {
@@ -284,6 +347,19 @@ worm_move(struct monst *worm)
  *
  *  The worm doesn't move, so it should shrink.
  */
+/**
+ * @brief Shrink a worm whose head could not move.
+ * @param[in,out] worm The worm's head.
+ * @note A stalled worm is assumed to be hemmed in by its own tail, which keeps
+ *       travelling while the head does not -- so it loses a segment, and hit
+ *       points with it.
+ */
+/**
+ * @brief 머리가 움직이지 못한 지렁이를 줄인다.
+ * @param[in,out] worm 지렁이의 머리.
+ * @note 멈춘 지렁이는 자기 꼬리에 둘러싸인 것으로 간주한다. 머리는 멈춰 있어도
+ *       꼬리는 계속 나아가므로 조각을 하나 잃고, 그와 함께 체력도 잃는다.
+ */
 void
 worm_nomove(struct monst *worm)
 {
@@ -368,6 +444,30 @@ wormhitu(struct monst *worm)
  *  When hitting a worm (worm) at position x, y, with a weapon (weap),
  *  there is a chance that the worm will be cut in half, and a chance
  *  that both halves will survive.
+ */
+/**
+ * @brief Possibly sever a worm struck partway along its length.
+ * @param[in,out] worm  The worm's head.
+ * @param[in]     x     Column that was struck.
+ * @param[in]     y     Row that was struck.
+ * @param[in]     cuttier TRUE when the blow is capable of cutting.
+ * @note A cut can produce a second, independent worm from the severed tail, so
+ *       one attack may leave two monsters where there was one -- the tail half
+ *       needs a @c monst of its own before it can exist as a creature.
+ * @note Striking the head is not a cut; there is nothing to sever behind it.
+ * @warning The caller must confirm @c worm->wormno first.
+ */
+/**
+ * @brief 몸통 중간을 맞은 지렁이를 잘라낼 수 있다.
+ * @param[in,out] worm  지렁이의 머리.
+ * @param[in]     x     타격당한 열.
+ * @param[in]     y     타격당한 행.
+ * @param[in]     cuttier 벨 수 있는 공격이면 TRUE.
+ * @note 절단은 잘려 나간 꼬리로부터 독립된 두 번째 지렁이를 만들 수 있다. 공격
+ *       한 번이 하나였던 몬스터를 둘로 남길 수 있다는 뜻이며, 꼬리 쪽 절반은
+ *       생물로 존재하기 위해 자기 @c monst 를 얻어야 한다.
+ * @note 머리를 때리는 것은 절단이 아니다. 그 뒤로 잘라낼 것이 없기 때문이다.
+ * @warning 호출자가 먼저 @c worm->wormno 를 확인해야 한다.
  */
 void
 cutworm(struct monst *worm, coordxy x, coordxy y,
