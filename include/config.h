@@ -6,9 +6,72 @@
    real-time build switch; see MODIFICATIONS.md.  This file differs from the
    upstream NetHack distribution. */
 
+/**
+ * @file config.h
+ * @brief What to build, decided before anything is compiled.
+ *
+ * The first header read, and it decides what the rest of the game is. Which platform, which display, which optional features, how large the shared files are allowed to
+ * be. Everything downstream is conditional on what is chosen here.
+ *
+ * The file is meant to be edited. It is organised in numbered sections with prose explaining each choice, and most lines are commented-out options with a note on when to
+ * enable them -- so it reads as instructions to a person rather than as declarations to a compiler.
+ *
+ * That is worth keeping in mind while reading it. A commented-out definition here is not dead code; it is an option not taken, and the comment beside it is the reason.
+ *
+ * @note Platform detection happens in an included header, so the platform sections here mostly need no change -- the compiler is asked what it is rather than told.
+ * @note This is a modified copy of NetHack. The real-time switch at the top of the file is this fork's, and the file header above records that; the modifications document
+ *       has the details.
+ * @warning Choices here change the save format and the data files. A saved game or a data file from a build with different options may not be readable, and the version
+ *          check exists to catch that rather than to prevent it.
+ */
+
+/**
+ * @file config.h
+ * @brief 무엇을 빌드할지. 무엇이 컴파일되기 전에 정해진다.
+ *
+ * 가장 먼저 읽히는 헤더이며, 게임의 나머지가 무엇인지를 정한다. 어느 플랫폼, 어느 표시부, 어떤 선택 기능, 공유 파일이 얼마나 커도 되는지. 하류의 모든 것이 여기서 골라진 것에 조건적이다.
+ *
+ * 이 파일은 편집되도록 의도되어 있다. 번호가 붙은 절로 조직되어 있고 각 선택을 설명하는 산문이 딸려 있으며, 대부분의 줄이 주석 처리된 선택지와 그것을 언제 켜야 하는지에 대한 메모다. 그래서 컴파일러를 향한 선언이 아니라 사람을 향한 지침으로 읽힌다.
+ *
+ * 그것을 읽는 동안 염두에 둘 만하다. 여기의 주석 처리된 정의는 죽은 코드가 아니다. 택하지 않은 선택지이며, 그 곁의 주석이 그 이유다.
+ *
+ * @note 플랫폼 감지는 포함된 헤더에서 일어나므로, 여기의 플랫폼 절은 대부분 손댈 필요가 없다. 컴파일러에게 말해 주는 것이 아니라 무엇인지 물어본다.
+ * @note 이것은 NetHack 의 수정된 사본이다. 파일 맨 위의 실시간 스위치가 이 포크의 것이며, 위의 파일 머리말이 그것을 기록한다. 자세한 것은 수정 문서에 있다.
+ * @warning 여기의 선택은 저장 형식과 데이터 파일을 바꾼다. 옵션이 다른 빌드의 저장 게임이나 데이터 파일은 읽히지 않을 수 있으며, 버전 검사는 그것을 막기 위해서가 아니라 잡아내기 위해 존재한다.
+ */
+
 #ifndef CONFIG_H /* make sure the compiler does not see the typedefs twice */
 #define CONFIG_H
 
+/**
+ * @name Real-time conversion switch
+ * @brief This fork's own option: run the world on a clock rather than on the player's input.
+ *
+ * In stock NetHack the world is frozen while the game waits for a keystroke. With this defined it is not: a shared wall clock advances the world one turn every so many
+ * real milliseconds whether or not anything was typed, so monsters keep moving and timeouts keep running while the player thinks.
+ *
+ * The turn length is the pace of the game and the poll interval is how finely input is checked while waiting. The second is not a game setting -- it trades responsiveness
+ * against how much processor time is spent waiting.
+ *
+ * @note Two ports implement it, as the existing comment records: the console loop and the Windows tile display. A port that does not is unaffected and stays turn-based.
+ * @note Commenting the switch out restores stock behaviour, which is the point of having it as a switch rather than a rewrite.
+ * @warning Not part of upstream NetHack. Everything conditional on it is this fork's, and the surrounding game was written on the assumption that the world waits.
+ * @{
+ */
+/**
+ * @name 실시간 전환 스위치
+ * @brief 이 포크 자체의 선택지. 세계를 플레이어의 입력이 아니라 시계로 돌린다.
+ *
+ * 원래의 NetHack 에서는 게임이 키 입력을 기다리는 동안 세계가 멈춰 있다. 이것이 정의되면 그렇지 않다. 공유된 실제 시계가 무엇이 입력되었는지와 무관하게 실제 밀리초 단위마다 세계를 한 턴 진행시키므로, 플레이어가 생각하는 동안에도 몬스터는 계속 움직이고
+ * 남은 시간은 계속 흐른다.
+ *
+ * 턴 길이가 게임의 속도이고, 폴링 간격은 기다리는 동안 입력을 얼마나 촘촘히 확인하는지다. 두 번째는 게임 설정이 아니다. 반응성과 기다리는 데 쓰이는 프로세서 시간을 절충한다.
+ *
+ * @note 기존 주석이 기록하듯 두 포트가 이것을 구현한다. 콘솔 루프와 Windows 타일 표시부. 그러지 않는 포트는 영향을 받지 않고 턴제로 남는다.
+ * @note 이 스위치를 주석 처리하면 원래 동작으로 돌아간다. 그것이 이것을 다시 쓰기가 아니라 스위치로 두는 요점이다.
+ * @warning 상류 NetHack 의 일부가 아니다. 이것에 조건적인 모든 것이 이 포크의 것이며, 둘레의 게임은 세계가 기다린다는 전제 위에 쓰였다.
+ * @{
+ */
 /*
  * Real-time prototype switch (turn-based -> real-time conversion).
  * When defined, the hero no longer freezes the world while waiting for
@@ -24,7 +87,27 @@
                         * smaller = faster action, larger = calmer pace */
 #define RT_POLL_MS 10  /* input-poll / CPU-yield granularity while waiting */
 #endif
+/** @} */
 
+/**
+ * @name Section 1: platform and display
+ * @brief Which operating system and which display this build is for.
+ *
+ * Mostly nothing to change. The platform is detected by the included header rather than declared here, and the prose alongside each option says when it would need
+ * enabling -- generally when a compiler or terminal misbehaves in a specific way.
+ *
+ * @note More than one display may be built in at once. The choice between them is then made when the game runs, which is why they are not mutually exclusive here.
+ * @{
+ */
+/**
+ * @name 1절: 플랫폼과 표시부
+ * @brief 이 빌드가 어느 운영 체제와 어느 표시부를 위한 것인지.
+ *
+ * 대부분 바꿀 것이 없다. 플랫폼은 여기서 선언되는 것이 아니라 포함된 헤더가 감지하며, 각 선택지 곁의 산문이 그것을 언제 켜야 하는지 밝힌다. 대체로 컴파일러나 터미널이 특정한 방식으로 잘못 동작할 때다.
+ *
+ * @note 여러 표시부가 한 번에 빌드에 포함될 수 있다. 그 사이의 선택은 게임이 돌아갈 때 이뤄지며, 그래서 여기서 그것들이 서로 배타적이지 않다.
+ * @{
+ */
 /*
  * Section 1:   Operating and window systems selection.
  *              Select the version of the OS you are using.
@@ -188,6 +271,40 @@
 #endif
 #endif
 
+/** @} */
+
+/**
+ * @name Section 2: shared files and site configuration
+ * @brief Where the game keeps its shared state, and what a site administrator may control.
+ *
+ * The first half names the files several players share -- the score record, the log of finished games, the log of what happened during them. Commenting one out removes that
+ * feature rather than breaking it, which is what makes them optional.
+ *
+ * The second half is the site configuration, and it exists for a specific situation: one installation played by many people. An administrator can then say who is allowed to
+ * use debug mode, how many may play at once, how large the score file may grow, and how to reach support. The compiled-in values become defaults which that configuration
+ * overrides.
+ *
+ * @note The prose here is the reference for what a site configuration file may contain. It is documentation for an administrator rather than for a programmer, which is why
+ *       it is unusually long.
+ * @note Debug mode is always built in now, as the existing comment records. What the configuration controls is who may enter it, not whether it exists.
+ * @warning The list of who may debug is one setting that does @e not fall back to the compiled-in value, as the comment states explicitly. An installation that enables site
+ *          configuration and omits it allows nobody.
+ * @{
+ */
+/**
+ * @name 2절: 공유 파일과 사이트 설정
+ * @brief 게임이 공유 상태를 어디에 보관하는지, 그리고 사이트 관리자가 무엇을 통제할 수 있는지.
+ *
+ * 전반부는 여러 플레이어가 공유하는 파일들의 이름을 붙인다. 점수 기록, 끝난 게임의 로그, 그 동안 무슨 일이 있었는지의 로그. 하나를 주석 처리하면 그 기능이 깨지는 것이 아니라 없어진다. 그것이 그것들을 선택적으로 만드는 것이다.
+ *
+ * 후반부는 사이트 설정이며, 특정한 상황을 위해 존재한다. 여러 사람이 플레이하는 하나의 설치본. 그러면 관리자가 누가 디버그 모드를 쓸 수 있는지, 몇 명이 동시에 플레이할 수 있는지, 점수 파일이 얼마나 커질 수 있는지, 지원을 어떻게 받는지를 말할 수 있다.
+ * 컴파일에 포함된 값들이 그 설정이 덮어쓰는 기본값이 된다.
+ *
+ * @note 여기의 산문이 사이트 설정 파일이 무엇을 담을 수 있는지에 대한 참고 자료다. 프로그래머가 아니라 관리자를 위한 문서이며, 그래서 유난히 길다.
+ * @note 기존 주석이 기록하듯 디버그 모드는 이제 항상 빌드에 포함된다. 설정이 통제하는 것은 그것이 존재하는지가 아니라 누가 그것에 들어갈 수 있는지다.
+ * @warning 누가 디버그할 수 있는지의 목록은 컴파일에 포함된 값으로 @e 돌아가지 않는 유일한 설정이며, 그 주석이 그것을 명시한다. 사이트 설정을 켜고 그것을 빠뜨린 설치본은 아무에게도 허용하지 않는다.
+ * @{
+ */
 /*
  * Section 2:   Some global parameters and filenames.
  *
@@ -484,6 +601,30 @@
 #endif /* CHDIR */
 
 
+/** @} */
+
+/**
+ * @name Section 3: what the compiler and machine can do
+ * @brief Accommodations for compilers and machines that differ from the assumed one.
+ *
+ * The options here are not preferences but workarounds, each for a specific failing: a compiler that does not understand a basic type, one that claims to follow the standard
+ * without doing so, a machine on which the game's small integer types must be wider than a byte.
+ *
+ * @note Almost all of them are for hardware and compilers long out of use. They are kept because removing one is only safe if nobody is building on such a machine, and that
+ *       cannot be established -- the cost of keeping them is a few conditionals.
+ * @warning The type widths chosen here are part of the save format. A machine that needs wider small integers cannot read another's saves.
+ * @{
+ */
+/**
+ * @name 3절: 컴파일러와 기계가 무엇을 할 수 있는지
+ * @brief 전제된 것과 다른 컴파일러와 기계를 위한 조치.
+ *
+ * 여기의 선택지들은 선호가 아니라 우회책이며, 각각이 특정한 결함을 위한 것이다. 기본 타입을 이해하지 못하는 컴파일러, 표준을 따르지 않으면서 따른다고 주장하는 컴파일러, 게임의 작은 정수 타입이 한 바이트보다 넓어야 하는 기계.
+ *
+ * @note 거의 전부가 오래전에 쓰이지 않게 된 하드웨어와 컴파일러를 위한 것이다. 남겨 두는 것은, 하나를 없애는 것이 그런 기계에서 아무도 빌드하지 않을 때만 안전하고 그것을 확인할 수 없기 때문이다. 남겨 두는 비용은 조건문 몇 개다.
+ * @warning 여기서 골라진 타입 폭은 저장 형식의 일부다. 더 넓은 작은 정수를 필요로 하는 기계는 다른 기계의 저장을 읽을 수 없다.
+ * @{
+ */
 /*
  * Section 3:   Definitions that may vary with system type.
  *              For example, both schar and uchar should be short ints on
@@ -566,6 +707,31 @@ typedef unsigned char uchar;
 # define CONFIG_ERROR_SECURE TRUE
 #endif
 
+/** @} */
+
+/**
+ * @name Section 4: experimental options
+ * @brief Features that are finished enough to build but not enough to be relied on.
+ *
+ * The warning above is not boilerplate. These are enabled at the builder's own risk and the existing comment says outright that bugs are expected to remain -- so an option
+ * here failing is not necessarily a defect to be reported.
+ *
+ * @note Each option's prose says both what it does and when to turn it off again -- typically when the code it depends on does not compile or does not work on a given
+ *       platform. That is the practical use of this section: it is where a feature waits until it works everywhere.
+ * @note Some options here are enabled by default despite the section's warning, which means they have been through enough use to be trusted on the common platforms but not
+ *       to be promoted out of the section.
+ * @{
+ */
+/**
+ * @name 4절: 실험적 선택지
+ * @brief 빌드될 만큼은 완성되었으나 의존할 만큼은 아닌 기능들.
+ *
+ * 위의 경고는 형식적인 문구가 아니다. 이들은 빌드하는 사람의 책임으로 켜지며, 기존 주석은 버그가 남아 있을 것으로 예상된다고 노골적으로 말한다. 그래서 여기의 어떤 선택지가 실패하는 것이 반드시 보고할 결함은 아니다.
+ *
+ * @note 각 선택지의 산문이 그것이 무엇을 하는지와 언제 다시 끄면 되는지를 함께 밝힌다. 대체로 그것이 의존하는 코드가 어떤 플랫폼에서 컴파일되지 않거나 작동하지 않을 때다. 그것이 이 절의 실질적인 용도다. 어떤 기능이 어디서나 작동하기까지 기다리는 곳.
+ * @note 이 절의 경고에도 불구하고 여기의 몇몇 선택지는 기본으로 켜져 있다. 흔한 플랫폼에서 믿을 만큼은 쓰였지만 이 절 밖으로 승격될 만큼은 아니라는 뜻이다.
+ * @{
+ */
 /*
  * Section 4:  EXPERIMENTAL STUFF
  *
@@ -754,10 +920,22 @@ typedef unsigned char uchar;
 */
 #endif /* DUMPLOG_FILE */
 #endif /* DUMPLOG */
+/**
+ * @def DUMPLOG_MSG_COUNT
+ * @brief How many of the last messages the end-of-game dump includes.
+ * @note A window rather than the whole history, because the dump is meant to show how the game ended -- the messages leading up to the death are the interesting ones and the
+ *       rest is noise.
+ */
+/**
+ * @def DUMPLOG_MSG_COUNT
+ * @brief 게임 종료 시의 덤프가 마지막 메시지 몇 개를 포함하는지.
+ * @note 전체 이력이 아니라 창인 것은, 그 덤프가 게임이 어떻게 끝났는지를 보이기 위한 것이기 때문이다. 죽음에 이르는 메시지들이 흥미로운 것이고 나머지는 소음이다.
+ */
 #ifdef DUMPLOG_CORE
 #ifndef DUMPLOG_MSG_COUNT
 #define DUMPLOG_MSG_COUNT   50
 #endif /* DUMPLOG_MSG_COUNT */
 #endif
+/** @} */
 
 #endif /* CONFIG_H */
