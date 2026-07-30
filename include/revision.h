@@ -2,6 +2,44 @@
 /* Copyright (c) Michael Allison, 2026. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file revision.h
+ * @brief Old shapes of saved structures, kept so that old save files can still be read.
+ *
+ * When a saved structure changes shape there are two options: declare every existing save file invalid, or keep the old shape around and convert. This file is the second option.
+ * It holds a copy of each structure as it used to be, and the game reads an old save with the old declaration and then converts it forward.
+ *
+ * Which is why the file is almost entirely a procedure. The long comment below is a step-by-step instruction for adding a revision, and it is that long because the change touches
+ * six files: the old declaration goes here, a reader for it goes in two places in the save interface, an entry goes in the serializer's table, and the conversion routine goes with
+ * the code that owns the structure. Missing any one of them is a link failure or a save that reads as nonsense.
+ *
+ * The instructions end with the part that matters most and is easiest to get wrong: the conversion must give every field that is new in the current shape a sensible value. A field
+ * that did not exist in the old save has no old value, so what it becomes is a decision, and the instruction says to make it deliberately rather than leave it zero by default.
+ *
+ * @note The file is included repeatedly, once per revision, with a macro naming which one is wanted -- so it is not a header in the usual sense and has no include guard. Including
+ *       it without naming a revision is a deliberate error rather than a no-op.
+ * @note The only revision present is a demonstration, guarded off and named to make clear it is not real. It exists so the procedure has a worked example to point at.
+ * @warning This mechanism is an alternative to invalidating old saves, not an addition to it. A structure changed without either a revision here or an increment of the edit
+ *          counter leaves old saves readable and wrong.
+ */
+
+/**
+ * @file revision.h
+ * @brief 저장되는 구조체의 예전 모양들. 예전 저장 파일을 여전히 읽을 수 있도록 보관된다.
+ *
+ * 저장되는 구조체의 모양이 바뀔 때 선택지는 둘이다. 기존 모든 저장 파일을 무효로 선언하거나, 예전 모양을 남겨 두고 변환하는 것. 이 파일이 두 번째 선택지다. 각 구조체가 예전에 어땠는지의 사본을 담으며, 게임은 예전 저장을 예전 선언으로 읽고 그다음 앞으로 변환한다.
+ *
+ * 그래서 이 파일은 거의 전부가 절차다. 아래의 긴 주석이 개정을 추가하는 단계별 지침이며, 그렇게 긴 것은 그 변경이 여섯 파일을 건드리기 때문이다. 예전 선언이 여기로 가고, 그것을 읽는 것이 저장 인터페이스의 두 곳으로 가고, 항목 하나가 직렬화기의 표로 가고, 변환
+ * 루틴이 그 구조체를 소유한 코드와 함께 간다. 그 중 하나라도 빠뜨리면 링크 실패이거나 헛소리로 읽히는 저장이다.
+ *
+ * 지침은 가장 중요하고 가장 틀리기 쉬운 부분으로 끝난다. 변환은 현재 모양에서 새로 생긴 모든 필드에 합당한 값을 주어야 한다. 예전 저장에 없던 필드에는 예전 값이 없으므로 그것이 무엇이 되는지는 결정이며, 그 지침은 기본으로 0으로 남겨 두는 대신 의도적으로 정하라고
+ * 말한다.
+ *
+ * @note 이 파일은 개정마다 한 번씩 되풀이해 포함되며, 어느 것을 원하는지 지칭하는 매크로와 함께다. 그래서 통상적인 의미의 헤더가 아니며 포함 보호가 없다. 개정을 지칭하지 않고 포함하는 것은 아무 일도 없는 것이 아니라 의도적인 오류다.
+ * @note 존재하는 개정은 시연용 하나뿐이며, 보호로 막혀 있고 실제가 아님이 분명하도록 이름 붙어 있다. 그 절차가 가리킬 실제 예제를 갖도록 존재한다.
+ * @warning 이 기제는 예전 저장을 무효로 만드는 것에 대한 대안이며, 그것에 더하는 것이 아니다. 여기의 개정도 편집 계수기의 증가도 없이 바뀐 구조체는 예전 저장을 읽을 수 있으면서 틀린 상태로 남긴다.
+ */
+
 /*
  * Supporting revisions to NetHack structs via incremental
  * uplifts, rather than incrementing EDITLEVEL and breaking
@@ -220,6 +258,16 @@ struct mystruct_rev0 {
 };
 #endif /* DEMO_UPLIFTS */
 
+/**
+ * @note The placeholder branch below is where a new revision's block goes -- the instructions above direct you to insert just ahead of it, so it marks the end of the list rather
+ *       than doing anything.
+ * @warning The final branch is deliberate: including this file without naming a revision is an error rather than a harmless no-op, because doing so silently would mean a
+ *          revision block that was never compiled.
+ */
+/**
+ * @note 아래의 자리 표시 분기가 새 개정의 블록이 들어갈 곳이다. 위의 지침은 그 바로 앞에 끼워 넣으라고 지시하므로, 그것은 무엇을 하는 것이 아니라 목록의 끝을 표시한다.
+ * @warning 마지막 분기는 의도적이다. 개정을 지칭하지 않고 이 파일을 포함하는 것은 무해한 무동작이 아니라 오류다. 조용히 그렇게 되면 결코 컴파일되지 않은 개정 블록을 뜻하게 되기 때문이다.
+ */
 #elif defined(XXX_REV0)
 
 #else

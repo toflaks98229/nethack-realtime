@@ -3,9 +3,59 @@
 /*-Copyright (c) Michael Allison, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file patchlevel.h
+ * @brief Which version this is, and what that means for old save files.
+ *
+ * Four numbers name the version, and one of them is not about the version at all. Three -- major, minor and patch -- identify a release to a player. The fourth is a private
+ * counter whose only purpose is to make old save and bones files unacceptable: incrementing it invalidates them.
+ *
+ * That fourth number is why this file is referred to from elsewhere. Several headers carry a standing instruction to increment it when a saved structure changes, because a
+ * structure that has changed shape makes every existing save file a source of plausible nonsense rather than an error.
+ *
+ * Alongside is the compatibility declaration -- an option to accept files from a named older release. It is normally left off during development, and the accompanying comment
+ * explains why: with it off, the edit counter can be used freely, and with it on every change to saved data has to be handled.
+ *
+ * @note The development status is not decoration. It changes what the game tells the player about itself, and one of its values exists purely to mark a point between releases.
+ * @note The copyright text lives here too, since it is versioned along with everything else. One line of it is produced when the game runs rather than compiled in.
+ * @warning Getting the compatibility declaration wrong does not fail. It makes the game accept a file it cannot correctly read, which is worse than refusing it.
+ */
+
+/**
+ * @file patchlevel.h
+ * @brief 이것이 어느 판본인지, 그리고 그것이 예전 저장 파일에 무엇을 뜻하는지.
+ *
+ * 네 숫자가 판본에 이름을 붙이며, 그 중 하나는 판본에 관한 것이 전혀 아니다. 셋 -- 주, 부, 패치 -- 은 플레이어에게 릴리스를 식별해 준다. 네 번째는 예전 저장 파일과 유골 파일을 받아들일 수 없게 만드는 것만이 목적인 내부 계수기다. 그것을 올리면 그것들이
+ * 무효가 된다.
+ *
+ * 그 네 번째 숫자가 이 파일이 다른 곳에서 참조되는 이유다. 여러 헤더가 저장되는 구조체가 바뀌면 그것을 올리라는 상시 지시를 지니고 있다. 모양이 바뀐 구조체는 기존 모든 저장 파일을 오류가 아니라 그럴듯한 헛소리의 원천으로 만들기 때문이다.
+ *
+ * 그 곁에 호환성 선언이 있다. 이름 붙은 더 예전 릴리스의 파일을 받아들이는 선택지. 개발 중에는 보통 꺼 두며, 딸린 주석이 그 이유를 설명한다. 꺼 두면 편집 계수기를 자유롭게 쓸 수 있고, 켜 두면 저장되는 데이터에 대한 모든 변경이 처리되어야 한다.
+ *
+ * @note 개발 상태는 장식이 아니다. 게임이 자신에 대해 플레이어에게 무엇이라 말하는지를 바꾸며, 그 값 중 하나는 순전히 릴리스 사이의 한 지점을 표시하기 위해 존재한다.
+ * @note 저작권 글도 여기에 산다. 다른 모든 것과 함께 판본이 매겨지기 때문이다. 그 중 한 줄은 컴파일에 포함되는 대신 게임이 돌아갈 때 만들어진다.
+ * @warning 호환성 선언을 틀리게 하는 것은 실패하지 않는다. 게임이 올바르게 읽을 수 없는 파일을 받아들이게 만들며, 그것은 거부하는 것보다 나쁘다.
+ */
+
 #ifndef PATCHLEVEL_H
 #define PATCHLEVEL_H
 
+/**
+ * @name Version numbers
+ * @brief The three numbers that identify this release to a player, and the one that does not.
+ * @note The first three are the version as it is spoken and written. The fourth is private: it identifies nothing and exists only so that incrementing it makes old save and
+ *       bones files unacceptable.
+ * @warning That fourth number is the one other headers instruct you to increment. A saved structure that changes shape without it makes every existing save read as plausible
+ *          nonsense rather than fail.
+ * @{
+ */
+/**
+ * @name 판본 번호
+ * @brief 플레이어에게 이 릴리스를 식별해 주는 세 숫자와, 그러지 않는 하나.
+ * @note 앞의 셋은 말하고 적히는 그대로의 판본이다. 네 번째는 내부용이다. 그것은 아무것도 식별하지 않으며, 오직 그것을 올리면 예전 저장 파일과 유골 파일을 받아들일 수 없게 되기 위해 존재한다.
+ * @warning 그 네 번째 숫자가 다른 헤더들이 올리라고 지시하는 것이다. 그것 없이 모양이 바뀐 저장 구조체는 기존 모든 저장을 실패가 아니라 그럴듯한 헛소리로 읽히게 만든다.
+ * @{
+ */
 /* NetHack 5.0.x */
 #define VERSION_MAJOR 5
 #define VERSION_MINOR 0
@@ -18,7 +68,21 @@
  * and save files.
  */
 #define EDITLEVEL 0
+/** @} */
 
+/**
+ * @name Development status
+ * @brief How finished this copy claims to be.
+ * @note Reported to the player, so it is a statement about trustworthiness rather than a build setting. The last value is not a stage of development at all -- it marks a commit
+ *       point between releases, as its comment says.
+ * @{
+ */
+/**
+ * @name 개발 상태
+ * @brief 이 사본이 얼마나 완성되었다고 주장하는지.
+ * @note 플레이어에게 보고되므로 빌드 설정이 아니라 신뢰성에 관한 선언이다. 마지막 값은 개발 단계가 전혀 아니다. 그 주석이 말하듯 릴리스 사이의 커밋 지점을 표시한다.
+ * @{
+ */
 /*
  * Development status possibilities.
  */
@@ -31,6 +95,7 @@
  * Development status of this NetHack version.
  */
 #define NH_DEVEL_STATUS NH_STATUS_POSTRELEASE
+/** @} */
 
 #ifndef DEBUG  /* allow tool chains to define without causing warnings */
 #define DEBUG
@@ -43,14 +108,51 @@
 #define COPYRIGHT_BANNER_C nomakedefs.copyright_banner_c
 #define COPYRIGHT_BANNER_D "         See license for details."
 
-/*
- * SAVEFILE_REVISION_LEVEL
- * Increment this if there has been a change to a data structure
- * that the source code is prepared to handle and convert properly.
- * The SAVEFILE_REVISION_LEVEL value needs to fit into an unsigned byte.
+/**
+ * @def SAVEFILE_REVISION_LEVEL
+ * @brief Which shape of saved data this build writes, when the change is one it can convert.
+ *
+ * The counterpart of the edit counter, and the distinction between them is the whole point. The edit counter says "old saves are unreadable"; this says "old saves are a
+ * different but known shape, and the code can convert them". So a change accompanied by conversion code increments this, and one without it increments the other.
+ *
+ * @warning Must fit in a single unsigned byte, as the existing comment states. There is nowhere for it to grow.
+ */
+/**
+ * @def SAVEFILE_REVISION_LEVEL
+ * @brief 이 빌드가 어떤 모양의 저장 데이터를 쓰는지. 그 변경이 이 빌드가 변환할 수 있는 것일 때.
+ *
+ * 편집 계수기의 짝이며, 그 둘의 구별이 요점 전체다. 편집 계수기는 "예전 저장은 읽을 수 없다"고 말하고, 이것은 "예전 저장은 다르지만 알려진 모양이며 코드가 그것을 변환할 수 있다"고 말한다. 그래서 변환 코드가 딸린 변경은 이것을 올리고, 그렇지 않은 변경은
+ * 다른 쪽을 올린다.
+ *
+ * @warning 기존 주석이 밝히듯 부호 없는 한 바이트에 들어가야 한다. 그것이 자랄 자리가 없다.
  */
 #define SAVEFILE_REVISION_LEVEL 0x00
 
+/**
+ * @def VERSION_COMPATIBILITY
+ * @brief The oldest release whose save and bones files this build will accept.
+ *
+ * Normally left commented out, and that is not neglect. With it absent, the edit counter can be incremented freely to invalidate old saves whenever saved data changes shape --
+ * which is what you want while a version is being developed. Defining it is a commitment: every subsequent change to saved data must then be handled rather than simply
+ * invalidated.
+ *
+ * @note The packed format is spelled out in the existing comment, and all four numbers are two hexadecimal digits each -- so a version whose parts are written in decimal
+ *       elsewhere is written differently here.
+ * @note Bones files are in principle less sensitive than saves, since only per-level data matters to them. The existing comment records that supporting them separately was
+ *       judged not worth the complexity, so both are governed by this one value.
+ * @warning An incorrect value does not fail. It makes the game accept a file whose shape it does not actually match, which is worse than refusing it.
+ */
+/**
+ * @def VERSION_COMPATIBILITY
+ * @brief 이 빌드가 저장 파일과 유골 파일을 받아들일 가장 예전 릴리스.
+ *
+ * 보통 주석 처리된 채로 남겨지며, 그것은 방치가 아니다. 그것이 없으면 저장 데이터의 모양이 바뀔 때마다 편집 계수기를 자유롭게 올려 예전 저장을 무효로 만들 수 있다. 판본이 개발되는 동안 원하는 것이 그것이다. 그것을 정의하는 것은 약속이다. 그 뒤로 저장 데이터에 대한
+ * 모든 변경이 그냥 무효화되는 대신 처리되어야 한다.
+ *
+ * @note 압축된 형식은 기존 주석에 적혀 있고 네 숫자 모두 각각 십육진 두 자리다. 그래서 다른 곳에서 십진으로 적히는 판본이 여기서는 다르게 적힌다.
+ * @note 유골 파일은 원칙적으로 저장 파일보다 덜 민감하다. 레벨별 데이터만이 그것에 중요하기 때문이다. 기존 주석은 그것을 따로 지원하는 것이 복잡성에 비할 값이 없다고 판단되었다고 기록하므로, 둘 다 이 하나의 값에 의해 지배된다.
+ * @warning 틀린 값은 실패하지 않는다. 게임이 실제로는 그 모양과 맞지 않는 파일을 받아들이게 만들며, 그것은 거부하는 것보다 나쁘다.
+ */
 /*
  * If two or more successive releases have compatible data files, define
  * this with the version number of the oldest such release so that the
@@ -69,6 +171,16 @@
  */
 /*#define VERSION_COMPATIBILITY 0x05000000L*/
 
+/**
+ * @note What follows is the release history, going back through every version. It is prose rather than declarations -- nothing below this point affects the build -- and it is
+ *       kept in the header rather than a separate document because it is the record of what each of the numbers above once meant.
+ * @note Read backwards from here it is a useful thing: the notes say which changes broke compatibility and why, so a question about why a save format changed usually has its
+ *       answer somewhere below.
+ */
+/**
+ * @note 이 아래는 릴리스 이력이며, 모든 판본을 거슬러 올라간다. 선언이 아니라 산문이고 -- 이 지점 아래의 어느 것도 빌드에 영향을 주지 않는다 -- 별도 문서가 아니라 헤더에 보관되어 있다. 위의 숫자들이 각각 한때 무엇을 뜻했는지의 기록이기 때문이다.
+ * @note 여기서 거꾸로 읽으면 쓸모 있는 것이 된다. 그 메모들이 어떤 변경이 호환성을 깨뜨렸고 왜였는지 밝히므로, 저장 형식이 왜 바뀌었는지에 대한 질문은 보통 아래 어딘가에 그 답이 있다.
+ */
 /****************************************************************************/
 /* Version 5.0.x */
 
