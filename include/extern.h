@@ -2183,65 +2183,356 @@ extern void maybe_shuffle_customizations(void);
 
 /* ### hack.c ### */
 
+/**
+ * @brief Whether the hero could travel to a square.
+ * @note About reachability rather than the square itself: a valid destination is one a route exists to, so an ordinary floor square behind a wall is not one.
+ */
+/**
+ * @brief 영웅이 어떤 칸으로 여행할 수 있을지.
+ * @note 그 칸 자체가 아니라 도달 가능성에 관한 것이다. 유효한 목적지는 경로가 존재하는 곳이므로, 벽 뒤의 평범한 바닥 칸은 그것이 아니다.
+ */
 extern boolean is_valid_travelpt(coordxy, coordxy);
+/**
+ * @name Wrapping a value as a generic one
+ * @brief Put a value into the generic type the display interface takes.
+ * @warning Each returns a pointer to a shared static value, not a new one. A second call overwrites the first, so two of these cannot be live at once -- which matters because a menu is
+ *          built one entry at a time and each entry's value must be copied before the next is made.
+ * @{
+ */
+/**
+ * @name 값을 범용 값으로 감싸기
+ * @brief 값을 표시부 인터페이스가 받는 범용 타입에 넣는다.
+ * @warning 각각이 새 값이 아니라 공유된 정적 값을 가리키는 포인터를 반환한다. 두 번째 호출이 첫 것을 덮어쓰므로, 이들 중 둘이 동시에 살아 있을 수 없다. 메뉴가 항목 하나씩 만들어지고 각 항목의 값이 다음 것이 만들어지기 전에 복사되어야 하므로 그것이 중요하다.
+ * @{
+ */
 extern anything *uint_to_any(unsigned);
 extern anything *long_to_any(long);
 extern anything *monst_to_any(struct monst *) NONNULLARG1;
 extern anything *obj_to_any(struct obj *) NONNULLARG1;
+/** @} */
 extern boolean revive_nasty(coordxy, coordxy, const char *);
+/**
+ * @brief Continue gnawing through rock, and say whether it is still going.
+ * @note The multi-turn form of digging as a monster does it. Its name is the state it reports: the hero is still chewing, so the command has not finished and should not be replaced.
+ */
+/**
+ * @brief 암반을 계속 갉고, 그것이 아직 진행 중인지 알린다.
+ * @note 몬스터가 하는 방식의 굴착의 여러 턴짜리 형태다. 그 이름이 그것이 알리는 상태다. 영웅이 아직 갉고 있으므로, 그 명령은 끝나지 않았고 대체되어서는 안 된다.
+ */
 extern int still_chewing(coordxy, coordxy);
 extern void movobj(struct obj *, coordxy, coordxy);
+/**
+ * @name What the terrain permits
+ * @brief Whether a square may be dug through, or passed through as though it were not there.
+ * @note About the square rather than the digger: a wall may be undiggable by anything, which is how a level protects part of itself. Whether the hero has the means is a separate
+ *       question.
+ * @{
+ */
+/**
+ * @name 지형이 무엇을 허용하는지
+ * @brief 어떤 칸을 파고 지나갈 수 있는지, 또는 그것이 없는 것처럼 통과할 수 있는지.
+ * @note 파는 자가 아니라 그 칸에 관한 것이다. 벽은 무엇으로도 팔 수 없을 수 있고, 그것이 레벨이 자기 일부를 보호하는 방식이다. 영웅에게 그 수단이 있는지는 별개의 질문이다.
+ * @{
+ */
 extern boolean may_dig(coordxy, coordxy);
 extern boolean may_passwall(coordxy, coordxy);
+/** @} */
+/**
+ * @brief Whether a square is rock this kind of monster cannot handle.
+ * @note Takes the kind rather than the monster, so it can be asked about a form the hero might take. A monster that tunnels or passes walls is not stopped by rock, so this is not simply
+ *       "is it rock".
+ */
+/**
+ * @brief 어떤 칸이 이 종류의 몬스터가 다룰 수 없는 암반인지.
+ * @note 몬스터가 아니라 종류를 받으므로, 영웅이 취할 수 있는 형태에 대해 물을 수 있다. 굴을 파거나 벽을 통과하는 몬스터는 암반에 막히지 않으므로, 이것은 단순히 "그것이 암반인가"가 아니다.
+ */
 extern boolean bad_rock(struct permonst *, coordxy, coordxy) NONNULLARG1;
+/**
+ * @brief Whether a monster is too encumbered or too large to squeeze through a tight gap.
+ * @return how much is in the way, not merely whether -- so a caller can say what to put down
+ */
+/**
+ * @brief 몬스터가 좁은 틈을 비집고 지나가기에 너무 짐이 많거나 너무 큰지.
+ * @return 여부만이 아니라 무엇이 얼마나 가로막는지. 그래서 호출자가 무엇을 내려놓아야 할지 말할 수 있다
+ */
 extern int cant_squeeze_thru(struct monst *) NONNULLARG1;
+/**
+ * @brief Whether a square is the one where the invocation must be performed.
+ * @note One specific square on one specific level, so this is effectively a comparison against a recorded position rather than a property of the terrain.
+ */
+/**
+ * @brief 어떤 칸이 발동 의식을 수행해야 하는 그 칸인지.
+ * @note 특정 레벨의 특정 칸 하나이므로, 이것은 사실상 지형의 속성이 아니라 기록된 위치와의 비교다.
+ */
 extern boolean invocation_pos(coordxy, coordxy);
+/**
+ * @brief Whether the hero may move between two squares, and set up what happens if they do.
+ *
+ * The gate every hero move passes through. It considers the terrain, what is in the way, whether a door must be opened, whether the hero must squeeze -- and its flag argument says
+ * whether it is being asked speculatively or is about to be acted on.
+ *
+ * @warning Not a pure test in every mode. Asked as part of an actual move it may open a door and may print a message, so it cannot be used freely to probe the map. The flags are what
+ *          separate the two uses, and their meanings are documented with them rather than here.
+ * @note This is the routine the real-time work in this fork has to reckon with: it decides whether a step is allowed, and the continuous position has to accept its answer rather than
+ *       overriding it.
+ */
+/**
+ * @brief 영웅이 두 칸 사이를 움직여도 되는지, 그리고 움직인다면 무슨 일이 일어날지 준비한다.
+ *
+ * 영웅의 모든 이동이 지나는 관문이다. 지형, 무엇이 가로막는지, 문을 열어야 하는지, 영웅이 비집고 지나가야 하는지를 고려하며, 그 플래그 인자가 추측으로 물어지는 것인지 곧 실행될 것인지를 말한다.
+ *
+ * @warning 모든 모드에서 순수한 검사는 아니다. 실제 이동의 일부로 물어지면 문을 열 수 있고 메시지를 인쇄할 수 있다. 그래서 지도를 탐색하는 데 자유롭게 쓸 수 없다. 그 플래그가 두 용도를 나누는 것이며, 그 뜻은 여기가 아니라 그것들과 함께 기록되어 있다.
+ * @note 이 포크의 실시간 작업이 셈해야 하는 루틴이 이것이다. 걸음이 허용되는지를 정하며, 연속 위치는 그것을 무시하는 대신 그 답을 받아들여야 한다.
+ */
 extern boolean test_move(coordxy, coordxy, coordxy, coordxy, int);
 #ifdef DEBUG
 extern int wiz_debug_cmd_traveldisplay(void);
 #endif
+/**
+ * @brief Whether the hero is stuck in place and cannot move at all.
+ * @note Distinct from being held: a rooted hero is anchored by their own form or the ground rather than by something gripping them, so escaping is a different matter and the message is
+ *       different.
+ */
+/**
+ * @brief 영웅이 제자리에 박혀 전혀 움직일 수 없는지.
+ * @note 붙잡힌 것과 구별된다. 박힌 영웅은 무언가가 쥐고 있어서가 아니라 자기 형태나 땅에 의해 고정되어 있으므로, 벗어나는 것이 다른 문제이고 메시지도 다르다.
+ */
 extern boolean u_rooted(void);
+/**
+ * @name Announcing a monster to a screen reader
+ * @brief Say aloud that a monster has been noticed, and catch up on any that were missed.
+ * @note Only does anything when the accessibility setting asks for it. A player watching the map sees a monster appear; a player listening has to be told, and these are what tell them.
+ * @note The catch-up form exists because announcing can be suspended while the game has something else to say. Suspending does not lose the notices, so they have to be delivered
+ *       afterwards.
+ * @{
+ */
+/**
+ * @name 화면 읽기 프로그램에 몬스터를 알리기
+ * @brief 몬스터가 알아채졌음을 소리로 말하고, 놓친 것들을 따라잡는다.
+ * @note 접근성 설정이 요청할 때만 무언가를 한다. 지도를 보는 플레이어는 몬스터가 나타나는 것을 본다. 듣는 플레이어는 들어야 하며, 이들이 그것을 알려 주는 것이다.
+ * @note 따라잡기 형태가 있는 것은, 게임이 다른 할 말이 있는 동안 알리기를 멈춰 둘 수 있기 때문이다. 멈추는 것이 알림을 잃는 것은 아니므로, 그것들이 나중에 전달되어야 한다.
+ * @{
+ */
 extern void notice_mon(struct monst *) NONNULLARG1;
 extern void notice_all_mons(boolean);
+/** @} */
 extern void impact_disturbs_zombies(struct obj *, boolean) NONNULLARG1;
 extern void disturb_buried_zombies(coordxy, coordxy);
+/**
+ * @brief Whether the hero might be misperceiving things.
+ * @note "Might" is deliberate: it covers confusion, hallucination, stunning and blindness together, because most callers only need to know whether to trust what the hero thinks rather
+ *       than which impairment applies.
+ */
+/**
+ * @brief 영웅이 무언가를 잘못 지각하고 있을 수 있는지.
+ * @note "있을 수 있는지"는 의도적이다. 혼란, 환각, 기절, 실명을 함께 덮는다. 대부분의 호출자가 어떤 손상인지가 아니라 영웅이 여기는 것을 믿어도 되는지만 알아야 하기 때문이다.
+ */
 extern boolean u_maybe_impaired(void);
+/**
+ * @brief A verb for how the hero is getting about, since it is not always walking.
+ * @param  the verb to fall back on when nothing more specific applies
+ * @note Exists so a message can say "you float" or "you slither" without every message having to consider the hero's form. The caller supplies the ordinary word and gets whichever one
+ *       is true.
+ */
+/**
+ * @brief 영웅이 어떻게 돌아다니고 있는지에 대한 동사. 항상 걷는 것은 아니기 때문이다.
+ * @param  더 구체적인 것이 적용되지 않을 때 돌아갈 동사
+ * @note 메시지가 모든 메시지마다 영웅의 형태를 고려하지 않고도 "당신은 떠간다"나 "당신은 기어간다"라고 말할 수 있도록 존재한다. 호출자가 평범한 낱말을 제공하고 참인 것을 받는다.
+ */
 extern const char *u_locomotion(const char *) NONNULLARG1;
+/**
+ * @brief Offer a hint if it has not been offered before, and record that it has.
+ * @return whether anything was said
+ * @note The recording is the point. A hint that appeared every time the situation arose would be noise, so each is shown once and the fact is kept with the character.
+ */
+/**
+ * @brief 아직 제시되지 않았다면 조언을 제시하고, 제시되었음을 기록한다.
+ * @return 무언가가 말해졌는지
+ * @note 그 기록이 요점이다. 그 상황이 생길 때마다 나오는 조언은 소음이 되므로, 각각은 한 번 보여지고 그 사실이 캐릭터와 함께 보관된다.
+ */
 extern boolean handle_tip(int);
+/**
+ * @brief Carry out the hero's move for this turn.
+ * @note The main entry to hero movement, and it does far more than change a position: it resolves what the move means -- an attack, an attempt to open something, a swap with a pet -- and
+ *       applies everything that follows from arriving somewhere.
+ */
+/**
+ * @brief 이번 턴의 영웅의 이동을 수행한다.
+ * @note 영웅 이동의 주 입구이며, 위치를 바꾸는 것보다 훨씬 많은 일을 한다. 그 이동이 무엇을 뜻하는지 -- 공격, 무언가를 열려는 시도, 애완동물과의 자리 바꿈 -- 를 해석하고, 어딘가에 도착하는 것에서 따라 나오는 모든 것을 적용한다.
+ */
 extern void domove(void);
+/**
+ * @brief Pause between steps of a run, according to what the player asked for.
+ * @note The pause is a display setting rather than a game one -- how visible running should be -- so this is where that preference is honoured, and it is why one run mode is slower than
+ *       drawing every step.
+ */
+/**
+ * @brief 달리기의 걸음 사이에 멈춘다. 플레이어가 요청한 것에 따라.
+ * @note 그 멈춤은 게임 설정이 아니라 표시 설정이다. 달리기가 얼마나 보여야 하는지. 그래서 이곳이 그 선호가 받아들여지는 곳이며, 어느 달리기 모드가 매 걸음을 그리는 것보다 느린 이유다.
+ */
 extern void runmode_delay_output(void);
+/**
+ * @name Overexertion
+ * @brief Whether the hero has strained themselves, and the harm if so.
+ * @note Two routines because the question and the consequence are asked separately: a caller may need to know whether the hero can afford an action before performing it.
+ * @{
+ */
+/**
+ * @name 과로
+ * @brief 영웅이 자신을 무리하게 했는지, 그리고 그렇다면 그 피해.
+ * @note 두 루틴인 것은 질문과 결과가 따로 물어지기 때문이다. 호출자는 어떤 행동을 수행하기 전에 영웅이 그것을 감당할 수 있는지 알아야 할 수 있다.
+ * @{
+ */
 extern void overexert_hp(void);
 extern boolean overexertion(void);
+/** @} */
 extern void invocation_message(void);
 extern void classify_terrain(void);
 extern void switch_terrain(void);
 extern void set_uinwater(int);
 extern boolean pooleffects(boolean);
 extern void spoteffects(boolean);
+/**
+ * @brief Which rooms a square belongs to.
+ * @return a string of room identifiers, since a square may be in more than one
+ * @warning Returns a pointer into a shared buffer, and it is a string rather than a single room -- because rooms may contain rooms, and a square in a shop inside a temple is in both.
+ */
+/**
+ * @brief 어떤 칸이 어느 방들에 속하는지.
+ * @return 방 식별자의 문자열. 칸이 둘 넘는 방에 있을 수 있다
+ * @warning 공유 버퍼를 가리키는 포인터를 반환하며, 하나의 방이 아니라 문자열이다. 방이 방을 품을 수 있고, 신전 안의 상점에 있는 칸은 둘 다에 있기 때문이다.
+ */
 extern char *in_rooms(coordxy, coordxy, int);
 extern boolean in_town(coordxy, coordxy);
+/**
+ * @brief React to the hero having entered or left a room with a purpose.
+ * @note Called after the move rather than before, so it reacts to arrival: a shopkeeper greets, a temple's atmosphere is described, a zoo wakes up. That is why entering a shop and being
+ *       inside one are handled in different places.
+ */
+/**
+ * @brief 영웅이 용도가 있는 방에 들어서거나 떠난 것에 반응한다.
+ * @note 움직이기 전이 아니라 뒤에 호출되므로 도착에 반응한다. 상점 주인이 인사하고, 신전의 기운이 기술되고, 동물원이 깨어난다. 그것이 상점에 들어서는 것과 그 안에 있는 것이 다른 곳에서 다뤄지는 이유다.
+ */
 extern void check_special_room(boolean);
 extern int dopickup(void);
+/**
+ * @brief Decide whether a run should stop here, and which way it should turn.
+ * @note What makes running feel deliberate. It stops at anything worth stopping at -- a doorway, a fork, something in view -- and follows a corridor around corners, so a run is not a
+ *       straight line but a route.
+ */
+/**
+ * @brief 달리기가 여기서 멈춰야 하는지, 그리고 어느 쪽으로 돌아야 하는지 정한다.
+ * @note 달리기를 의도적인 것처럼 느껴지게 만드는 것이다. 멈출 만한 것 -- 문간, 갈림길, 시야에 든 무엇 -- 에서 멈추고, 통로를 따라 모서리를 돌아간다. 그래서 달리기는 직선이 아니라 경로다.
+ */
 extern void lookaround(void);
+/**
+ * @brief Whether a square is a doorway with no door in it.
+ * @note A distinction that matters because a doorway restricts movement -- no diagonal passage -- whether or not a door is present. So an empty doorway is not simply floor.
+ */
+/**
+ * @brief 어떤 칸이 문이 없는 문간인지.
+ * @note 문이 있든 없든 문간이 이동을 제한하므로 -- 대각선 통과 불가 -- 중요한 구별이다. 그래서 빈 문간은 그냥 바닥이 아니다.
+ */
 extern boolean doorless_door(coordxy, coordxy);
+/**
+ * @brief Whether a square would do as somewhere to crawl to after being killed and saved.
+ * @note For the moment after life-saving: the hero must end up somewhere survivable, which may not be where they fell. So this is a search criterion rather than a movement test.
+ */
+/**
+ * @brief 죽었다가 구조된 뒤 기어갈 곳으로 어떤 칸이 쓸모 있을지.
+ * @note 목숨을 구한 직후의 순간을 위한 것이다. 영웅은 살아남을 수 있는 곳에 있게 되어야 하고, 그곳이 쓰러진 자리가 아닐 수 있다. 그래서 이것은 이동 검사가 아니라 탐색 기준이다.
+ */
 extern boolean crawl_destination(coordxy, coordxy);
+/**
+ * @brief Whether there is a monster close enough to interrupt what the hero is doing.
+ * @note The reason a multi-turn action stops when something approaches. What counts as near enough and as worth noticing are both decided here, so a peaceful monster wandering past does
+ *       not interrupt a meal.
+ */
+/**
+ * @brief 영웅이 하는 일을 중단시킬 만큼 가까운 몬스터가 있는지.
+ * @note 무언가가 다가올 때 여러 턴짜리 행동이 멈추는 이유다. 무엇이 충분히 가까운지와 무엇이 알아챌 만한지가 둘 다 여기서 정해지므로, 지나가는 평화로운 몬스터가 식사를 중단시키지는 않는다.
+ */
 extern int monster_nearby(void);
 extern void end_running(boolean);
+/**
+ * @name Being unable to act for a while
+ * @brief Put the hero out of action for a number of turns, and bring them back.
+ * @note The count is what stops the hero acting, and it is negative while it lasts -- which is why so much code tests it for being less than zero rather than non-zero.
+ * @note Ending it takes a message because coming round is worth reporting, and the message differs by what caused the interruption rather than by what ends it.
+ * @{
+ */
+/**
+ * @name 한동안 행동할 수 없기
+ * @brief 영웅을 몇 턴 동안 행동 불가로 두고, 되돌린다.
+ * @note 그 계수가 영웅이 행동하지 못하게 하는 것이며, 지속되는 동안 음수다. 그래서 아주 많은 코드가 그것이 0이 아닌지가 아니라 0보다 작은지를 검사한다.
+ * @note 끝내는 쪽이 메시지를 받는 것은 정신을 차리는 것이 알릴 가치가 있기 때문이다. 그 메시지는 무엇이 그것을 끝내는지가 아니라 무엇이 그 중단을 일으켰는지에 따라 다르다.
+ * @{
+ */
 extern void nomul(int);
 extern void unmul(const char *);
+/** @} */
 extern void showdamage(int);
 extern void losehp(int, const char *, schar) ;
+/**
+ * @name How much the hero can carry
+ * @brief The carrying capacity, what is being carried, and how burdened that makes them.
+ *
+ * Three different numbers and it is worth knowing which is which. The capacity is what the hero could carry unburdened. The weight is what they are actually carrying. The burden level is
+ * the consequence, and it is a step on a scale rather than a ratio -- which is why it is computed rather than derived by division at each use.
+ *
+ * @warning The weight of the pack may be negative in one circumstance: a container that reduces what it holds can make its contents weigh less than nothing in the arithmetic. Code that
+ *          assumes a non-negative weight will be surprised.
+ * @note One form asks what the burden would be with a given amount added, which is how "you would be overloaded" is answered before picking something up.
+ * @{
+ */
+/**
+ * @name 영웅이 얼마나 나를 수 있는지
+ * @brief 나를 수 있는 양, 나르고 있는 것, 그리고 그것이 얼마나 짐이 되는지.
+ *
+ * 세 개의 다른 숫자이며 어느 것이 어느 것인지 알아 둘 가치가 있다. 용량은 영웅이 짐 없이 나를 수 있는 것이다. 무게는 실제로 나르고 있는 것이다. 부담 단계는 그 결과이며, 비율이 아니라 척도 위의 한 단계다. 그래서 쓰일 때마다 나눗셈으로 유도되는 대신 계산된다.
+ *
+ * @warning 가방의 무게는 한 상황에서 음수일 수 있다. 담은 것을 줄이는 용기가 산술상 그 내용물이 아무것도보다 덜 나가게 만들 수 있다. 무게가 음이 아니라고 가정하는 코드는 놀라게 된다.
+ * @note 한 형태는 주어진 양을 더했을 때의 부담이 얼마일지를 묻는다. 그것이 무언가를 집기 전에 "당신은 짐에 짓눌릴 것이다"에 답하는 방식이다.
+ * @{
+ */
 extern int weight_cap(void);
 extern int inv_weight(void);
 extern int near_capacity(void);
 extern int calc_capacity(int);
 extern int max_capacity(void);
 extern boolean check_capacity(const char *);
+/** @} */
 extern void dump_weights(void);
 extern int inv_cnt(boolean);
+/**
+ * @brief How much money a chain of objects amounts to.
+ * @warning Accepts null on purpose, as the accompanying comment records: it is often called on the hero's pack, which may be empty. So a null argument is a valid question with the answer
+ *          zero, and the annotation records that this was examined rather than overlooked.
+ */
+/**
+ * @brief 물건 사슬이 얼마의 돈에 해당하는지.
+ * @warning 딸린 주석이 기록하듯 의도적으로 널을 받아들인다. 영웅의 가방에 대해 자주 호출되고, 그것이 비어 있을 수 있다. 그래서 널 인자는 답이 0인 유효한 질문이며, 그 표시는 이것이 간과된 것이 아니라 검토되었음을 기록한다.
+ */
 /* sometimes money_cnt(gi.invent) which can be null */
 extern long money_cnt(struct obj *) NO_NNARGS;
+/**
+ * @brief Verify and repair what is recorded about a square.
+ * @note A consistency pass rather than an operation on the square. It is called where the game has done something that could have left the square's record disagreeing with what is
+ *       actually there -- so it exists to catch the game's own mistakes.
+ */
+/**
+ * @brief 어떤 칸에 대해 기록된 것을 검증하고 고친다.
+ * @note 그 칸에 대한 연산이 아니라 일관성 점검이다. 게임이 그 칸의 기록을 실제로 거기 있는 것과 어긋나게 남겼을 수 있는 일을 한 곳에서 호출된다. 그래서 게임 자신의 잘못을 잡기 위해 존재한다.
+ */
 extern void spot_checks(coordxy, coordxy, schar);
+/**
+ * @brief Divide, rounding to nearest rather than toward zero.
+ * @note Named because the game's rules mean it: a value halved should not systematically shrink, which plain division would cause over many applications.
+ */
+/**
+ * @brief 나눈다. 0 쪽으로가 아니라 가장 가까운 쪽으로 반올림하여.
+ * @note 게임의 규칙이 그것을 뜻하기 때문에 이름이 붙었다. 절반이 되는 값이 체계적으로 줄어들어서는 안 되는데, 평범한 나눗셈은 여러 번 적용되면 그렇게 만든다.
+ */
 extern int rounddiv(long, int);
 
 /* ### strutil.c ### */
