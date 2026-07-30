@@ -1154,6 +1154,22 @@ extern int wiz_debug_cmd_bury(void);
 
 /* ### display.c ### */
 
+/**
+ * @name The perception tests, as functions
+ * @brief The same questions display.h asks as macros, provided as functions.
+ * @note Both forms exist deliberately, and display.h explains the reason: the functions keep the compiled code small, and the macro forms are preferred only where a call is measurably
+ *       too slow. So these are what almost all code should use.
+ * @note Read display.h for what each actually asks. They differ in ways their names do not reveal -- which of them assumes the square is visible, which accepts heat as sight, which is
+ *       unreliable for a concealed mimic.
+ * @{
+ */
+/**
+ * @name 지각 검사들. 함수로서.
+ * @brief display.h 가 매크로로 묻는 것과 같은 질문들. 함수로 제공된다.
+ * @note 두 형태가 의도적으로 존재하며, display.h 가 그 이유를 설명한다. 함수는 컴파일된 코드를 작게 유지하고, 매크로 형태는 호출이 측정 가능하게 느린 곳에서만 택해진다. 그래서 이들이 거의 모든 코드가 써야 하는 것이다.
+ * @note 각각이 실제로 무엇을 묻는지는 display.h 를 볼 것. 그것들은 이름이 드러내지 않는 방식으로 서로 다르다. 어느 것이 그 칸이 보인다고 가정하는지, 어느 것이 열을 시각으로 받아들이는지, 어느 것이 위장한 모방자에 대해 신뢰할 수 없는지.
+ * @{
+ */
 extern int tp_sensemon(struct monst *) NONNULLARG1;
 extern int sensemon(struct monst *) NONNULLARG1;
 extern int mon_warning(struct monst *) NONNULLARG1;
@@ -1162,19 +1178,94 @@ extern int see_with_infrared(struct monst *) NONNULLARG1;
 extern int canseemon(struct monst *) NONNULLARG1;
 extern int knowninvisible(struct monst *) NONNULLARG1;
 extern int is_safemon(struct monst *) NONNULLARG1;
+/** @} */
+/**
+ * @brief Record what magic mapping revealed at a square, without the hero having seen it.
+ * @note Distinct from ordinary background mapping because what magic reveals differs from what looking reveals: a magically mapped square is known but not seen, and some things are
+ *       omitted.
+ */
+/**
+ * @brief 마법 지도가 어떤 칸에서 드러낸 것을 기록한다. 영웅이 그것을 본 것 없이.
+ * @note 평범한 배경 기록과 구별되는 것은, 마법이 드러내는 것이 보는 것이 드러내는 것과 다르기 때문이다. 마법으로 기록된 칸은 알려졌으나 보이지는 않았으며, 몇 가지는 빠진다.
+ */
 extern void magic_map_background(coordxy, coordxy, int);
+/**
+ * @brief Record what the hero now knows the terrain at a square to be.
+ * @note Writes the hero's memory rather than the map. The map is what is there; this is what the hero believes -- and the two are allowed to differ, which is what makes a remembered
+ *       map possible.
+ */
+/**
+ * @brief 영웅이 이제 어떤 칸의 지형이 무엇이라고 아는지 기록한다.
+ * @note 지도가 아니라 영웅의 기억에 쓴다. 지도는 거기 있는 것이고, 이것은 영웅이 믿는 것이다. 그리고 그 둘은 달라도 되며, 그것이 기억된 지도를 가능하게 하는 것이다.
+ */
 extern void map_background(coordxy, coordxy, int);
 extern void map_trap(struct trap *, int) NONNULLARG1;
 extern void map_object(struct obj *, int) NONNULLARG1;
+/**
+ * @name Remembering an unseen monster
+ * @brief Mark a square as holding something the hero knows is there but cannot see, and clear that mark.
+ * @note The mark is the hero's belief, so it persists after the monster has gone -- which is the point: the player should have to check rather than being told the invisible thing left.
+ * @note Clearing it reports whether there was anything to clear, so a caller can tell whether the hero's belief was corrected.
+ * @{
+ */
+/**
+ * @name 보이지 않는 몬스터를 기억하기
+ * @brief 어떤 칸을, 영웅이 거기 있다고 알지만 볼 수 없는 무언가를 담은 것으로 표시하고, 그 표시를 지운다.
+ * @note 그 표시는 영웅의 믿음이므로 몬스터가 떠난 뒤에도 남는다. 그것이 요점이다. 플레이어는 그 투명한 것이 떠났다고 알려지는 대신 확인해야 한다.
+ * @note 지우는 쪽은 지울 것이 있었는지 알린다. 그래서 호출자가 영웅의 믿음이 바로잡혔는지 알 수 있다.
+ * @{
+ */
 extern void map_invisible(coordxy, coordxy);
-extern void map_engraving(struct engr *, int);
 extern boolean unmap_invisible(coordxy, coordxy);
+/** @} */
+extern void map_engraving(struct engr *, int);
 extern void unmap_object(coordxy, coordxy);
 extern void map_location(coordxy, coordxy, int);
+/**
+ * @brief Whether map drawing should be withheld at the moment.
+ * @note True during level generation and a few other times when the map is not in a consistent state. Drawing then would show a half-built level, so this is asked rather than each such
+ *       situation remembering to suppress drawing itself.
+ */
+/**
+ * @brief 지금 지도 그리기를 보류해야 하는지.
+ * @note 레벨 생성 중과 지도가 일관된 상태가 아닌 몇몇 다른 때에 참이다. 그때 그리면 반쯤 지어진 레벨이 보이므로, 그런 상황마다 스스로 그리기를 억제하기를 기억하는 대신 이것을 묻는다.
+ */
 extern boolean suppress_map_output(void);
+/**
+ * @name Learning a square by touch
+ * @brief Record what the hero found out about a square by feeling it rather than seeing it.
+ * @note What touch reveals is not what sight reveals -- the terrain is learned but not what is lying on it -- so this is a different operation and not a blind hero's version of the same
+ *       one.
+ * @{
+ */
+/**
+ * @name 만져서 칸을 알기
+ * @brief 영웅이 보는 것이 아니라 만져서 어떤 칸에 대해 알아낸 것을 기록한다.
+ * @note 촉각이 드러내는 것은 시각이 드러내는 것과 다르다. 지형은 알게 되지만 그 위에 놓인 것은 그렇지 않다. 그래서 이것은 같은 연산의 눈먼 영웅용 판본이 아니라 다른 연산이다.
+ * @{
+ */
 extern void feel_newsym(coordxy, coordxy);
 extern void feel_location(coordxy, coordxy);
+/** @} */
+/**
+ * @brief Work out afresh what should be shown at a square, and show it.
+ * @note The workhorse of the display. Nearly everything that changes the world calls this for the affected squares, which is why it must be cheap and why it decides for itself whether
+ *       anything actually needs redrawing.
+ */
+/**
+ * @brief 어떤 칸에 무엇이 보여야 하는지 새로 계산하고 그것을 보인다.
+ * @note 표시부의 일꾼이다. 세계를 바꾸는 거의 모든 것이 영향받은 칸에 대해 이것을 호출한다. 그래서 값이 싸야 하고, 실제로 다시 그릴 것이 있는지를 스스로 정하는 이유가 그것이다.
+ */
 extern void newsym(coordxy, coordxy);
+/**
+ * @brief The same, but draw whether or not anything appears to have changed.
+ * @note For the cases where the appearance changed without the game's own state doing so -- a symbol setting altered, the display reinitialised. The ordinary form would decide there was
+ *       nothing to do.
+ */
+/**
+ * @brief 같은 일을 하되, 무엇이 바뀐 것처럼 보이는지와 무관하게 그린다.
+ * @note 게임 자신의 상태가 바뀌지 않은 채로 외형이 바뀐 경우를 위한 것이다. 심볼 설정이 바뀌었거나, 표시부가 다시 초기화되었거나. 평범한 형태는 할 일이 없다고 판단할 것이다.
+ */
 extern void newsym_force(coordxy, coordxy);
 extern void shieldeff(coordxy, coordxy);
 extern void tmp_at(coordxy, coordxy);
@@ -1192,20 +1283,116 @@ extern int doredraw(void);
 extern void docrt(void);
 extern void docrt_flags(int);
 extern void redraw_map(boolean);
+/**
+ * @brief Put a glyph at a square in the game's copy of the screen.
+ * @note Does not draw. It records what should be there, and the drawing happens when the screen is flushed -- which is what lets many changes in one turn produce one redraw.
+ */
+/**
+ * @brief 게임의 화면 사본에서 어떤 칸에 글리프를 놓는다.
+ * @note 그리지 않는다. 무엇이 거기 있어야 하는지를 기록하고, 그리기는 화면이 비워질 때 일어난다. 그것이 한 턴 안의 많은 변경이 한 번의 다시 그리기를 내게 하는 것이다.
+ */
 extern void show_glyph(coordxy, coordxy, int);
 extern void clear_glyph_buffer(void);
 extern void row_refresh(coordxy, coordxy, coordxy);
 extern void cls(void);
+/**
+ * @brief Send everything that has changed to the display.
+ * @note The counterpart of recording glyphs. Its argument says how urgently -- some callers need the player to see the result before the next thing happens, and others are content to let
+ *       it wait.
+ */
+/**
+ * @brief 바뀐 모든 것을 표시부로 보낸다.
+ * @note 글리프를 기록하는 것의 짝이다. 그 인자가 얼마나 급한지를 말한다. 어떤 호출자는 다음 일이 일어나기 전에 플레이어가 그 결과를 보아야 하고, 어떤 호출자는 그것이 기다려도 괜찮다.
+ */
 extern void flush_screen(int);
+/**
+ * @brief The glyph for the terrain at a square, ignoring everything standing on it.
+ * @note Answers "what is the floor here" rather than "what is here". That distinction is what lets something moving across a square be erased by restoring what was underneath, rather
+ *       than by asking the game what is there -- which would include the thing being erased.
+ */
+/**
+ * @brief 어떤 칸의 지형에 해당하는 글리프. 그 위에 서 있는 모든 것을 무시하고.
+ * @note "여기 무엇이 있는가"가 아니라 "여기 바닥이 무엇인가"에 답한다. 그 구별이, 칸을 지나가는 것이 그 아래에 있던 것을 되돌려서 지워질 수 있게 하는 것이다. 게임에게 거기 무엇이 있는지 묻는 방식이 아니라. 그렇게 물으면 지워지는 대상이 포함된다.
+ */
 extern int back_to_glyph(coordxy, coordxy);
 extern int zapdir_to_glyph(int, int, int);
+/**
+ * @brief The glyph currently shown at a square.
+ * @warning What is displayed, not what is there. It reads the game's copy of the screen, so it reflects the hero's knowledge and whatever transient effect is being drawn -- not the
+ *          world.
+ */
+/**
+ * @brief 어떤 칸에 지금 보여지고 있는 글리프.
+ * @warning 거기 있는 것이 아니라 표시되고 있는 것이다. 게임의 화면 사본을 읽으므로, 영웅의 앎과 지금 그려지고 있는 일시적인 효과를 반영한다. 세계가 아니다.
+ */
 extern int glyph_at(coordxy, coordxy);
+/**
+ * @brief Redraw every unlit room square after the setting that governs them changed.
+ * @note A whole-map operation for a single option, because whether an unlit room shows as dark or as floor affects every such square at once and nothing else would notice.
+ */
+/**
+ * @brief 그것들을 지배하는 설정이 바뀐 뒤, 불 없는 모든 방 칸을 다시 그린다.
+ * @note 하나의 선택지를 위한 지도 전체 연산이다. 불 없는 방이 어둡게 보이는지 바닥으로 보이는지가 그런 모든 칸에 한꺼번에 영향을 주고, 다른 어느 것도 그것을 알아채지 못하기 때문이다.
+ */
 extern void reglyph_darkroom(void);
+/**
+ * @name How a wall joins its neighbours
+ * @brief Work out which of the wall shapes each wall square should be drawn as.
+ * @note A wall's appearance depends on which of its neighbours are also walls -- a corner, a tee, a crossing. That is derived rather than stored, so it has to be recomputed whenever the
+ *       map changes around a wall.
+ * @note One form does a single square and one does the whole level; the single-square form exists because digging changes one wall and its neighbours rather than the map.
+ * @{
+ */
+/**
+ * @name 벽이 이웃과 어떻게 이어지는지
+ * @brief 각 벽 칸이 어떤 벽 모양으로 그려져야 하는지 알아낸다.
+ * @note 벽의 외형은 그 이웃 중 어느 것이 또한 벽인지에 달려 있다. 모서리, T자, 십자. 그것은 저장되지 않고 유도되므로, 벽 둘레의 지도가 바뀔 때마다 다시 계산되어야 한다.
+ * @note 한 형태는 칸 하나를 하고 한 형태는 레벨 전체를 한다. 칸 하나 형태가 있는 것은 굴착이 지도가 아니라 벽 하나와 그 이웃을 바꾸기 때문이다.
+ * @{
+ */
 extern void xy_set_wall_state(coordxy, coordxy);
 extern void set_wall_state(void);
+/** @} */
+/**
+ * @brief Forget that a square was seen from certain directions.
+ * @note Which directions a square has been seen from is remembered, because a wall looks different depending on which side it was viewed from. This unremembers some of that -- for
+ *       instance when the wall is dug through and the old view no longer applies.
+ */
+/**
+ * @brief 어떤 칸이 특정 방향에서 보였다는 것을 잊는다.
+ * @note 칸이 어느 방향에서 보였는지가 기억된다. 벽이 어느 쪽에서 보였는지에 따라 다르게 보이기 때문이다. 이것은 그 중 일부를 잊는다. 예컨대 그 벽이 파여 지나가지고 예전의 시점이 더는 적용되지 않을 때.
+ */
 extern void unset_seenv(struct rm *, coordxy, coordxy, coordxy, coordxy);
+/**
+ * @brief Which degree of warning a monster deserves.
+ * @note Not whether -- that is a separate question. This is the level, and it is what decides which of the warning symbols is shown, so the player learns roughly how dangerous
+ *       something is without learning what it is.
+ */
+/**
+ * @brief 몬스터가 어느 정도의 경고를 받을 만한지.
+ * @note 여부가 아니다. 그것은 별개의 질문이다. 이것은 단계이며, 경고 심볼 중 어느 것이 보여질지를 정하는 것이다. 그래서 플레이어는 그것이 무엇인지 알지 못한 채로 얼마나 위험한지를 대략 알게 된다.
+ */
 extern int warning_of(struct monst *) NONNULLARG1;
+/**
+ * @brief Resolve a glyph into everything a display needs in order to draw it.
+ * @note The bridge between the game's numbering and the display's drawing. It fills in every representation at once, because the core does not know which one this display will read.
+ * @note The square is passed as well as the glyph because some of the resolution depends on where it is -- what a wall looks like, whether an accessibility substitution applies.
+ */
+/**
+ * @brief 글리프를 표시부가 그것을 그리기 위해 필요한 모든 것으로 해석한다.
+ * @note 게임의 번호 체계와 표시부의 그리기 사이의 다리다. 모든 표현을 한꺼번에 채우는 것은, 코어가 이 표시부가 어느 것을 읽을지 모르기 때문이다.
+ * @note 글리프와 함께 칸도 전달되는 것은, 그 해석의 일부가 그것이 어디인지에 달려 있기 때문이다. 벽이 어떻게 보이는지, 접근성 대체가 적용되는지.
+ */
 extern void map_glyphinfo(coordxy, coordxy, int, unsigned, glyph_info *) NONNULLPTRS;
+/**
+ * @brief Rebuild the cached mapping from glyphs to appearances.
+ * @note Takes the reason rather than a flag, because how much has to be rebuilt depends on why -- a new game rebuilds everything, a change of level only what depends on where the hero
+ *       is.
+ */
+/**
+ * @brief 글리프에서 외형으로의 캐시된 대응을 다시 만든다.
+ * @note 플래그가 아니라 이유를 받는다. 얼마만큼을 다시 만들어야 하는지가 왜인지에 달려 있기 때문이다. 새 게임은 전부를 다시 만들고, 레벨 변경은 영웅이 어디 있는지에 달린 것만을 다시 만든다.
+ */
 extern void reset_glyphmap(enum glyphmap_change_triggers trigger);
 extern int fn_cmap_to_glyph(int);
 
