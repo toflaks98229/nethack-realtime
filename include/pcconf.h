@@ -3,6 +3,37 @@
 /*-Copyright (c) Michael Allison, 2006. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file pcconf.h
+ * @brief What the game needs to know when it is built for MS-DOS.
+ *
+ * One of the platform family. What makes this one distinctive is not the operating system but the constraints of the machines it ran on: little memory, short file names, no ability
+ * to run another program while the game is loaded.
+ *
+ * A good deal of what is here is a consequence of that. The file names differ from every other platform's because eight characters and three were the limit. The graphics options
+ * are about detecting and switching video hardware, which no other platform does from inside the game. And the compiler detection at the top exists because several quite different
+ * compilers targeted this platform and each announces itself differently.
+ *
+ * @note The comment listing the automatic definitions is the useful part of that detection: it records which symbol comes from which compiler, so a new one can be recognised by
+ *       following the pattern.
+ * @note One of the listed compilers is noted as not having been verified for some years, which is honest about what "supported" means here.
+ * @warning The short file names are not a preference. A name longer than the limit is silently truncated by the system, and two names that differ only past it become the same file.
+ */
+
+/**
+ * @file pcconf.h
+ * @brief 게임이 MS-DOS 를 위해 빌드될 때 알아야 하는 것.
+ *
+ * 플랫폼 가족의 하나. 이것을 특징적으로 만드는 것은 운영 체제가 아니라 그것이 돌아갔던 기계의 제약이다. 적은 메모리, 짧은 파일 이름, 게임이 적재된 동안 다른 프로그램을 돌릴 수 없음.
+ *
+ * 여기 있는 것의 상당 부분이 그 결과다. 파일 이름이 다른 모든 플랫폼과 다른 것은 여덟 자와 세 자가 한계였기 때문이다. 그래픽 선택지는 비디오 하드웨어를 감지하고 전환하는 것에 관한 것인데, 다른 어느 플랫폼도 게임 안에서 그것을 하지 않는다. 그리고 위쪽의 컴파일러
+ * 감지가 있는 것은 꽤 다른 여러 컴파일러가 이 플랫폼을 대상으로 했고 각각이 자신을 다르게 알리기 때문이다.
+ *
+ * @note 자동 정의를 나열하는 주석이 그 감지의 쓸모 있는 부분이다. 어느 심볼이 어느 컴파일러에서 오는지 기록하므로, 새 컴파일러를 그 방식을 따라 인식시킬 수 있다.
+ * @note 나열된 컴파일러 중 하나는 몇 해 동안 검증되지 않았다고 적혀 있으며, 그것은 여기서 "지원"이 무엇을 뜻하는지에 대해 정직하다.
+ * @warning 짧은 파일 이름은 선호가 아니다. 한계보다 긴 이름은 시스템이 조용히 잘라 내며, 그 지점 뒤에서만 다른 두 이름은 같은 파일이 된다.
+ */
+
 #ifndef PCCONF_H
 #define PCCONF_H
 

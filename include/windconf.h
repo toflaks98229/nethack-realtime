@@ -2,6 +2,36 @@
 /* Copyright (c) NetHack PC Development Team 1993, 1994.  */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file windconf.h
+ * @brief What the game needs to know when it is built for Windows.
+ *
+ * One of the platform family, and the one this fork is built with. Shorter than the Unix header because Windows is one system rather than a family, so most of the differences it
+ * would otherwise have to resolve simply do not arise.
+ *
+ * What is here divides into three. Where the game finds itself and its files -- including the option to take its own location as the game directory, which is what makes an
+ * installation portable. What it does when a game ends badly: locking so an interrupted game is not overwritten without asking, and the ability to repair one rather than lose it.
+ * And the site configuration, enabled here, so one installation can be shared.
+ *
+ * @note The one option left disabled has its reason recorded beside it: running a shell from inside the game hung. That is a note about a specific failure rather than a policy, and
+ *       it is why the option is commented rather than removed.
+ * @note This is a modified copy of NetHack, and the real-time work is built through this platform's display. That work is not conditional on anything here -- the switch is in the
+ *       shared configuration -- but this is the header that decides which display it runs under.
+ */
+
+/**
+ * @file windconf.h
+ * @brief 게임이 Windows 를 위해 빌드될 때 알아야 하는 것.
+ *
+ * 플랫폼 가족의 하나이며, 이 포크가 그것으로 빌드되는 것이다. Unix 헤더보다 짧은 것은 Windows 가 가족이 아니라 하나의 시스템이기 때문이다. 그래서 그러지 않으면 해결해야 했을 차이 대부분이 애초에 생기지 않는다.
+ *
+ * 여기 있는 것은 셋으로 나뉜다. 게임이 자신과 자기 파일을 어디서 찾는지 -- 자기 위치를 게임 디렉토리로 삼는 선택지를 포함하며, 그것이 설치본을 휴대 가능하게 만드는 것이다. 게임이 나쁘게 끝났을 때 무엇을 하는지. 중단된 게임이 묻지 않고 덮어써지지 않도록 하는 잠금과,
+ * 그것을 잃는 대신 복구할 수 있는 능력. 그리고 여기서 켜지는 사이트 설정. 그래서 하나의 설치본을 공유할 수 있다.
+ *
+ * @note 꺼진 채로 남은 하나의 선택지에는 그 이유가 곁에 기록되어 있다. 게임 안에서 셸을 돌리면 멈춰 버렸다. 그것은 방침이 아니라 특정한 실패에 대한 메모이며, 그 선택지가 없애지지 않고 주석 처리된 이유다.
+ * @note 이것은 NetHack 의 수정된 사본이며, 실시간 작업은 이 플랫폼의 표시부를 통해 빌드된다. 그 작업은 여기의 어떤 것에도 조건적이지 않다 -- 그 스위치는 공유 설정에 있다 -- 그러나 그것이 어느 표시부 아래에서 돌아가는지를 정하는 것이 이 헤더다.
+ */
+
 #ifndef WINDCONF_H
 #define WINDCONF_H
 

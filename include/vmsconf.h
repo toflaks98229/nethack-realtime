@@ -3,6 +3,38 @@
 /*-Copyright (c) Robert Patrick Rankin, 2011. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file vmsconf.h
+ * @brief What the game needs to know when it is built for VMS.
+ *
+ * One of the platform family. Two things make it unlike the others.
+ *
+ * The first is visible in the very first definitions: the site's values are given with trailing padding, and the comment says why -- so that a longer value can be patched into an
+ * already-built executable. That is a way of working from a time when rebuilding was expensive and an administrator might adjust a binary in place.
+ *
+ * The second is that this file spends much of its length undoing rather than deciding. Where other platform headers set what they need, this one also cleans up after the shared
+ * configuration, and its own comment explains the reasoning: it is deliberately conservative so that a hand-edited configuration will not disturb it.
+ *
+ * @note So a definition here that appears to contradict the shared configuration is not an oversight. It is this file asserting what the platform requires over what was asked for.
+ * @warning The padding in the site values is significant. Trimming it makes the values look tidier and removes the room the comment says was left on purpose.
+ */
+
+/**
+ * @file vmsconf.h
+ * @brief 게임이 VMS 를 위해 빌드될 때 알아야 하는 것.
+ *
+ * 플랫폼 가족의 하나. 두 가지가 이것을 다른 것들과 다르게 만든다.
+ *
+ * 첫째는 맨 처음 정의들에서 바로 보인다. 사이트의 값들이 뒤쪽 여백과 함께 주어지며, 주석이 그 이유를 말한다. 이미 빌드된 실행 파일에 더 긴 값을 덧대어 넣을 수 있도록. 그것은 다시 빌드하는 것이 비쌌고 관리자가 실행 파일을 제자리에서 손볼 수도 있었던 시절의 작업
+ * 방식이다.
+ *
+ * 둘째는 이 파일이 그 길이의 상당 부분을 정하는 데가 아니라 되돌리는 데 쓴다는 것이다. 다른 플랫폼 헤더들이 자신이 필요한 것을 설정하는 곳에서, 이 파일은 공유 설정 뒤를 정리하기도 하며, 그 자신의 주석이 그 논리를 설명한다. 손으로 편집된 설정이 이것을 흐트러뜨리지 않도록
+ * 의도적으로 보수적이다.
+ *
+ * @note 그래서 여기의 정의가 공유 설정과 모순되어 보이는 것은 빠뜨림이 아니다. 요청된 것보다 플랫폼이 요구하는 것을 이 파일이 주장하는 것이다.
+ * @warning 사이트 값의 여백은 의미가 있다. 그것을 잘라 내면 값이 더 깔끔해 보이면서 주석이 일부러 남겼다고 말하는 자리가 없어진다.
+ */
+
 #ifdef VMS
 #ifndef VMSCONF_H
 #define VMSCONF_H

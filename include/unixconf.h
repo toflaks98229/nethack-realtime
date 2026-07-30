@@ -3,6 +3,40 @@
 /*-Copyright (c) Pasi Kallinen, 2018. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file unixconf.h
+ * @brief What the game needs to know when it is built for a Unix.
+ *
+ * One of a family of headers, one per platform, each read only when that platform is the one being built for. This is the largest of them because "Unix" is not one system: the
+ * variants disagree on where headers live, what routines are called, whether a facility exists at all -- and the game has to work on several.
+ *
+ * So the first thing here is a choice of variant, and the file is explicit that exactly one must be chosen. From it follow the answers to the differences the accompanying comment
+ * tabulates: which header supplies the time, which supplies terminal control, what the string search routines are named.
+ *
+ * The rest is what a Unix installation needs to decide. Where the game's shared files live, whether a player may suspend the game or run a shell from inside it, how locking works
+ * when several people play the same installation, whether mail may be delivered into the dungeon.
+ *
+ * @note Several options here are about a shared installation rather than about Unix. They are here because that arrangement -- one copy played by many people through one directory
+ *       -- is a Unix one, and the options that support it have nowhere more specific to live.
+ * @warning Exactly one variant must be selected. The file cannot check that, and selecting none or two leaves the differences resolved arbitrarily rather than reported.
+ */
+
+/**
+ * @file unixconf.h
+ * @brief 게임이 Unix 를 위해 빌드될 때 알아야 하는 것.
+ *
+ * 플랫폼마다 하나씩 있는 헤더 가족의 하나이며, 각각은 그 플랫폼이 빌드 대상일 때만 읽힌다. 이것이 그 중 가장 큰 것인데, "Unix" 가 하나의 시스템이 아니기 때문이다. 그 변종들은 헤더가 어디 있는지, 루틴이 무엇이라 불리는지, 어떤 기능이 아예 존재하는지에 대해
+ * 서로 다르고, 게임은 그 여럿에서 작동해야 한다.
+ *
+ * 그래서 여기서 첫째로 오는 것이 변종의 선택이며, 이 파일은 정확히 하나가 골라져야 한다고 명시한다. 그것으로부터 딸린 주석이 표로 정리한 차이들에 대한 답이 따라 나온다. 어느 헤더가 시간을 제공하는지, 어느 헤더가 터미널 제어를 제공하는지, 문자열 찾기 루틴이 무엇이라
+ * 불리는지.
+ *
+ * 나머지는 Unix 설치본이 정해야 하는 것이다. 게임의 공유 파일이 어디에 사는지, 플레이어가 게임을 멈춰 두거나 그 안에서 셸을 돌릴 수 있는지, 여러 사람이 같은 설치본을 플레이할 때 잠금이 어떻게 작동하는지, 메일이 던전 안으로 배달될 수 있는지.
+ *
+ * @note 여기의 여러 선택지는 Unix 에 관한 것이 아니라 공유 설치본에 관한 것이다. 그 방식 -- 하나의 사본을 여러 사람이 하나의 디렉토리를 통해 플레이하는 것 -- 이 Unix 의 것이고, 그것을 지원하는 선택지들이 더 알맞은 자리가 없어서 여기에 있다.
+ * @warning 정확히 하나의 변종이 골라져야 한다. 이 파일은 그것을 검사할 수 없고, 하나도 고르지 않거나 둘을 고르면 그 차이들이 보고되는 대신 임의로 결정된다.
+ */
+
 #ifdef UNIX
 #ifndef UNIXCONF_H
 #define UNIXCONF_H
