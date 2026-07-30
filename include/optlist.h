@@ -2,6 +2,41 @@
 /* NetHack may be freely redistributed.  See license for details. */
 
 #ifndef OPTLIST_H
+/**
+ * @file optlist.h
+ * @brief Every option the game has, described once.
+ *
+ * The same read-repeatedly arrangement as the monster and object lists, applied to the options: one description yields the enumerator, the table entry, and the handling. An option
+ * therefore cannot exist in the menu without existing in the table, or be spelled one way in a configuration file and another in the game.
+ *
+ * What an entry holds is more than a name and a value. An option carries how much of it a player must type for it to be recognised, how large a buffer its value needs, which section of
+ * the options menu it belongs in, who is allowed to set it and when, whether it can be negated, and whether giving it twice is an error. Those are the facts that make an option
+ * usable, and holding them with the option is what keeps the menu and the parser in agreement.
+ *
+ * @note The standing instruction at the top is part of the mechanism, not a courtesy: an option's user-facing documentation is a separate file, and nothing here can enforce that it was
+ *       updated. The note is the only thing that will remind you.
+ * @note The backward-compatibility switch near the top keeps option names that have been superseded working, so an old configuration file still loads. Those names are not
+ *       alternatives -- they are history kept usable.
+ * @note One enumeration here exists purely for wording: it lists the several things a player might mean by "off", so the menu can use the one that reads best for a given option.
+ * @warning Adding an option means an entry here and a review of the documentation, and this file's own note lists what else may need to accompany it. None of that is checked by the
+ *          build.
+ */
+
+/**
+ * @file optlist.h
+ * @brief 게임이 가진 모든 옵션. 한 번만 기술된 것.
+ *
+ * 몬스터 목록과 물건 목록과 같은 되풀이해 읽히는 배치를 옵션에 적용한 것이다. 하나의 기술이 열거자, 표 항목, 그리고 처리를 낸다. 그래서 옵션이 표에 존재하지 않으면서 메뉴에 존재할 수 없고, 설정 파일에서 한 가지로 적히면서 게임에서 다른 가지로 적힐 수 없다.
+ *
+ * 항목이 담는 것은 이름과 값 이상이다. 옵션은 인식되기 위해 플레이어가 얼마만큼 입력해야 하는지, 그 값이 얼마나 큰 버퍼를 필요로 하는지, 옵션 메뉴의 어느 절에 속하는지, 누가 언제 그것을 설정할 수 있는지, 부정될 수 있는지, 두 번 주는 것이 오류인지를 지닌다. 그것들이 옵션을 쓸 수
+ * 있게 만드는 사실이며, 그것을 옵션과 함께 보관하는 것이 메뉴와 파서를 일치하게 유지하는 것이다.
+ *
+ * @note 위쪽의 상시 지시는 예의가 아니라 기제의 일부다. 옵션의 사용자용 문서는 별도 파일이고, 여기의 어느 것도 그것이 갱신되었음을 강제할 수 없다. 그 메모만이 그것을 상기시켜 줄 것이다.
+ * @note 위쪽 부근의 하위 호환 스위치는 대체된 옵션 이름들이 계속 작동하게 하여, 예전 설정 파일이 여전히 읽히게 한다. 그 이름들은 대안이 아니다. 쓸 수 있는 상태로 보관된 역사다.
+ * @note 여기의 한 열거는 순전히 표현을 위해 존재한다. 플레이어가 "꺼짐"으로 뜻할 수 있는 여러 가지를 나열하므로, 메뉴가 주어진 옵션에 가장 잘 읽히는 것을 쓸 수 있다.
+ * @warning 옵션을 더하는 것은 여기의 항목 하나와 문서 검토를 뜻하며, 이 파일 자신의 메모가 그 밖에 무엇이 따라야 할 수 있는지 나열한다. 그 중 어느 것도 빌드가 검사하지 않는다.
+ */
+
 #define OPTLIST_H
 
 /*

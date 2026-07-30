@@ -2,6 +2,40 @@
 /*      Copyright (c) 2016 by Pasi Kallinen              */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file defsym.h
+ * @brief The one place every drawable symbol is described.
+ *
+ * A symbol has to exist in a great many forms. It needs an enumerator so code can name it, a default character so it can be drawn, a colour, a name the player can type in a
+ * configuration file, an entry in the tile mapping, and a place in the tables the game builds at startup. Writing those separately would let them drift, and the drift would be
+ * invisible -- a symbol whose name no longer matched its value would simply do the wrong thing.
+ *
+ * So this file is the description, read many times over. Each includer defines a macro naming what it wants, and the same list produces a different form each time. The comment below
+ * lists all of them and where each is used, and it is worth reading as a map: it says which files depend on this one and for what.
+ *
+ * @note So this is not a header in the usual sense. It has no include guard, and it defines nothing on its own -- what it produces depends entirely on which macro was defined before
+ *       it was read.
+ * @note One of the uses is dumping the enumerations for external tools. That is why the list carries a name as text as well as a value: something outside the game needs to be able to
+ *       read them back.
+ * @warning Adding a symbol adds it to every one of those forms at once, which is the point. Adding a form means adding a case here and in every one of the listed places -- omitting
+ *          one leaves a symbol that exists in some tables and not others.
+ */
+
+/**
+ * @file defsym.h
+ * @brief 그릴 수 있는 모든 심볼이 기술되는 단 하나의 장소.
+ *
+ * 심볼은 아주 많은 형태로 존재해야 한다. 코드가 그것을 지칭할 열거자, 그것이 그려질 기본 문자, 색, 플레이어가 설정 파일에 입력할 이름, 타일 대응의 항목, 그리고 게임이 시작할 때 만드는 표들 안의 자리. 그것들을 따로 적으면 서로 어긋날 수 있고, 그 어긋남은 보이지 않는다.
+ * 이름이 더는 자기 값과 맞지 않는 심볼은 그저 잘못된 일을 할 뿐이다.
+ *
+ * 그래서 이 파일이 그 기술이며, 여러 번 되풀이해 읽힌다. 각 포함하는 쪽이 자신이 원하는 것을 지칭하는 매크로를 정의하고, 같은 목록이 매번 다른 형태를 만들어 낸다. 아래의 주석이 그 전부와 각각이 어디에 쓰이는지를 나열하며, 지도로서 읽어 볼 가치가 있다. 어떤 파일이 이 파일에
+ * 의존하고 무엇을 위해 그러는지 밝힌다.
+ *
+ * @note 그래서 이것은 통상적인 의미의 헤더가 아니다. 포함 보호가 없고 스스로는 아무것도 정의하지 않는다. 무엇을 만들어 내는지는 전적으로 읽히기 전에 어느 매크로가 정의되었는지에 달려 있다.
+ * @note 그 용도 중 하나는 외부 도구를 위해 열거를 덤프하는 것이다. 목록이 값과 함께 글로서의 이름도 지니는 이유가 그것이다. 게임 밖의 무엇이 그것을 되읽을 수 있어야 한다.
+ * @warning 심볼을 더하는 것은 그 모든 형태에 한꺼번에 더하는 일이며, 그것이 요점이다. 형태를 더하는 것은 여기와 나열된 모든 곳에 경우를 더하는 일이다. 하나를 빠뜨리면 어떤 표에는 있고 어떤 표에는 없는 심볼이 남는다.
+ */
+
 /*
     This header is included in multiple places to produce
     different code depending on its use. Its purpose is to

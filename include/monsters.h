@@ -3,6 +3,39 @@
 /*-Copyright (c) Michael Allison, 2006. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file monsters.h
+ * @brief Every monster in the game, described once.
+ *
+ * The largest file in the game, and the same read-repeatedly arrangement as the object and symbol lists: one description yields the enumerator and the table row, so a monster's name
+ * cannot come to point at another monster's statistics.
+ *
+ * An entry is one monster complete -- what it is called, what it looks like, how tough it is, how it moves, its six possible attacks, what it weighs and is worth to eat, what noise it
+ * makes, what it resists and what eating it confers, and three words of flags. The comment below sets out that order, and it is the reference for reading an entry: the fields are
+ * positional and several are bare numbers, so the comment is the only thing naming them.
+ *
+ * @note The difficulty rating is the odd field out. It is computed rather than designed, and the comment explains the arrangement: a tool calculates it for every monster, the values
+ *       are pasted in here, and the tool's output is discarded. So a new monster's difficulty is generated and then becomes data.
+ * @note That comment also records two open judgements -- that some monsters might deserve a hand-chosen difficulty rather than the calculated one, and that the field would be better
+ *       placed earlier in the row. Both are noted rather than resolved.
+ * @warning Nearly every field is a set of flags or a packed group, and their meanings are defined elsewhere. An entry is not readable without the flag definitions, and a plausible
+ *          value in the wrong position produces a monster that works and is wrong.
+ */
+
+/**
+ * @file monsters.h
+ * @brief 게임의 모든 몬스터. 한 번만 기술된 것.
+ *
+ * 게임에서 가장 큰 파일이며, 물건 목록과 심볼 목록과 같은 되풀이해 읽히는 배치다. 하나의 기술이 열거자와 표의 줄을 낸다. 그래서 어떤 몬스터의 이름이 다른 몬스터의 능력치를 가리키게 될 수 없다.
+ *
+ * 항목 하나가 몬스터 하나의 전부다. 무엇이라 불리는지, 어떻게 보이는지, 얼마나 강한지, 어떻게 움직이는지, 가능한 여섯 공격, 무게와 먹을 때의 값, 어떤 소리를 내는지, 무엇에 저항하고 그것을 먹으면 무엇을 주는지, 그리고 세 워드의 플래그. 아래의 주석이 그 순서를 밝히며, 그것이
+ * 항목을 읽기 위한 참고 자료다. 필드들이 위치 기반이고 여럿이 맨 숫자이므로, 그 주석만이 그것들에 이름을 붙이는 것이다.
+ *
+ * @note 난이도 평가가 유일하게 성격이 다른 필드다. 설계되는 것이 아니라 계산되며, 그 주석이 그 방식을 설명한다. 도구가 모든 몬스터에 대해 그것을 계산하고, 그 값들이 여기에 붙여지고, 도구의 출력은 버려진다. 그래서 새 몬스터의 난이도는 생성된 뒤 데이터가 된다.
+ * @note 그 주석은 두 가지 미결 판단도 기록한다. 어떤 몬스터는 계산된 것 대신 손으로 고른 난이도를 받을 만할 수 있다는 것, 그리고 그 필드가 줄에서 더 앞에 놓이는 것이 나으리라는 것. 둘 다 해결되지 않고 기록되어 있다.
+ * @warning 거의 모든 필드가 플래그 묶음이거나 묶인 그룹이며, 그 뜻은 다른 곳에서 정의된다. 항목은 그 플래그 정의 없이 읽을 수 없고, 잘못된 위치의 그럴듯한 값은 작동하면서 틀린 몬스터를 만들어 낸다.
+ */
+
 #if defined(MONS_ENUM)
 #define MON(nam, sym, lvl, gen, atk, siz, mr1, mr2, flg1, flg2, flg3, d, \
             col, bn) PM_##bn

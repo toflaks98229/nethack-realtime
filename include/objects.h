@@ -2,6 +2,42 @@
 /* Copyright (c) Mike Threepoint, 1989.                           */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file objects.h
+ * @brief Every kind of object in the game, described once.
+ *
+ * The largest of the read-repeatedly lists after the monsters. Each object kind needs an enumerator, a name and description pair, and a table row; the same list produces all three, so
+ * the enumerator for a potion cannot come to point at a different potion's row.
+ *
+ * An entry is dense because an object's row is dense -- weight, price, damage, material, colour, and a set of flags -- and because several of its fields mean different things for
+ * different classes. Reading an entry therefore requires knowing which class's block it is in, and the file is organised in those blocks with a set of macros per class.
+ *
+ * That per-class arrangement is the thing to understand before reading it. A weapon's entry and a ring's entry name the same underlying fields in different orders under different
+ * names, so an entry is only interpretable in context.
+ *
+ * @note The accompanying note about the parameter count is a real constraint rather than a remark: the entry macro is at the limit a compiler is allowed to impose, and the file
+ *       already resolves that by packing several flags into one argument. A new field has to join that packing.
+ * @note One small macro exists purely so that an object with no separate description reads as such rather than as a bare null, which in a list this long is a genuine aid to reading it.
+ * @warning Gem hardness is worked out by a macro that is deliberately disabled for one analysis tool. So the values it yields under that tool differ from the real ones -- which is
+ *          harmless there and would not be anywhere else.
+ */
+
+/**
+ * @file objects.h
+ * @brief 게임의 모든 종류의 물건. 한 번만 기술된 것.
+ *
+ * 몬스터 다음으로 큰, 되풀이해 읽히는 목록이다. 각 물건 종류는 열거자, 이름과 외형의 짝, 표의 줄을 필요로 한다. 같은 목록이 그 셋 모두를 만들어 내므로, 어떤 물약의 열거자가 다른 물약의 줄을 가리키게 될 수 없다.
+ *
+ * 항목이 빽빽한 것은 물건의 줄이 빽빽하기 때문이고 -- 무게, 값, 피해, 재질, 색, 그리고 플래그 묶음 -- 그 필드 중 여럿이 계열에 따라 다른 것을 뜻하기 때문이다. 그래서 항목을 읽으려면 그것이 어느 계열의 블록에 있는지 알아야 하며, 이 파일은 계열마다 매크로 묶음을 두고 그
+ * 블록들로 조직되어 있다.
+ *
+ * 그 계열별 배치가 읽기 전에 이해해야 할 것이다. 무기의 항목과 반지의 항목이 같은 바탕 필드를 다른 순서로 다른 이름 아래 지칭한다. 그래서 항목은 문맥 안에서만 해석될 수 있다.
+ *
+ * @note 매개변수 개수에 관한 딸린 메모는 언급이 아니라 실제 제약이다. 항목 매크로가 컴파일러가 부과해도 되는 한계에 있고, 이 파일은 이미 여러 플래그를 하나의 인자로 묶어 그것을 해결한다. 새 필드는 그 묶음에 합류해야 한다.
+ * @note 작은 매크로 하나가 순전히, 별도 외형이 없는 물건이 맨 널이 아니라 그렇게 읽히도록 존재한다. 이만큼 긴 목록에서 그것은 읽기에 실제로 도움이 된다.
+ * @warning 보석의 단단함은 어느 분석 도구에 대해서는 의도적으로 비활성화되는 매크로로 계산된다. 그래서 그 도구 아래에서 그것이 내는 값은 실제 값과 다르다. 그곳에서는 무해하고 다른 어디서도 그렇지 않을 일이다.
+ */
+
 /*
    The data in this file is processed multiple times by its inclusion
    in several places in the code. The results depend on the definition

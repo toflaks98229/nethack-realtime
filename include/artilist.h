@@ -3,6 +3,39 @@
 /*-Copyright (c) Robert Patrick Rankin, 2017. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file artilist.h
+ * @brief Every artifact in the game, described once.
+ *
+ * Read repeatedly like the symbol list, and for the same reason: an artifact needs an enumerator, a name, and a table entry, and those must not be able to disagree. Each includer
+ * defines a macro saying which it wants, and the same list yields it.
+ *
+ * An artifact's entry is long because an artifact is defined by exceptions. What ordinary object it is, whom it attacks well, what it defends against, what happens when it is invoked,
+ * which alignment and role and race it favours, what it costs, and how it glows. Most of those are individually true of only one artifact, which is why the entry has a field for each
+ * rather than a general mechanism.
+ *
+ * @note The tool that builds the data files reads this too, and wants only the names -- so one of the expansions discards everything else. That is why the list is readable by something
+ *       that knows nothing about the game's structures.
+ * @note The colour field is what the artifact glows when it warns, not what the object looks like, as the accompanying comment records. The object's own appearance comes from its
+ *       ordinary kind.
+ * @warning The macro takes seventeen parameters. That is close to the limit a compiler is allowed to impose, so adding a field may mean combining two rather than adding an
+ *          eighteenth.
+ */
+
+/**
+ * @file artilist.h
+ * @brief 게임의 모든 아티팩트. 한 번만 기술된 것.
+ *
+ * 심볼 목록처럼 되풀이해 읽히며 이유도 같다. 아티팩트는 열거자, 이름, 표 항목을 필요로 하고 그것들이 서로 어긋날 수 있어서는 안 된다. 각 포함하는 쪽이 자신이 원하는 것을 말하는 매크로를 정의하고, 같은 목록이 그것을 낸다.
+ *
+ * 아티팩트의 항목이 긴 것은 아티팩트가 예외로 정의되기 때문이다. 그것이 어떤 평범한 물건인지, 누구를 잘 공격하는지, 무엇을 막는지, 발동하면 무슨 일이 일어나는지, 어떤 진영과 직업과 종족을 편애하는지, 값이 얼마인지, 어떻게 빛나는지. 그 대부분이 개별적으로 아티팩트 하나에만
+ * 참이며, 그래서 그 항목이 일반적인 기제가 아니라 각각에 대한 필드를 가진다.
+ *
+ * @note 데이터 파일을 만드는 도구도 이것을 읽으며 이름만을 원한다. 그래서 펼침 중 하나가 나머지 전부를 버린다. 그것이 이 목록을 게임의 구조체에 대해 아무것도 모르는 것이 읽을 수 있게 하는 것이다.
+ * @note 딸린 주석이 기록하듯 색 필드는 아티팩트가 경고할 때 빛나는 색이고 그 물건이 어떻게 보이는지가 아니다. 물건 자신의 외형은 그 평범한 종류에서 온다.
+ * @warning 그 매크로는 열일곱 개의 매개변수를 받는다. 그것은 컴파일러가 부과해도 되는 한계에 가깝다. 그래서 필드를 더하는 것은 열여덟 번째를 더하는 대신 둘을 합치는 일이 될 수 있다.
+ */
+
 #if defined(MAKEDEFS_C) || defined (MDLIB_C)
 /* in makedefs.c, all we care about is the list of names */
 
