@@ -3447,9 +3447,35 @@ extern void flash_mon(struct monst *) NONNULLARG1;
 
 /* ### mondata.c ### */
 
+/**
+ * @brief Point a monster at a different species entry.
+ * @warning The lowest-level part of changing what a monster is, and it does nothing else -- no adjustment of health, inventory or position follows. Calling it directly leaves a monster whose
+ *          kind and whose state disagree, which is why the shapeshifting routines exist above it.
+ */
+/**
+ * @brief 몬스터를 다른 종족 항목으로 향하게 한다.
+ * @warning 몬스터가 무엇인지를 바꾸는 가장 낮은 층의 부분이며, 그 밖에 아무것도 하지 않는다. 체력, 소지품, 위치의 조정이 따라오지 않는다. 이것을 직접 호출하면 종류와 상태가 어긋나는 몬스터가 남으며, 그래서 그 위에 모습 변화 루틴들이 존재한다.
+ */
 extern void set_mon_data(struct monst *, struct permonst *) NONNULLARG12;
+/**
+ * @name Finding an attack in a species' list
+ * @brief Whether a kind of monster has a given sort of attack, and which one it is.
+ * @note Two forms because both questions arise: some code needs to know whether an attack exists and some needs its damage figures. The finding form returns the attack itself, so the caller
+ *       does not search again.
+ * @warning A species has six attack slots and they are not ordered by importance. Neither of these assumes a position, which is why looking at the first slot directly is a mistake the
+ *          could-two-weapon test in mondata.h documents having made once.
+ * @{
+ */
+/**
+ * @name 종족의 목록에서 공격 찾기
+ * @brief 어떤 종류의 몬스터가 주어진 종류의 공격을 가졌는지, 그리고 그것이 어느 것인지.
+ * @note 두 형태인 것은 두 질문이 다 생기기 때문이다. 어떤 코드는 공격이 존재하는지 알아야 하고 어떤 코드는 그 피해 수치를 알아야 한다. 찾는 형태는 그 공격 자체를 반환하므로 호출자가 다시 찾지 않는다.
+ * @warning 종족은 여섯 개의 공격 칸을 가지며 그것들은 중요도로 정렬되어 있지 않다. 이들 중 어느 것도 위치를 가정하지 않으며, 그래서 첫 칸을 직접 보는 것이 잘못이다. mondata.h 의 두 무기 가능 검사가 그 잘못을 한 번 했음을 기록하고 있다.
+ * @{
+ */
 extern struct attack *attacktype_fordmg(struct permonst *, int, int) NONNULLARG1;
 extern boolean attacktype(struct permonst *, int) NONNULLARG1;
+/** @} */
 extern boolean noattacks(struct permonst *) NONNULLARG1;
 extern boolean poly_when_stoned(struct permonst *) NONNULLARG1;
 extern boolean defended(struct monst *, int) NONNULLARG1;
@@ -3461,18 +3487,63 @@ extern boolean resists_blnd_by_arti(struct monst *) NONNULLARG1;
 extern boolean can_blnd(struct monst *, struct monst *,
                         uchar, struct obj *) NONNULLARG2;
 extern boolean ranged_attk(struct permonst *) NONNULLARG1;
+/**
+ * @name What a monster cannot bear
+ * @brief Whether silver burns it, whether blessing harms it, whether light hurts it.
+ *
+ * Each comes in two forms, and the pairing is the thing to notice. One takes a species and one takes a monster, and they are not the same question: a species answers what such a creature is
+ * normally like, and a monster answers what this one is -- which may differ because it is a lycanthrope in human form, or has been affected by something.
+ *
+ * @warning Choosing the species form where the monster form was meant gives an answer that is right about the kind and wrong about the individual. That is the standard mistake with these,
+ *          and the names are the only warning.
+ * @{
+ */
+/**
+ * @name 몬스터가 견딜 수 없는 것
+ * @brief 은이 그것을 태우는지, 축복이 해를 입히는지, 빛이 아프게 하는지.
+ *
+ * 각각이 두 형태로 오며, 그 짝지음이 알아챌 것이다. 하나는 종족을 받고 하나는 몬스터를 받으며, 그것들은 같은 질문이 아니다. 종족은 그런 생물이 보통 어떤지에 답하고, 몬스터는 이 개체가 어떤지에 답한다. 그것이 인간 형태의 늑인간이라거나 무언가에 영향을 받았기 때문에 다를 수
+ * 있다.
+ *
+ * @warning 몬스터 형태가 뜻이었던 곳에서 종족 형태를 고르면, 종류에 대해서는 맞고 개체에 대해서는 틀린 답이 나온다. 이들과 관련된 전형적인 잘못이며, 그 이름들만이 경고다.
+ * @{
+ */
 extern boolean mon_hates_silver(struct monst *) NONNULLARG1;
 extern boolean hates_silver(struct permonst *) NONNULLARG1;
 extern boolean mon_hates_blessings(struct monst *) NONNULLARG1;
 extern boolean hates_blessings(struct permonst *) NONNULLARG1;
 extern boolean mon_hates_light(struct monst *) NONNULLARG1;
+/** @} */
 extern boolean passes_bars(struct permonst *) NONNULLARG1;
 extern boolean can_blow(struct monst *) NONNULLARG1;
 extern boolean can_chant(struct monst *) NONNULLARG1;
 extern boolean can_be_strangled(struct monst *) NONNULLARG1;
 extern boolean can_track(struct permonst *) NONNULLARG1;
+/**
+ * @name Why armour will not stay on
+ * @brief The two ways a body can be unsuited to worn armour.
+ * @note Distinct because the consequence differs: one bursts the armour and destroys it, the other lets it fall off intact. So a hero polymorphing into one kind loses their suit and into the
+ *       other does not, and the pair is what makes that difference expressible.
+ * @{
+ */
+/**
+ * @name 갑옷이 왜 붙어 있지 못하는지
+ * @brief 몸이 착용한 갑옷에 맞지 않을 수 있는 두 방식.
+ * @note 결과가 다르므로 구별된다. 하나는 갑옷을 터뜨려 파괴하고, 다른 하나는 온전한 채로 흘러내리게 한다. 그래서 한 종류로 변신하는 영웅은 갑옷을 잃고 다른 종류로 변신하면 잃지 않는다. 그 짝이 그 차이를 표현할 수 있게 하는 것이다.
+ * @{
+ */
 extern boolean breakarm(struct permonst *) NONNULLARG1;
 extern boolean sliparm(struct permonst *) NONNULLARG1;
+/** @} */
+/**
+ * @brief Whether this kind of monster holds on rather than letting go.
+ * @warning The name suggests adhesion; what it means is that a monster of this kind, once it has grabbed the hero, cannot be escaped by ordinary means. So it is about the grip and not about
+ *          the surface.
+ */
+/**
+ * @brief 이 종류의 몬스터가 놓아주는 대신 붙잡고 있는지.
+ * @warning 그 이름은 들러붙음을 시사한다. 그것이 뜻하는 것은, 이 종류의 몬스터가 영웅을 붙잡은 뒤에는 평범한 수단으로 벗어날 수 없다는 것이다. 그래서 표면이 아니라 그 쥠에 관한 것이다.
+ */
 extern boolean sticks(struct permonst *) NONNULLARG1;
 extern boolean cantvomit(struct permonst *) NONNULLARG1;
 extern int num_horns(struct permonst *) NONNULLARG1;
@@ -3480,30 +3551,147 @@ extern struct attack *dmgtype_fromattack(struct permonst *, int, int) NONNULLARG
 extern boolean dmgtype(struct permonst *, int) NONNULLARG1;
 extern int max_passive_dmg(struct monst *, struct monst *) NONNULLARG12;
 extern boolean same_race(struct permonst *, struct permonst *) NONNULLARG12;
+/**
+ * @name Recognising a monster by name
+ * @brief Turn text the player typed into a monster, or into a monster class.
+ *
+ * Three forms, and the differences matter. The plain one wants the whole string to be a monster's name. The extended one accepts a name with something after it and hands back where the name
+ * ended, which is what lets "gnome lord corpse" be parsed without the caller guessing where to split. The class form accepts a class name instead, for a request that means any of a kind.
+ *
+ * @note Each writes back extra information through a pointer -- how the match was made, or where it ended -- because a caller usually needs to know more than which monster it was.
+ * @warning A name may match a class and a monster both. Which of these is asked decides the answer, so trying one and then the other is not the same as trying them in the other order.
+ * @{
+ */
+/**
+ * @name 이름으로 몬스터를 알아보기
+ * @brief 플레이어가 입력한 글을 몬스터로, 또는 몬스터 계열로 바꾼다.
+ *
+ * 세 형태이며 그 차이가 중요하다. 평범한 것은 문자열 전체가 몬스터의 이름이기를 원한다. 확장된 것은 뒤에 무언가가 붙은 이름을 받아들이고 그 이름이 어디서 끝났는지를 되돌려준다. 그것이 호출자가 어디서 쪼갤지 짐작하지 않고 "노움 영주의 시체"를 파싱할 수 있게 하는 것이다. 계열
+ * 형태는 대신 계열 이름을 받아들인다. 어떤 종류의 아무것이나를 뜻하는 요청을 위해서다.
+ *
+ * @note 각각이 포인터를 통해 추가 정보를 되기록한다. 어떻게 일치했는지, 또는 어디서 끝났는지. 호출자가 보통 어느 몬스터였는지 이상을 알아야 하기 때문이다.
+ * @warning 이름이 계열과 몬스터에 둘 다 일치할 수 있다. 이들 중 어느 것을 묻는지가 답을 정하므로, 하나를 시도한 뒤 다른 것을 시도하는 것은 반대 순서로 시도하는 것과 같지 않다.
+ * @{
+ */
 extern int name_to_mon(const char *, int *) NONNULLARG1;
 extern int name_to_monplus(const char *, const char **, int *) NONNULLARG1;
 extern int name_to_monclass(const char *, int *);
+/** @} */
+/**
+ * @brief What a monster's sex actually is.
+ * @note The truth, regardless of what the hero can tell. Use it for rules; use the pronoun form for anything the player will read.
+ */
+/**
+ * @brief 몬스터의 성별이 실제로 무엇인지.
+ * @note 영웅이 알 수 있는 바와 무관한 진실이다. 규칙에는 이것을 쓰고, 플레이어가 읽을 것에는 대명사 형태를 쓸 것.
+ */
 extern int gender(struct monst *) NONNULLARG1;
+/**
+ * @brief Which sex to speak of a monster as, given what the hero can tell.
+ * @warning Not the monster's sex. An unseen monster is spoken of as neuter whatever it is, and a hallucinating hero is told about something else entirely -- so using this in a rule makes the
+ *          rule depend on the hero's perception.
+ */
+/**
+ * @brief 영웅이 알 수 있는 바에 따라, 몬스터를 어느 성별로 말할지.
+ * @warning 몬스터의 성별이 아니다. 보이지 않는 몬스터는 그것이 무엇이든 중성으로 말해지고, 환각 중인 영웅에게는 전혀 다른 것이 알려진다. 그래서 이것을 규칙에 쓰면 그 규칙이 영웅의 지각에 의존하게 된다.
+ */
 extern int pronoun_gender(struct monst *, unsigned) NONNULLARG1;
+/**
+ * @brief Whether a monster is of a kind that would follow the hero to another level.
+ * @note About the kind rather than the circumstances -- whether it is close enough or leashed is decided elsewhere. So a true answer is a precondition for following and not a prediction of it.
+ */
+/**
+ * @brief 몬스터가 영웅을 다른 레벨로 따라올 종류인지.
+ * @note 정황이 아니라 종류에 관한 것이다. 그것이 충분히 가까운지나 목줄에 묶였는지는 다른 곳에서 정해진다. 그래서 참이라는 답은 따라오기의 전제 조건이며 그것에 대한 예측이 아니다.
+ */
 extern boolean levl_follower(struct monst *) NONNULLARG1;
+/**
+ * @name Growing up and shrinking down
+ * @brief Convert between a young monster's kind and its adult form.
+ * @note Not every monster has both, so a conversion may return the same kind unchanged rather than failing -- which is why the match test exists: to ask whether two kinds are the two ages of
+ *       one creature without performing a conversion.
+ * @{
+ */
+/**
+ * @name 자라기와 줄어들기
+ * @brief 어린 몬스터의 종류와 그 성체 형태 사이를 변환한다.
+ * @note 모든 몬스터가 둘 다를 갖지는 않으므로, 변환이 실패하는 대신 같은 종류를 그대로 반환할 수 있다. 그것이 일치 검사가 존재하는 이유다. 변환을 수행하지 않고 두 종류가 한 생물의 두 나이인지 묻기 위해서.
+ * @{
+ */
 extern int little_to_big(int);
 extern int big_to_little(int);
 extern boolean big_little_match(int, int);
+/** @} */
 extern const char *locomotion(const struct permonst *, const char *) NONNULLARG12;
 extern const char *stagger(const struct permonst *, const char *) NONNULLARG12;
 extern const char *on_fire(struct permonst *, struct attack *) NONNULLARG12;
 extern const char *msummon_environ(struct permonst *, const char **) NONNULLARG12;
 extern const struct permonst *raceptr(struct monst *) NONNULLARG1;
 extern boolean olfaction(struct permonst *) NONNULLARG1;
+/**
+ * @name What the monsters have seen the hero resist
+ * @brief Record and withdraw the monsters' knowledge of the hero's resistances, and convert into its numbering.
+ *
+ * The monsters learn. If the hero shrugs off fire in front of something, that something knows better than to try fire again -- so what has been demonstrated is recorded, and it is recorded for
+ * the monsters collectively rather than per monster.
+ *
+ * The two conversions exist because the same fact arrives in two vocabularies: as a damage type when an attack fails, and as a property when the hero's own state is examined. Both have to be
+ * expressed in the one numbering this record uses.
+ *
+ * @note Withdrawing matters as much as recording. A resistance the hero loses has to be unlearned, or the monsters go on avoiding an attack that would now work.
+ * @{
+ */
+/**
+ * @name 몬스터들이 영웅이 무엇을 저항하는 것을 보았는지
+ * @brief 영웅의 저항에 대한 몬스터들의 앎을 기록하고 철회하며, 그 번호 체계로 변환한다.
+ *
+ * 몬스터들은 배운다. 영웅이 무언가 앞에서 불을 떨쳐내면, 그 무언가는 다시 불을 시도하지 않을 만큼 안다. 그래서 무엇이 입증되었는지가 기록되며, 몬스터마다가 아니라 몬스터들 전체에 대해 기록된다.
+ *
+ * 두 변환이 있는 것은, 같은 사실이 두 어휘로 도착하기 때문이다. 공격이 실패할 때는 피해 종류로, 영웅 자신의 상태가 살펴질 때는 속성으로. 둘 다 이 기록이 쓰는 하나의 번호 체계로 표현되어야 한다.
+ *
+ * @note 철회가 기록만큼 중요하다. 영웅이 잃은 저항은 잊혀져야 한다. 그러지 않으면 몬스터들이 이제 통할 공격을 계속 피한다.
+ * @{
+ */
 unsigned long cvt_adtyp_to_mseenres(uchar);
 unsigned long cvt_prop_to_mseenres(uchar);
 extern void monstseesu(unsigned long);
 extern void monstunseesu(unsigned long);
+/** @} */
+/**
+ * @brief Give a monster the resistances the hero has.
+ * @note For a monster made to be a copy of the hero, or a form the hero has taken being applied to something else. It exists because those resistances are held differently on the two sides,
+ *       so they cannot simply be assigned across.
+ */
+/**
+ * @brief 몬스터에게 영웅이 가진 저항을 준다.
+ * @note 영웅의 사본으로 만들어진 몬스터를 위한 것이거나, 영웅이 취한 형태가 다른 것에 적용되는 경우를 위한 것이다. 그 저항이 양쪽에서 다르게 보관되므로 그냥 대입해 넘길 수 없기 때문에 존재한다.
+ */
 extern void give_u_to_m_resistances(struct monst *) NONNULLARG1;
 extern boolean resist_conflict(struct monst *) NONNULLARG1;
+/**
+ * @name What a monster knows about traps
+ * @brief Ask, record, and broadcast knowledge of traps.
+ *
+ * A monster that has seen a trap avoids it, which is why a trap the hero set is not a reliable weapon twice. The knowledge is per monster, so one learning does not teach the rest -- except
+ * through the broadcast form, which is for a trap being sprung visibly enough that everything watching learns.
+ *
+ * @note All three accept the value meaning every kind of trap, which is how a monster that has learned caution in general is expressed without listing the kinds.
+ * @{
+ */
+/**
+ * @name 몬스터가 함정에 대해 무엇을 아는지
+ * @brief 함정에 대한 앎을 묻고, 기록하고, 널리 알린다.
+ *
+ * 함정을 본 몬스터는 그것을 피한다. 그것이 영웅이 놓은 함정이 두 번은 믿을 만한 무기가 아닌 이유다. 그 앎은 몬스터마다이므로 하나가 배운 것이 나머지를 가르치지 않는다. 다만 널리 알리는 형태를 통해서는 그렇다. 그것은 보고 있는 모든 것이 배울 만큼 눈에 띄게 발동된 함정을 위한
+ * 것이다.
+ *
+ * @note 셋 모두가 모든 종류의 함정을 뜻하는 값을 받아들인다. 그것이 종류를 나열하지 않고 전반적인 조심을 배운 몬스터를 표현하는 방식이다.
+ * @{
+ */
 extern boolean mon_knows_traps(struct monst *, int) NONNULLARG1;
 extern void mon_learns_traps(struct monst *, int) NONNULLARG1;
 extern void mons_see_trap(struct trap *) NONNULLARG1;
+/** @} */
 extern int get_atkdam_type(int);
 #if (NH_DEVEL_STATUS != NH_STATUS_RELEASED) || defined(DEBUG)
 extern int mstrength(struct permonst *) NONNULLARG1;
