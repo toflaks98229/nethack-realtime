@@ -2,6 +2,43 @@
 /* Copyright (c) Kenneth Lorber, Bethesda, Maryland, 1993. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file dlb.h
+ * @brief Reading the game's data files whether they are files or an archive.
+ *
+ * A build may ship its data as loose files or bundled into one archive. Code that
+ * reads a data file should not care which, so it opens by name through this layer
+ * and the layer decides where to look.
+ *
+ * When an archive is in use it is opened once and its directory kept in memory, so
+ * opening a member is a lookup and a seek rather than a file system operation. That
+ * is why an archive member behaves like a file that cannot be written and whose
+ * position is shared bookkeeping.
+ *
+ * @note Without @c DLB the whole layer reduces to ordinary file operations, so the
+ *       calling code is identical either way.
+ * @warning The Mac implementation uses resources rather than an archive file, which
+ *          is why the two are selected between here rather than assumed.
+ */
+
+/**
+ * @file dlb.h
+ * @brief 게임의 데이터 파일을 읽기. 그것이 개별 파일이든 아카이브든.
+ *
+ * 빌드에 따라 데이터가 낱개 파일로 배포될 수도, 하나의 아카이브로 묶일 수도 있다. 데이터
+ * 파일을 읽는 코드가 그 차이를 신경 쓸 필요는 없으므로, 이 계층을 통해 이름으로 열고 어디를
+ * 볼지는 계층이 정한다.
+ *
+ * 아카이브를 쓰는 경우 한 번 열어 그 디렉토리를 메모리에 보관한다. 그래서 구성원을 여는 일이
+ * 파일 시스템 연산이 아니라 조회와 위치 이동이 된다. 아카이브 구성원이 쓸 수 없는 파일처럼
+ * 동작하고 그 위치가 공유되는 기록인 이유가 그것이다.
+ *
+ * @note @c DLB 없이 빌드하면 이 계층 전체가 평범한 파일 연산으로 줄어든다. 그래서 호출하는
+ *       코드는 어느 쪽이든 동일하다.
+ * @warning Mac 구현은 아카이브 파일 대신 리소스를 쓴다. 그래서 둘 중 무엇을 쓸지 가정하지 않고
+ *          여기서 선택한다.
+ */
+
 #ifndef DLB_H
 #define DLB_H
 /* definitions for data library */

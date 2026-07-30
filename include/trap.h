@@ -5,9 +5,54 @@
 
 /* note for 3.1.0 and later: no longer manipulated by 'makedefs' */
 
+/**
+ * @file trap.h
+ * @brief A trap on the map, and the extra fact each kind needs.
+ *
+ * Traps differ in what they must remember. A trapdoor needs a destination level, a
+ * teleport trap a destination square, a rolling boulder a second launch point, a
+ * squeaky board its note, a pit whether it joins the one beside it. Rather than a
+ * field per kind, one union holds whichever applies -- so the trap's type decides
+ * which member is the live one.
+ *
+ * @note Whether the hero made the trap is recorded, and not merely for blame: a
+ *       monster caught in a trap the hero set reacts to that, and untrapping it
+ *       would otherwise be a free way to make it peaceful, as the comment inside
+ *       explains.
+ * @warning The union members are reached through macros that do not check the
+ *          trap's type. Reading the wrong one yields a plausible number that means
+ *          something else.
+ */
+
+/**
+ * @file trap.h
+ * @brief 지도 위의 함정과, 종류마다 필요한 추가 정보.
+ *
+ * 함정은 무엇을 기억해야 하는지가 서로 다르다. 뚜껑문은 목적지 레벨이, 순간이동 함정은 목적지
+ * 칸이, 굴러오는 바위는 두 번째 발사 지점이, 삐걱이는 널판은 그 음이, 구덩이는 옆의 것과
+ * 이어져 있는지가 필요하다. 종류마다 필드를 두는 대신 하나의 공용체가 해당하는 것을 담으므로,
+ * 어느 멤버가 유효한지는 함정의 종류가 정한다.
+ *
+ * @note 영웅이 그 함정을 만들었는지가 기록되며, 단지 책임을 묻기 위한 것이 아니다. 영웅이 놓은
+ *       함정에 걸린 몬스터는 그것에 반응하고, 그러지 않으면 함정을 풀어 주는 것이 손쉽게
+ *       평화롭게 만드는 수단이 되어 버린다. 안쪽 주석이 설명하고 있다.
+ * @warning 공용체 멤버들은 함정 종류를 검사하지 않는 매크로로 접근된다. 잘못된 것을 읽으면
+ *          그럴듯하지만 다른 것을 뜻하는 숫자가 나온다.
+ */
+
 #ifndef TRAP_H
 #define TRAP_H
 
+/**
+ * @brief The one extra fact a trap needs, whichever kind it is.
+ * @warning Which member is meaningful depends entirely on the trap's type; nothing
+ *          here records that, so the type must be consulted first.
+ */
+/**
+ * @brief 함정이 필요로 하는 단 하나의 추가 정보. 종류가 무엇이든.
+ * @warning 어느 멤버가 유효한지는 전적으로 함정의 종류에 달려 있다. 여기에는 그것을 기록하는
+ *          것이 없으므로, 먼저 종류를 확인해야 한다.
+ */
 union vlaunchinfo {
     short v_launch_otyp; /* type of object to be triggered */
     coord v_launch2;     /* secondary launch point (for boulders) */
