@@ -4,6 +4,42 @@
 
 /* This file is included by sfbase.c, sfstruct.c */
 
+/**
+ * @file sfmacros.h
+ * @brief The list of types the save code can write, named once.
+ *
+ * Every structure and field type that gets serialized is listed here exactly
+ * once, and the file is included with @c SF_C and @c SF_A defined differently by
+ * each consumer -- so one list generates the declarations, the definitions and
+ * the dispatch tables for both save formats.
+ *
+ * That is the point: a type added here appears in every place that needs it,
+ * rather than in three lists that can drift apart.
+ *
+ * @note Guarded on the macros being defined rather than on an include guard,
+ *       since being included more than once is how it works.
+ * @warning Removing or renaming an entry changes what the save code can write. It
+ *          is not a list of conveniences -- it is the set of types a save file can
+ *          contain.
+ */
+
+/**
+ * @file sfmacros.h
+ * @brief 저장 코드가 쓸 수 있는 타입들의 목록. 한 번만 이름을 적는다.
+ *
+ * 직렬화되는 모든 구조체와 필드 타입이 여기 정확히 한 번씩 나열되며, 이 파일은 소비하는
+ * 쪽마다 @c SF_C 와 @c SF_A 를 다르게 정의한 채 포함된다. 그래서 하나의 목록이 두 저장
+ * 형식 모두를 위한 선언과 정의, 디스패치 표를 생성한다.
+ *
+ * 그것이 핵심이다. 여기 추가한 타입은 서로 어긋날 수 있는 세 개의 목록이 아니라, 그것을
+ * 필요로 하는 모든 곳에 한꺼번에 나타난다.
+ *
+ * @note include guard 대신 매크로가 정의되었는지로 감싸여 있다. 두 번 이상 포함되는 것이
+ *       이 파일의 동작 방식이기 때문이다.
+ * @warning 항목을 없애거나 이름을 바꾸면 저장 코드가 쓸 수 있는 것이 달라진다. 편의를 모아
+ *          둔 목록이 아니라, 저장 파일이 담을 수 있는 타입의 집합이다.
+ */
+
 #if defined(SF_C) && defined(SF_A)
 
 SF_C(struct, arti_info)
