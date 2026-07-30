@@ -7,6 +7,43 @@
  * Assumes it has been preceded by '#include "config.h"' but
  * not necessarily by '#include "hack.h"'.
  */
+
+/**
+ * @file lint.h
+ * @brief Telling the compiler that something is deliberate.
+ *
+ * A warning is usually right, so silencing one is a claim about the code: that a
+ * string literal really is not modified, that an argument really is unused on
+ * this path. These macros make that claim visible at the point it is made
+ * instead of hiding it in build flags.
+ *
+ * The debug helpers live here for a practical reason rather than a logical one --
+ * to keep them out of hack.h -- which the existing comment says plainly.
+ *
+ * @warning @c nhStr() casts away const. The caller is asserting the string is
+ *          not written to; nothing checks it, and getting it wrong is undefined
+ *          behaviour rather than a warning.
+ * @note Depends on config.h but not on hack.h, so it can be used by code that
+ *       does not include the whole game.
+ */
+
+/**
+ * @file lint.h
+ * @brief 무언가가 의도된 것임을 컴파일러에 알리기.
+ *
+ * 경고는 대개 옳으므로, 경고를 잠재우는 일은 코드에 대한 주장이 된다. 이 문자열 리터럴은
+ * 정말로 수정되지 않는다는, 이 인자는 이 경로에서 정말로 쓰이지 않는다는 주장이다. 이
+ * 매크로들은 그 주장을 빌드 플래그 안에 감추는 대신 주장하는 자리에서 보이게 한다.
+ *
+ * 디버그 도우미들이 여기 있는 것은 논리적 이유가 아니라 실용적 이유 -- hack.h 를
+ * 어지럽히지 않기 위해 -- 이며, 기존 주석이 그것을 분명히 밝히고 있다.
+ *
+ * @warning @c nhStr() 은 const 를 벗겨 낸다. 호출자가 그 문자열에 쓰지 않는다고 주장하는
+ *          것이며, 아무것도 이를 검사하지 않는다. 틀리면 경고가 아니라 미정의 동작이다.
+ * @note config.h 에는 의존하지만 hack.h 에는 의존하지 않는다. 그래서 게임 전체를
+ *       포함하지 않는 코드도 쓸 수 있다.
+ */
+
 #ifndef LINT_H
 #define LINT_H
 

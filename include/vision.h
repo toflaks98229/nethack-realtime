@@ -2,9 +2,57 @@
 /* Copyright (c) Dean Luick, with acknowledgements to Dave Cohrs, 1990. */
 /* NetHack may be freely redistributed.  See license for details.       */
 
+/**
+ * @file vision.h
+ * @brief Whether a square can be seen, asked in the several ways it is meant.
+ *
+ * Line of sight and visibility are different questions. A dark room is in the
+ * hero's line of sight but not seen; a lit corridor around a corner is neither.
+ * Keeping them apart is what lets a light source reveal what was already within
+ * reach of the eye.
+ *
+ * The answers are precomputed into an array and read through these macros, so the
+ * rest of the game asks rather than recalculates.
+ *
+ * @note The array is indexed row-first while the macros take x then y, which is
+ *       why callers should use the macros rather than the array.
+ * @warning These concern sight only. Telepathy, warning and detection give
+ *          knowledge without it, so "the hero knows" is a broader question
+ *          answered elsewhere.
+ */
+
+/**
+ * @file vision.h
+ * @brief 어떤 칸을 볼 수 있는지를, 그 질문이 뜻하는 여러 방식으로 묻기.
+ *
+ * 시선과 가시성은 서로 다른 질문이다. 어두운 방은 영웅의 시선 안에 있지만 보이지 않고,
+ * 모퉁이를 돈 밝은 복도는 둘 다 아니다. 이 둘을 구분해 두는 것이, 광원이 이미 눈이
+ * 닿는 범위에 있던 것을 드러낼 수 있게 한다.
+ *
+ * 답은 미리 계산되어 배열에 담기고 이 매크로들을 통해 읽힌다. 그래서 게임의 나머지
+ * 부분은 다시 계산하지 않고 묻는다.
+ *
+ * @note 배열은 행 우선으로 색인되지만 매크로는 x 다음 y 를 받는다. 호출자가 배열이
+ *       아니라 매크로를 써야 하는 이유다.
+ * @warning 이것들은 시각에 관한 것뿐이다. 텔레파시와 경고, 탐지는 시각 없이 앎을
+ *          주므로, "영웅이 안다"는 더 넓은 질문이며 다른 곳에서 답한다.
+ */
+
 #ifndef VISION_H
 #define VISION_H
 
+/**
+ * @brief What is known about a square's visibility.
+ * @note @c COULD_SEE is about line of sight and @c IN_SIGHT about actually
+ *       seeing; a square can have the former without the latter, which is what
+ *       darkness means here.
+ */
+/**
+ * @brief 어떤 칸의 가시성에 대해 알려진 것.
+ * @note @c COULD_SEE 는 시선에 관한 것이고 @c IN_SIGHT 는 실제로 보이는지에 관한
+ *       것이다. 앞의 것만 있고 뒤의 것이 없을 수 있으며, 여기서 어둠이 뜻하는 바가
+ *       그것이다.
+ */
 #define COULD_SEE 0x1 /* location could be seen, if it were lit */
 #define IN_SIGHT 0x2  /* location can be seen */
 #define TEMP_LIT 0x4  /* location is temporarily lit */
