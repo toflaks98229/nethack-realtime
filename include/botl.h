@@ -2,6 +2,44 @@
 /* Copyright (c) Michael Allison, 2003                            */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file botl.h
+ * @brief The status fields, and how an interface is told about them.
+ *
+ * Two arrangements exist at once. The older one formats the status into text
+ * lines itself; the newer hands each field to the interface separately, so a
+ * graphical port can lay them out however it likes. Both are supported, which is
+ * why this header describes fields as well as line widths.
+ *
+ * Fields are identified by index rather than by name at the boundary, so adding
+ * one is a change both sides must agree on.
+ *
+ * @note The comment below records why the buffer is sized as it is, working from
+ *       the longest status line the game can actually produce -- it is a
+ *       calculation, not a guess.
+ * @warning When the line will not fit, less important fields are moved to the
+ *          end so that truncation removes the least significant information.
+ *          Field order is therefore a display decision, not an arbitrary one.
+ */
+
+/**
+ * @file botl.h
+ * @brief 상태 항목들과, 인터페이스에 그것을 알리는 방식.
+ *
+ * 두 가지 방식이 동시에 존재한다. 예전 방식은 상태를 스스로 글줄로 조립하고, 새 방식은
+ * 항목마다 따로 인터페이스에 건네므로 그래픽 포팅이 원하는 대로 배치할 수 있다. 둘 다
+ * 지원되며, 그래서 이 헤더가 줄 너비와 함께 항목까지 기술한다.
+ *
+ * 경계에서 항목은 이름이 아니라 색인으로 식별된다. 그래서 항목을 추가하는 일은 양쪽이
+ * 함께 합의해야 하는 변경이다.
+ *
+ * @note 아래 주석은 버퍼 크기를 그렇게 잡은 이유를 기록한다. 게임이 실제로 만들어 낼 수
+ *       있는 가장 긴 상태 줄에서 역산한 것이며, 어림짐작이 아니라 계산이다.
+ * @warning 줄이 들어가지 않을 때는 덜 중요한 항목이 뒤로 밀린다. 잘라 낼 때 가장 덜
+ *          중요한 정보가 사라지게 하기 위함이다. 따라서 항목 순서는 임의가 아니라 표시에
+ *          관한 결정이다.
+ */
+
 #ifndef BOTL_H
 #define BOTL_H
 
