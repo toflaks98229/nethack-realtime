@@ -2,9 +2,59 @@
 /* NetHack may be freely redistributed.  See license for details. */
 /* Copyright 1988, M. Stephenson */
 
+/**
+ * @file monattk.h
+ * @brief How a creature strikes, and what its blow does.
+ *
+ * Two independent vocabularies. The attack type says the manner -- a bite, a
+ * gaze, a breath, an engulf -- and the damage type says the consequence --
+ * physical harm, fire, paralysis, theft. A species pairs them, so the same
+ * consequence can arrive by very different means.
+ *
+ * @warning Both orderings are load-bearing, and the existing comments say why:
+ *          attack types past @c AT_BUTT are worth extra experience, so their
+ *          position is a rule; damage types 1 through 10 are the ray types used
+ *          by @c buzz(), so reordering them would require rewriting it.
+ * @note @c AT_ANY and @c AD_ANY are wildcards for asking questions, not things a
+ *       creature can have.
+ */
+
+/**
+ * @file monattk.h
+ * @brief 생물이 어떻게 때리는가, 그리고 그 타격이 무엇을 하는가.
+ *
+ * 서로 독립된 두 어휘다. 공격 종류는 방식을 말한다. 물기, 응시, 브레스, 삼키기다. 피해
+ * 종류는 결과를 말한다. 물리적 상해, 불, 마비, 절도다. 종이 이 둘을 짝지으므로, 같은
+ * 결과가 전혀 다른 방식으로 도달할 수 있다.
+ *
+ * @warning 두 순서 모두 동작을 좌우하며, 기존 주석이 이유를 밝힌다. @c AT_BUTT 이후의
+ *          공격 종류는 추가 경험치를 주므로 그 위치가 하나의 규칙이다. 피해 종류 1부터
+ *          10까지는 @c buzz() 가 쓰는 광선 종류이므로, 순서를 바꾸면 그것을 다시 써야
+ *          한다.
+ * @note @c AT_ANY 와 @c AD_ANY 는 질문을 위한 와일드카드이며, 생물이 실제로 가질 수 있는
+ *       것이 아니다.
+ */
+
 #ifndef MONATTK_H
 #define MONATTK_H
 
+/**
+ * @brief The manner in which a creature attacks.
+ * @note Some are not actions the creature takes: @c AT_NONE marks a passive
+ *       creature that only harms what touches it, @c AT_BOOM fires when the
+ *       creature dies, and @c AT_EXPL on proximity.
+ * @note @c AT_WEAP and @c AT_MAGC sit far from the rest because they mean "use
+ *       what it is carrying" and "cast", so the actual effect comes from
+ *       elsewhere.
+ */
+/**
+ * @brief 생물이 공격하는 방식.
+ * @note 일부는 생물이 취하는 행동이 아니다. @c AT_NONE 은 자신에게 닿은 것만 해치는 수동적
+ *       생물을 표시하고, @c AT_BOOM 은 그 생물이 죽을 때, @c AT_EXPL 은 근접했을 때
+ *       발동한다.
+ * @note @c AT_WEAP 과 @c AT_MAGC 가 나머지와 멀리 떨어져 있는 것은 그것들이 "지닌 것을
+ *       쓴다"와 "시전한다"를 뜻하기 때문이다. 실제 효과는 다른 곳에서 온다.
+ */
 /*      Add new attack types below - ordering affects experience (exper.c).
  *      Attacks > AT_BUTT are worth extra experience.
  */
@@ -28,6 +78,20 @@
 #define AT_WEAP 254 /* uses weapon */
 #define AT_MAGC 255 /* uses magic spell(s) */
 
+/**
+ * @brief Whether an attack reaches beyond the adjacent square.
+ * @param atyp An attack type.
+ * @retval TRUE  It is a ranged attack -- spit, breath, gaze or spell.
+ * @retval FALSE It requires contact.
+ * @note Argument is evaluated several times, so it must be a simple expression.
+ */
+/**
+ * @brief 어떤 공격이 인접한 칸을 넘어 닿는지.
+ * @param atyp 공격 종류.
+ * @retval TRUE  원거리 공격이다. 뱉기, 브레스, 응시, 주문 중 하나다.
+ * @retval FALSE 접촉이 필요하다.
+ * @note 인자가 여러 번 평가되므로 단순한 식이어야 한다.
+ */
 #define DISTANCE_ATTK_TYPE(atyp) ((atyp) == AT_SPIT \
                                   || (atyp) == AT_BREA \
                                   || (atyp) == AT_MAGC \
