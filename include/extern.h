@@ -5646,23 +5646,129 @@ extern void burn_object(union any *, long) NONNULLARG1;
 extern void begin_burn(struct obj *, boolean) NONNULLARG1;
 extern void end_burn(struct obj *, boolean) NONNULLARG1;
 extern void do_storms(void);
+/**
+ * @name Timers
+ * @brief Arrange for something to happen later, and cancel or inspect what is arranged.
+ *
+ * The game's mechanism for anything that happens at a time rather than in response to something: an egg hatching, a candle burning down, a figurine coming to life. A timer names what to do, when, and
+ * what to do it to -- and the last is the generic value, so a timer may belong to an object, a monster or a square.
+ *
+ * Timers are held in one queue ordered by time, so running them is walking the front of the queue and no individual timer is polled. That is why an arbitrary number of them costs nothing per turn.
+ *
+ * @note The inspecting form exists because a timer's remaining time is sometimes information the player has -- how long a candle has left -- and the caller must be able to ask without disturbing it.
+ * @warning A timer holds the generic value it was given, not a copy of what that value refers to. If the thing is destroyed without its timers being stopped, the timer fires on freed memory -- which
+ *          is why the object routines below exist rather than each caller remembering.
+ * @{
+ */
+/**
+ * @name 타이머
+ * @brief 무언가가 나중에 일어나도록 마련하고, 마련된 것을 취소하거나 살펴본다.
+ *
+ * 무언가에 반응해서가 아니라 어떤 시점에 일어나는 모든 것을 위한 게임의 기제다. 알이 부화하는 것, 양초가 다 타는 것, 인형이 살아나는 것. 타이머는 무엇을 할지, 언제, 무엇에 할지를 지칭하며, 마지막 것이 범용 값이다. 그래서 타이머가 물건이나 몬스터나 칸에 속할 수 있다.
+ *
+ * 타이머는 시간으로 정렬된 하나의 대기열에 보관되므로, 그것들을 돌리는 일은 대기열의 앞을 훑는 일이고 개별 타이머가 폴링되지 않는다. 그래서 그것이 몇 개든 턴마다 비용이 들지 않는다.
+ *
+ * @note 살펴보는 형태가 있는 것은, 타이머의 남은 시간이 때때로 플레이어가 가진 정보이기 때문이다. 양초가 얼마 남았는지. 그리고 호출자가 그것을 흐트러뜨리지 않고 물을 수 있어야 한다.
+ * @warning 타이머는 자신이 받은 범용 값을 지니며, 그 값이 가리키는 것의 사본을 지니지 않는다. 그 대상이 자기 타이머들이 멈춰지지 않은 채로 파괴되면, 그 타이머가 해제된 메모리에 대해 발동한다. 그것이 호출자마다 기억하는 대신 아래의 물건 루틴들이 존재하는 이유다.
+ * @{
+ */
 extern boolean start_timer(long, short, short, union any *) NONNULLARG4;
 extern long stop_timer(short, union any *) NONNULLARG2;
 extern long peek_timer(short, union any *) NONNULLARG2;
 extern void run_timers(void);
+/** @} */
+/**
+ * @name Keeping an object's timers with it
+ * @brief Move, split or stop the timers belonging to an object, and ask whether it has one.
+ *
+ * These exist because an object's timers are not part of the object. They are entries in the shared queue holding a reference to it, so anything that changes the object's identity or existence has to
+ * bring them along -- and forgetting to is a timer firing on something that is gone.
+ *
+ * The splitting form is the subtle one. When a stack is divided, a timer belonging to the stack has to be apportioned, and what that means depends on the timer: some are duplicated, some go with one
+ * half.
+ *
+ * @{
+ */
+/**
+ * @name 물건의 타이머를 그것과 함께 유지하기
+ * @brief 물건에 속한 타이머를 옮기거나 나누거나 멈추고, 그것이 하나를 가졌는지 묻는다.
+ *
+ * 이들이 존재하는 것은 물건의 타이머가 그 물건의 일부가 아니기 때문이다. 그것들은 그것에 대한 참조를 지닌 공유 대기열의 항목이므로, 그 물건의 정체나 존재를 바꾸는 무엇이든 그것들을 함께 데려가야 한다. 그것을 잊는 것은 사라진 것에 대해 발동하는 타이머다.
+ *
+ * 나누는 형태가 미묘한 것이다. 묶음이 나뉘면 그 묶음에 속한 타이머가 배분되어야 하고, 그것이 무엇을 뜻하는지는 그 타이머에 달려 있다. 어떤 것은 복제되고 어떤 것은 한쪽과 함께 간다.
+ *
+ * @{
+ */
 extern void obj_move_timers(struct obj *, struct obj *) NONNULLARG12;
 extern void obj_split_timers(struct obj *, struct obj *) NONNULLARG12;
 extern void obj_stop_timers(struct obj *) NONNULLARG1;
 extern boolean obj_has_timer(struct obj *, short) NONNULLARG1;
+/** @} */
+/**
+ * @name Timers belonging to a square
+ * @brief Stop a square's timers, and ask when one will fire or how long it has left.
+ * @note A square's timers cannot be moved, only stopped -- which is why there is no moving form here as there is for objects. A square does not go anywhere.
+ * @note The two asking forms differ in what they return: an absolute time and a remaining duration. Both are wanted because one is compared against the clock and the other is shown to the player.
+ * @{
+ */
+/**
+ * @name 칸에 속한 타이머
+ * @brief 칸의 타이머를 멈추고, 그것이 언제 발동할지 또는 얼마 남았는지 묻는다.
+ * @note 칸의 타이머는 옮겨질 수 없고 멈춰질 수만 있다. 그것이 물건에 대해서와 달리 여기에 옮기는 형태가 없는 이유다. 칸은 아무 데도 가지 않는다.
+ * @note 두 묻는 형태는 반환하는 것이 다르다. 절대 시각과 남은 기간. 둘 다 필요한 것은 하나가 시계와 비교되고 다른 하나가 플레이어에게 보여지기 때문이다.
+ * @{
+ */
 extern void spot_stop_timers(coordxy, coordxy, short);
 extern long spot_time_expires(coordxy, coordxy, short);
 extern long spot_time_left(coordxy, coordxy, short);
+/** @} */
+/**
+ * @brief Whether an object belongs to this level rather than travelling with the hero.
+ * @note Decides which timers are saved with the level and which with the game. An object in the hero's pack goes with them and its timers must too, so getting this wrong loses a timer or duplicates it
+ *       across levels.
+ */
+/**
+ * @brief 물건이 영웅과 함께 다니는 것이 아니라 이 레벨에 속하는지.
+ * @note 어느 타이머가 레벨과 함께 저장되고 어느 것이 게임과 함께 저장되는지를 정한다. 영웅의 가방에 있는 물건은 그와 함께 가고 그 타이머도 그래야 하므로, 이것을 틀리면 타이머를 잃거나 레벨 사이에 복제하게 된다.
+ */
 extern boolean obj_is_local(struct obj *) NONNULLARG1;
+/**
+ * @name Saving and restoring timers
+ * @brief Write out the timers and read them back, in the level's part or the game's.
+ * @warning A timer refers to its target by pointer while running and cannot be saved that way. So restoring a timer leaves it referring to nothing until the relinking pass runs -- which is why that
+ *          pass exists and why it is separate.
+ * @{
+ */
+/**
+ * @name 타이머를 저장하고 복원하기
+ * @brief 타이머를 써 내고 되읽는다. 레벨의 부분에서든 게임의 부분에서든.
+ * @warning 타이머는 돌아가는 동안 자기 대상을 포인터로 가리키며 그 방식으로 저장될 수 없다. 그래서 타이머를 복원하는 것은 다시 잇기 통과가 돌아가기 전까지 그것이 아무것도 가리키지 않는 상태로 남긴다. 그것이 그 통과가 존재하는 이유이고 따로 있는 이유다.
+ * @{
+ */
 extern void save_timers(NHFILE *, int) NONNULLARG1;
 extern void restore_timers(NHFILE *, int, long) NONNULLARG1;
+/** @} */
 extern void timer_stats(const char *, char *, long *, long *) NONNULLPTRS;
+/**
+ * @brief Turn restored timers' saved identifiers back into pointers.
+ * @note The pass the restoring routines depend on. A timer saved with an identifier is useless until the thing it names has itself been restored, so the two cannot happen in one step and this is the
+ *       second.
+ */
+/**
+ * @brief 복원된 타이머의 저장된 식별자를 다시 포인터로 바꾼다.
+ * @note 복원 루틴들이 의존하는 통과다. 식별자와 함께 저장된 타이머는 그것이 지칭하는 대상 자체가 복원되기 전까지 쓸모가 없으므로, 그 둘이 한 단계에서 일어날 수 없고 이것이 두 번째다.
+ */
 extern void relink_timers(boolean);
 extern int wiz_timeout_queue(void);
+/**
+ * @brief Check that the timer queue is consistent and report anything wrong.
+ * @note Exists because a timer's target is a reference the queue cannot validate on its own -- a timer for a freed object looks exactly like one for a live object. So the check is run deliberately
+ *       rather than continuously, and it is what finds the class of bug the object routines above are meant to prevent.
+ */
+/**
+ * @brief 타이머 대기열이 일관되는지 검사하고 잘못된 것을 알린다.
+ * @note 타이머의 대상이 그 대기열이 스스로 검증할 수 없는 참조이기 때문에 존재한다. 해제된 물건에 대한 타이머는 살아 있는 물건에 대한 것과 정확히 똑같아 보인다. 그래서 이 검사는 끊임없이가 아니라 의도적으로 돌려지며, 위의 물건 루틴들이 막으려는 부류의 버그를 찾는 것이 이것이다.
+ */
 extern void timer_sanity_check(void);
 
 /* ### topten.c ### */
