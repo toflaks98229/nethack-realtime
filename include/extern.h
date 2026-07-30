@@ -3048,9 +3048,42 @@ extern int m_poisongas_ok(struct monst *) NONNULLARG1;
 extern int undead_to_corpse(int);
 extern int genus(int, int);
 extern int pm_to_cham(int);
+/**
+ * @brief Deal with a monster standing in water or lava.
+ * @return whether the monster is gone -- it may have drowned, burned or fled
+ * @warning The monster may not exist when this returns. A caller holding a pointer to it must check the result before using the pointer again.
+ */
+/**
+ * @brief 물이나 용암에 서 있는 몬스터를 처리한다.
+ * @return 그 몬스터가 사라졌는지. 익사했거나 타 버렸거나 달아났을 수 있다
+ * @warning 이것이 반환할 때 그 몬스터가 존재하지 않을 수 있다. 그것을 가리키는 포인터를 쥔 호출자는 그 포인터를 다시 쓰기 전에 결과를 확인해야 한다.
+ */
 extern int minliquid(struct monst *) NONNULLARG1;
+/**
+ * @name Letting the monsters act
+ * @brief Give every monster its turn, or give one monster its turn.
+ *
+ * The single-monster form exists because a monster's turn is not a fixed thing: it may act more than once or not at all depending on its movement allowance, and the loop over all monsters
+ * needs to hand each one its share separately.
+ *
+ * @note This is the machinery the real-time work in this fork changes the timing of rather than the substance. Which monster acts and what it does is decided here as before; what differs
+ *       is when this is reached.
+ * @warning A monster may die during its own turn, and the single-monster form reports that. Iterating over monsters while calling it therefore cannot hold a plain pointer to the next one.
+ * @{
+ */
+/**
+ * @name 몬스터들이 행동하게 하기
+ * @brief 모든 몬스터에게 그 차례를 주거나, 한 몬스터에게 그 차례를 준다.
+ *
+ * 몬스터 하나 형태가 있는 것은, 몬스터의 차례가 고정된 것이 아니기 때문이다. 자기 이동 허용량에 따라 한 번 넘게 행동할 수도, 전혀 하지 않을 수도 있으며, 모든 몬스터를 도는 반복문이 각각에게 그 몫을 따로 건네주어야 한다.
+ *
+ * @note 이 포크의 실시간 작업이 내용이 아니라 시점을 바꾸는 기제가 이것이다. 어느 몬스터가 행동하고 무엇을 하는지는 전과 같이 여기서 정해진다. 다른 것은 이곳에 언제 이르는지다.
+ * @warning 몬스터는 자기 차례 동안 죽을 수 있고, 몬스터 하나 형태가 그것을 알린다. 그래서 그것을 호출하며 몬스터를 순회하는 것은 다음 것에 대한 맨 포인터를 쥘 수 없다.
+ * @{
+ */
 extern boolean movemon_singlemon(struct monst *) NONNULLARG1;
 extern int movemon(void);
+/** @} */
 extern void meatbox(struct monst *, struct obj *) NONNULLPTRS;
 extern void m_consume_obj(struct monst *, struct obj *) NONNULLPTRS;
 extern int meatmetal(struct monst *) NONNULLARG1;
@@ -3064,42 +3097,254 @@ extern int curr_mon_load(struct monst *) NONNULLARG1;
 extern int max_mon_load(struct monst *) NONNULLARG1;
 extern boolean can_touch_safely(struct monst *, struct obj *) NONNULLARG12;
 extern int can_carry(struct monst *, struct obj *) NONNULLARG12;
+/**
+ * @brief What kinds of square this monster is permitted to enter.
+ * @note Derived from the monster rather than stored, and handed to the position search as one value -- so a monster's abilities are turned into movement permissions in one place instead of
+ *       being reconsidered at each candidate square.
+ */
+/**
+ * @brief 이 몬스터가 어떤 종류의 칸에 들어가도 되는지.
+ * @note 저장되지 않고 몬스터에서 유도되며, 위치 탐색에 하나의 값으로 건네진다. 그래서 몬스터의 능력이 후보 칸마다 다시 검토되는 대신 한곳에서 이동 허가로 바뀐다.
+ */
 extern long mon_allowflags(struct monst *) NONNULLARG1;
 extern boolean m_in_air(struct monst *) NONNULLARG1;
+/**
+ * @brief Find the squares a monster could move to from where it is.
+ *
+ * The heart of monster movement. It fills in the candidate squares, given what the monster is allowed to enter, and the caller then chooses among them -- so deciding where a monster may go
+ * and deciding where it wants to go are deliberately separate.
+ *
+ * @note That separation is why every kind of monster movement, from a pet fetching an object to a covetous monster pursuing an artifact, shares one notion of what is reachable.
+ * @warning The permitted squares depend on the flags passed, not only on the monster. Two calls for the same monster with different flags legitimately give different answers.
+ */
+/**
+ * @brief 몬스터가 지금 있는 곳에서 움직일 수 있는 칸들을 찾는다.
+ *
+ * 몬스터 이동의 심장이다. 그 몬스터가 무엇에 들어가도 되는지를 받아 후보 칸들을 채우고, 그다음 호출자가 그 중에서 고른다. 그래서 몬스터가 어디로 갈 수 있는지 정하는 일과 어디로 가고 싶은지 정하는 일이 의도적으로 분리되어 있다.
+ *
+ * @note 그 분리가, 물건을 물어 오는 애완동물부터 아티팩트를 쫓는 탐욕스러운 몬스터까지 모든 종류의 몬스터 이동이 무엇에 닿을 수 있는지에 대한 하나의 개념을 공유하는 이유다.
+ * @warning 허용되는 칸은 몬스터만이 아니라 넘겨진 플래그에 달려 있다. 같은 몬스터에 대해 다른 플래그로 두 번 호출하면 정당하게 다른 답이 나온다.
+ */
 extern int mfndpos(struct monst *, struct mfndposdata *, long) NONNULLPTRS;
+/**
+ * @brief Whether a monster is close enough to a square to act on it.
+ * @note Adjacency as the rules mean it, which is not simply a distance: a long worm is near anywhere its body reaches, and a monster that cannot cross a diagonal gap is not near what is
+ *       past it.
+ */
+/**
+ * @brief 몬스터가 어떤 칸에 행동할 만큼 가까이 있는지.
+ * @note 규칙이 뜻하는 의미의 인접함이며, 그것은 단순히 거리가 아니다. 긴 벌레는 자기 몸이 닿는 어디에든 가깝고, 대각선 틈을 건널 수 없는 몬스터는 그 너머의 것에 가깝지 않다.
+ */
 extern boolean monnear(struct monst *, coordxy, coordxy) NONNULLARG1;
 extern void dmonsfree(void);
 extern void elemental_clog(struct monst *) NONNULLARG1;
+/**
+ * @brief How much movement allowance a monster gets this turn.
+ *
+ * The core of the speed system. A monster is not given a number of steps but an allowance, which it spends; a fast monster is given more than one step's worth and a slow one sometimes less
+ * than one, so the same mechanism produces both "acts twice" and "acts every other turn".
+ *
+ * @note Its boolean argument distinguishes actually granting the allowance from asking what it would be, because the speed is randomised and asking twice would give two answers.
+ * @note This is where the real-time work in this fork touches the speed system: the allowance is unchanged, and what changed is that turns arrive on a clock rather than on the hero's
+ *       input. The rounding that makes a monster's leftover allowance discard is guarded out in the real-time build, which is what lets a monster be outrun.
+ */
+/**
+ * @brief 몬스터가 이번 턴에 받는 이동 허용량이 얼마인지.
+ *
+ * 속도 체계의 핵심이다. 몬스터에게 걸음의 개수가 주어지는 것이 아니라 허용량이 주어지고, 그것을 쓴다. 빠른 몬스터는 한 걸음 분량보다 많이 받고 느린 몬스터는 때로 한 걸음보다 적게 받는다. 그래서 같은 기제가 "두 번 행동함"과 "한 턴 걸러 행동함"을 함께 만들어 낸다.
+ *
+ * @note 그 논리값 인자는 허용량을 실제로 부여하는 것과 그것이 얼마일지 묻는 것을 구별한다. 그 속도가 무작위화되어 있어 두 번 물으면 두 답이 나오기 때문이다.
+ * @note 이 포크의 실시간 작업이 속도 체계에 닿는 곳이 여기다. 허용량은 바뀌지 않았고, 바뀐 것은 턴이 영웅의 입력이 아니라 시계로 도래한다는 점이다. 몬스터의 남은 허용량을 버리게 만드는 반올림이 실시간 빌드에서 조건으로 제외되며, 그것이 몬스터를 앞질러 달아날 수 있게 하는 것이다.
+ */
 extern int mcalcmove(struct monst *, boolean) NONNULLARG1;
+/**
+ * @brief Advance the timers and afflictions of every monster on the level.
+ * @note Once per turn, and separate from letting them act -- so a monster's poison works and its wounds heal whether or not it had movement to spend.
+ */
+/**
+ * @brief 레벨의 모든 몬스터의 타이머와 고통을 진행시킨다.
+ * @note 턴마다 한 번이며, 그것들이 행동하게 하는 것과 별개다. 그래서 몬스터의 독이 퍼지고 상처가 낫는 일은 쓸 이동량이 있었는지와 무관하다.
+ */
 extern void mcalcdistress(void);
+/**
+ * @brief Put one monster in another's place in every list and on the map.
+ * @note Used where a monster becomes a different monster -- a shapeshift that replaces rather than alters. It exists because a monster is referred to from several places, and all of them
+ *       have to be updated together.
+ */
+/**
+ * @brief 모든 목록과 지도에서 한 몬스터를 다른 몬스터의 자리에 놓는다.
+ * @note 몬스터가 다른 몬스터가 되는 곳에서 쓰인다. 바꾸는 것이 아니라 대체하는 모습 변화. 몬스터가 여러 곳에서 참조되고 그 전부가 함께 갱신되어야 하기 때문에 존재한다.
+ */
 extern void replmon(struct monst *, struct monst *) NONNULLARG12;
+/**
+ * @brief Take a monster out of the level's list without destroying it.
+ * @note The distinction from killing is the point: a monster removed this way still exists and may be placed elsewhere. That is how a monster follows the hero between levels.
+ * @warning The second argument is where to put it -- a chain to move it to. Passing null there means it is simply removed, so a caller must be sure something else holds it or it is
+ *          leaked.
+ */
+/**
+ * @brief 몬스터를 파괴하지 않고 레벨의 목록에서 꺼낸다.
+ * @note 죽이는 것과의 구별이 요점이다. 이 방식으로 꺼내진 몬스터는 여전히 존재하고 다른 곳에 놓일 수 있다. 그것이 몬스터가 영웅을 따라 레벨을 오가는 방식이다.
+ * @warning 두 번째 인자가 그것을 어디에 둘지다. 옮겨 갈 사슬. 거기에 널을 넘기면 그냥 꺼내지기만 하므로, 호출자는 다른 무엇이 그것을 쥐고 있음을 확실히 해야 한다. 그러지 않으면 누수된다.
+ */
 extern void relmon(struct monst *, struct monst **) NONNULLARG1;
 extern struct obj *mlifesaver(struct monst *) NONNULLARG1;
 extern boolean corpse_chance(struct monst *, struct monst *, boolean) NONNULLARG1;
+/**
+ * @name The several ways a monster can stop existing
+ * @brief Removing a monster, in the various forms the game distinguishes.
+ *
+ * These are not alternatives to choose freely among; each means something different and choosing the wrong one produces a monster that leaves the wrong thing behind, or gives the wrong
+ * credit, or fails to be resurrectable.
+ *
+ * Roughly: one is the bare death, one is death with the remains that follow from it, one is vanishing without dying at all, one is being turned to stone, and two more are death credited to
+ * the hero -- with the second taking flags saying what to say and what to leave.
+ *
+ * @note Vanishing exists because some monsters must be removed without a corpse, experience or a death message -- a summoned creature departing, or a monster the level generator withdraws.
+ *       Killing such a monster instead would give the hero credit for it.
+ * @warning Every one of these may free the monster. A caller must not use its pointer afterwards, and where a caller must know whether the monster survived, that is what the return values
+ *          of the routines that have them are for.
+ * @{
+ */
+/**
+ * @name 몬스터가 존재하기를 그만두는 여러 방식
+ * @brief 몬스터를 없애기. 게임이 구별하는 여러 형태로.
+ *
+ * 이들은 마음대로 골라도 되는 대안이 아니다. 각각이 다른 것을 뜻하고, 잘못된 것을 고르면 잘못된 것을 남기는 몬스터가 되거나, 잘못된 공을 돌리거나, 되살릴 수 없게 된다.
+ *
+ * 대략, 하나는 맨 죽음이고, 하나는 그것에서 따라 나오는 잔해와 함께의 죽음이고, 하나는 아예 죽지 않고 사라지는 것이고, 하나는 돌로 변하는 것이고, 나머지 둘은 영웅에게 공이 돌아가는 죽음이다. 두 번째 것은 무엇을 말하고 무엇을 남길지 말하는 플래그를 받는다.
+ *
+ * @note 사라짐이 있는 것은, 어떤 몬스터는 시체도 경험치도 사망 메시지도 없이 없애져야 하기 때문이다. 떠나는 소환된 생물, 또는 레벨 생성기가 철회하는 몬스터. 그런 몬스터를 대신 죽이면 영웅에게 그 공이 돌아간다.
+ * @warning 이들 하나하나가 그 몬스터를 해제할 수 있다. 호출자는 그 뒤로 그 포인터를 써서는 안 되며, 호출자가 그 몬스터가 살아남았는지 알아야 하는 곳에서는 반환값이 있는 루틴의 그 반환값이 그것을 위한 것이다.
+ * @{
+ */
 extern void mondead(struct monst *) NONNULLARG1;
 extern void mondied(struct monst *) NONNULLARG1;
 extern void mongone(struct monst *) NONNULLARG1;
 extern void monstone(struct monst *) NONNULLARG1;
 extern void monkilled(struct monst *, const char *, int) NONNULLARG1;
-extern void set_ustuck(struct monst *);
-extern void unstuck(struct monst *) NONNULLARG1;
 extern void killed(struct monst *) NONNULLARG1;
 extern void xkilled(struct monst *, int) NONNULLARG1;
+/** @} */
+/**
+ * @name What has hold of the hero
+ * @brief Record that a monster is holding the hero, or that it no longer is.
+ * @note Setting accepts null, which is how the hold is cleared without a monster to name -- so the two are not simply a pair.
+ * @warning The hold is recorded on both sides: the hero remembers what has them and the monster remembers it has them. Setting one without the other leaves a hold that only one party
+ *          believes in, which is why these exist rather than the fields being written directly.
+ * @{
+ */
+/**
+ * @name 무엇이 영웅을 붙잡고 있는지
+ * @brief 몬스터가 영웅을 붙잡고 있음을, 또는 더는 그렇지 않음을 기록한다.
+ * @note 설정하는 쪽은 널을 받아들인다. 그것이 지칭할 몬스터 없이 그 붙잡음을 지우는 방식이다. 그래서 그 둘은 단순한 짝이 아니다.
+ * @warning 그 붙잡음은 양쪽에 기록된다. 영웅이 자신을 붙잡은 것을 기억하고 몬스터가 자신이 붙잡았음을 기억한다. 한쪽만 설정하면 한 당사자만 믿는 붙잡음이 남으며, 그래서 필드를 직접 쓰는 대신 이들이 존재한다.
+ * @{
+ */
+extern void set_ustuck(struct monst *);
+extern void unstuck(struct monst *) NONNULLARG1;
+/** @} */
 extern void mon_to_stone(struct monst *) NONNULLARG1;
+/**
+ * @brief Put a monster nowhere -- neither on this level nor on another.
+ * @note For a monster that must be removed from play without being destroyed and without a destination. It is the fallback when there is nowhere to put something that must not simply be
+ *       deleted.
+ */
+/**
+ * @brief 몬스터를 아무 데도 두지 않는다. 이 레벨에도 다른 레벨에도.
+ * @note 파괴되지 않고, 목적지도 없이 플레이에서 빠져야 하는 몬스터를 위한 것이다. 그냥 삭제되어서는 안 되는 것을 둘 곳이 없을 때의 대비책이다.
+ */
 extern void m_into_limbo(struct monst *) NONNULLARG1;
 extern void migrate_mon(struct monst *, xint16, xint16) NONNULLARG1;
+/**
+ * @name Placing a monster near somewhere
+ * @brief Put a monster beside the hero, or near a given square, finding a spot that will do.
+ *
+ * A monster cannot simply be placed: the square may be occupied, may be unsuitable for that monster, may not exist. So these search outward for somewhere acceptable, and the search is what
+ * they are for rather than the placement.
+ *
+ * @note One form is conditional -- it places the monster only if it is not already somewhere reasonable, which is what stops a monster being shuffled every turn for no reason.
+ * @warning If no acceptable square is found the monster has to go somewhere, and the overcrowding routine is what decides what happens then. A monster is not left unplaced.
+ * @{
+ */
+/**
+ * @name 몬스터를 어딘가 근처에 놓기
+ * @brief 몬스터를 영웅 옆이나 주어진 칸 근처에 놓는다. 쓸모 있는 자리를 찾아서.
+ *
+ * 몬스터를 그냥 놓을 수는 없다. 그 칸이 차 있을 수도, 그 몬스터에게 적합하지 않을 수도, 존재하지 않을 수도 있다. 그래서 이들은 받아들일 만한 곳을 바깥으로 찾아 나가며, 그 탐색이 놓기가 아니라 이들의 목적이다.
+ *
+ * @note 한 형태는 조건적이다. 몬스터가 이미 합당한 곳에 있지 않을 때만 놓으며, 그것이 몬스터가 이유 없이 매 턴 옮겨지는 것을 막는다.
+ * @warning 받아들일 만한 칸이 발견되지 않으면 그 몬스터는 어딘가로 가야 하며, 과밀 처리 루틴이 그때 무슨 일이 일어날지 정하는 것이다. 몬스터가 놓이지 않은 채로 남지는 않는다.
+ * @{
+ */
 extern void mnexto(struct monst *, unsigned) NONNULLARG1;
 extern void deal_with_overcrowding(struct monst *) NONNULLARG1;
 extern void maybe_mnexto(struct monst *) NONNULLARG1;
 extern int mnearto(struct monst *, coordxy, coordxy, boolean, unsigned) NONNULLARG1;
+/** @} */
 extern void m_respond(struct monst *) NONNULLARG1;
+/**
+ * @brief Make a peaceful monster hostile, with everything that follows from it.
+ * @note Far more than setting a flag. Angering one monster may anger its fellows, may cost the hero alignment, may summon guards -- so the consequences of provoking something are gathered
+ *       here rather than at each place that provokes.
+ */
+/**
+ * @brief 평화로운 몬스터를 적대적으로 만든다. 그것에서 따라 나오는 모든 것과 함께.
+ * @note 플래그를 설정하는 것보다 훨씬 많다. 한 몬스터를 화나게 하는 것이 그 동료들을 화나게 할 수도, 영웅의 진영에 값을 물릴 수도, 경비를 부를 수도 있다. 그래서 무언가를 자극하는 것의 결과가 자극하는 곳마다가 아니라 여기에 모여 있다.
+ */
 extern void setmangry(struct monst *, boolean) NONNULLARG1;
+/**
+ * @name Waking a monster
+ * @brief Wake something, and say so if the hero would notice.
+ *
+ * Three forms, and they differ in scope rather than in effect: one monster, everything near the hero, or everything near a given square. The last exists because a noise happens somewhere and
+ * not necessarily where the hero is -- a boulder falling elsewhere wakes what is near it.
+ *
+ * @note Saying so is separate from doing it, because a monster waking is only worth a message if the hero could tell. That is why one routine exists for the message alone.
+ * @{
+ */
+/**
+ * @name 몬스터를 깨우기
+ * @brief 무언가를 깨우고, 영웅이 알아챌 만하면 그렇게 말한다.
+ *
+ * 세 형태이며, 효과가 아니라 범위에서 다르다. 몬스터 하나, 영웅 근처의 전부, 또는 주어진 칸 근처의 전부. 마지막 것이 있는 것은, 소리가 어딘가에서 나고 그것이 반드시 영웅이 있는 곳은 아니기 때문이다. 다른 곳에서 떨어지는 바위는 그 근처의 것을 깨운다.
+ *
+ * @note 그렇게 말하는 것이 그렇게 하는 것과 따로 있는 것은, 몬스터가 깨어나는 것이 영웅이 알 수 있을 때만 메시지를 낼 가치가 있기 때문이다. 그래서 메시지만을 위한 루틴이 하나 존재한다.
+ * @{
+ */
 extern void wake_msg(struct monst *, boolean) NONNULLARG1;
 extern void wakeup(struct monst *, boolean) NONNULLARG1;
 extern void wake_nearby(boolean);
 extern void wake_nearto(coordxy, coordxy, int);
+/** @} */
 extern void seemimic(struct monst *) NONNULLARG1;
 extern void normal_shape(struct monst *) NONNULLARG1;
+/**
+ * @name Visiting every monster
+ * @brief Walk the level's monsters, calling something for each, or find the first that satisfies something.
+ *
+ * The reason these exist rather than each caller walking the list is that the list may change while it is being walked -- a monster may die, be replaced, or be moved. Doing that safely is
+ * fiddly, and doing it wrongly gives a use-after-free that only shows up rarely.
+ *
+ * The safe form is for exactly that case: it copies the monsters into an array first, so the callback may do anything at all to the list. The plain form is faster and requires the callback
+ * not to disturb it.
+ *
+ * @warning Choosing the plain form for a callback that can kill a monster is the mistake these are here to prevent, and nothing detects it.
+ * @note The array the safe form needs is allocated separately so that a repeated walk does not reallocate it each time.
+ * @{
+ */
+/**
+ * @name 모든 몬스터를 방문하기
+ * @brief 레벨의 몬스터들을 돌며 각각에 대해 무언가를 호출하거나, 무언가를 만족시키는 첫 번째를 찾는다.
+ *
+ * 호출자마다 목록을 도는 대신 이들이 존재하는 이유는, 목록이 돌아지는 동안 바뀔 수 있기 때문이다. 몬스터가 죽거나 대체되거나 옮겨질 수 있다. 그것을 안전하게 하는 일은 까다롭고, 잘못하면 드물게만 드러나는 해제 후 사용이 된다.
+ *
+ * 안전한 형태는 바로 그 경우를 위한 것이다. 몬스터들을 먼저 배열로 복사하므로, 콜백이 그 목록에 무엇이든 해도 된다. 평범한 형태는 더 빠르고 콜백이 그것을 흐트러뜨리지 않기를 요구한다.
+ *
+ * @warning 몬스터를 죽일 수 있는 콜백에 평범한 형태를 고르는 것이 이들이 막기 위해 여기 있는 잘못이며, 그것을 감지하는 것은 없다.
+ * @note 안전한 형태가 필요로 하는 배열은 따로 할당된다. 그래서 되풀이되는 순회가 매번 그것을 다시 할당하지 않는다.
+ * @{
+ */
 extern void alloc_itermonarr(unsigned);
 extern void iter_mons_safe(boolean (*)(struct monst *));
 extern void iter_mons(void (*)(struct monst *));
@@ -3107,22 +3352,82 @@ extern struct monst *get_iter_mons(boolean (*)(struct monst *));
 extern struct monst *get_iter_mons_xy(boolean (*)(struct monst *,
                                                   coordxy, coordxy),
                                       coordxy, coordxy);
+/** @} */
 extern int healmon(struct monst *, int, int) NONNULLARG1;
 extern void rescham(void);
 extern void restartcham(void);
 extern void restore_cham(struct monst *) NONNULLARG1;
+/**
+ * @brief Reveal whatever was hiding at a square, if the reason it could hide has gone.
+ * @note Called after the square changed -- the object it was under picked up, the ceiling dug through. A hider is not re-examined every turn, so something has to notice when its cover
+ *       disappeared.
+ */
+/**
+ * @brief 어떤 칸에 숨어 있던 것을, 숨을 수 있던 이유가 사라졌다면 드러낸다.
+ * @note 그 칸이 바뀐 뒤에 호출된다. 아래에 있던 물건이 집혔거나, 천장이 파여 지나갔거나. 숨은 것이 매 턴 다시 살펴지지는 않으므로, 그 은신처가 사라졌을 때 무언가가 알아채야 한다.
+ */
 extern void maybe_unhide_at(coordxy, coordxy);
+/**
+ * @brief Have a monster hide under whatever is here, and say whether it managed to.
+ * @return whether it is now hidden -- there may have been nothing to hide under
+ * @note Attempts rather than tests, which is why it reports. Whether a monster can hide is a property of its kind; whether it can hide here depends on the square.
+ */
+/**
+ * @brief 몬스터가 여기 있는 것 아래에 숨게 하고, 성공했는지 알린다.
+ * @return 지금 숨어 있는지. 아래로 들어갈 것이 없었을 수 있다
+ * @note 검사가 아니라 시도이며, 그래서 알린다. 몬스터가 숨을 수 있는지는 그 종류의 속성이고, 여기서 숨을 수 있는지는 그 칸에 달려 있다.
+ */
 extern boolean hideunder(struct monst *) NONNULLARG1;
 extern void hide_monst(struct monst *) NONNULLARG1;
 extern void mon_animal_list(boolean);
 extern boolean valid_vampshiftform(int, int);
 extern boolean validvamp(struct monst *, int *, int) NONNULLARG12;
+/**
+ * @brief Choose what a shapeshifter should turn into.
+ * @note Separate from performing the change, because what a shapeshifter may become depends on what it is -- a vampire's options differ from a chameleon's -- and the choice may fail while the
+ *       change cannot.
+ */
+/**
+ * @brief 모습을 바꾸는 것이 무엇으로 변해야 할지 고른다.
+ * @note 변화를 수행하는 것과 따로 있다. 모습을 바꾸는 것이 무엇이 될 수 있는지가 그것이 무엇인지에 달려 있고 -- 뱀파이어의 선택지는 카멜레온의 것과 다르다 -- 그 선택은 실패할 수 있는데 변화는 그럴 수 없기 때문이다.
+ */
 extern int select_newcham_form(struct monst *) NONNULLARG1;
 extern void mgender_from_permonst(struct monst *, struct permonst *) NONNULLARG12;
+/**
+ * @brief Change a monster into a different kind.
+ * @return whether the change happened, since a monster may resist or the form may be refused
+ * @warning Alters the monster in place rather than replacing it, so a pointer to it stays valid -- but everything derived from what it was does not. Its statistics, its inventory's fit, and
+ *          what it is allowed to do all change.
+ * @note A null form means "choose one", which is why the second argument is not required.
+ */
+/**
+ * @brief 몬스터를 다른 종류로 바꾼다.
+ * @return 그 변화가 일어났는지. 몬스터가 저항할 수도 그 형태가 거부될 수도 있다
+ * @warning 몬스터를 대체하는 것이 아니라 제자리에서 바꾸므로 그것을 가리키는 포인터는 유효한 채로 남는다. 그러나 그것이 무엇이었는지에서 유도된 모든 것은 그렇지 않다. 능력치, 소지품이 맞는지, 무엇을 해도 되는지가 모두 바뀐다.
+ * @note 널 형태는 "하나를 골라라"를 뜻하며, 그래서 두 번째 인자가 필수가 아니다.
+ */
 extern int newcham(struct monst *, struct permonst *, unsigned) NONNULLARG1;
 extern int can_be_hatched(int);
 extern int egg_type_from_parent(int, boolean);
+/**
+ * @brief Whether a species can no longer be created.
+ * @note Covers both genocide and exhaustion, since the generator does not care which -- and its boolean argument widens the question to include the species' whole class, which is what a
+ *       request for "any monster of this kind" needs.
+ */
+/**
+ * @brief 어떤 종족을 더는 만들 수 없는지.
+ * @note 절멸과 소진을 함께 덮는다. 생성기는 어느 쪽인지 신경 쓰지 않는다. 그리고 그 논리값 인자가 질문을 그 종족의 계열 전체까지 넓히며, 그것이 "이 종류의 아무 몬스터"라는 요청이 필요로 하는 것이다.
+ */
 extern boolean dead_species(int, boolean);
+/**
+ * @brief Remove from the level any monster whose species has since been wiped out.
+ * @note Needed because genocide does not reach monsters that already exist elsewhere. When such a level is next loaded, its inhabitants have to be reconciled with what has happened since --
+ *       and a bones file's inhabitants likewise.
+ */
+/**
+ * @brief 그 종족이 그 뒤로 절멸된 몬스터를 레벨에서 없앤다.
+ * @note 절멸이 이미 다른 곳에 존재하는 몬스터에는 닿지 않기 때문에 필요하다. 그런 레벨이 다음에 적재될 때, 그 거주자들이 그 뒤로 일어난 일과 조화되어야 한다. 유골 파일의 거주자들도 마찬가지다.
+ */
 extern void kill_genocided_monsters(void);
 extern void golemeffects(struct monst *, int, int);
 extern boolean angry_guards(boolean);
