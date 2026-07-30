@@ -1550,29 +1550,158 @@ extern void free_edog(struct monst *) NONNULLARG1;
 extern void initedog(struct monst *, boolean) NONNULLARG1;
 extern struct monst *make_familiar(struct obj *, coordxy, coordxy, boolean);
 extern struct monst *makedog(void);
+/**
+ * @brief Note on every monster the turn at which it was last considered.
+ * @note Needed because a level the hero is not on does not run. When the hero returns, each monster there has to be brought forward by however long it was unattended, and this is what
+ *       records the point to catch up from.
+ */
+/**
+ * @brief 모든 몬스터에, 그것이 마지막으로 고려된 턴을 기록한다.
+ * @note 영웅이 있지 않은 레벨은 돌아가지 않기 때문에 필요하다. 영웅이 돌아오면 그곳의 각 몬스터가 방치된 만큼 앞으로 당겨져야 하며, 이것이 따라잡을 기준점을 기록하는 것이다.
+ */
 extern void update_mlstmv(void);
+/**
+ * @brief Bring in the monsters that were following the hero to this level.
+ * @warning The name is historical and much narrower than what it does: it places every monster that was in transit, pets and otherwise, and is what makes following the hero between
+ *          levels work at all.
+ */
+/**
+ * @brief 영웅을 따라 이 레벨로 오던 몬스터들을 들여온다.
+ * @warning 그 이름은 역사적인 것이고 그것이 하는 일보다 훨씬 좁다. 이동 중이던 모든 몬스터를 놓으며, 애완동물이든 아니든이다. 그리고 그것이 영웅을 따라 레벨을 오가는 것을 아예 작동하게 하는 것이다.
+ */
 extern void losedogs(void);
 extern void mon_arrive(struct monst *, int) NONNULLARG1;
+/**
+ * @brief Advance a monster by however long the level it was on stood still.
+ * @note This is the other half of recording the last-considered turn. It applies healing, hunger and timers for the whole absence at once rather than stepping through it -- which is why
+ *       a monster left alone for a thousand turns does not take a thousand turns to catch up.
+ * @warning What is applied is a summary rather than a replay. A monster does not do anything during the absence; it only ends up as though time had passed.
+ */
+/**
+ * @brief 몬스터가 있던 레벨이 멈춰 있던 만큼 그 몬스터를 진행시킨다.
+ * @note 이것이 마지막 고려 턴을 기록하는 것의 나머지 절반이다. 부재 전체에 대한 치유, 배고픔, 타이머를 하나하나 밟아 나가는 대신 한꺼번에 적용한다. 그것이 천 턴 동안 방치된 몬스터가 따라잡는 데 천 턴이 걸리지 않는 이유다.
+ * @warning 적용되는 것은 재생이 아니라 요약이다. 몬스터는 그 부재 동안 아무것도 하지 않는다. 시간이 지난 것처럼 되기만 한다.
+ */
 extern void mon_catchup_elapsed_time(struct monst *, long) NONNULLARG1;
+/**
+ * @brief Take with the hero whichever monsters should follow them off this level.
+ * @note Called before the level is left, so it decides who comes rather than who arrives. Adjacency and leashes both matter here, which is why a pet across the room is left behind.
+ */
+/**
+ * @brief 이 레벨을 떠나는 영웅을 따라야 할 몬스터들을 함께 데려간다.
+ * @note 레벨을 떠나기 전에 호출되므로, 누가 도착하는지가 아니라 누가 오는지를 정한다. 여기서 인접함과 목줄이 둘 다 중요하며, 그래서 방 건너의 애완동물은 남겨진다.
+ */
 extern void keepdogs(boolean);
+/**
+ * @brief Set a monster aside to be placed on another level when that level is next entered.
+ * @note A monster cannot be placed on a level that is not loaded, so it is held with a note saying where it should go. That note is why the placement argument may be a request rather
+ *       than coordinates.
+ */
+/**
+ * @brief 몬스터를 다른 레벨에 다음에 들어갈 때 놓이도록 따로 둔다.
+ * @note 적재되지 않은 레벨에 몬스터를 놓을 수는 없으므로, 어디로 가야 하는지 적은 쪽지와 함께 보관된다. 그 쪽지가 배치 인자가 좌표가 아니라 요청일 수 있는 이유다.
+ */
 extern void migrate_to_level(struct monst *, xint16, xint16, coord *) NONNULLARG1;
 extern void discard_migrations(void);
+/**
+ * @brief How a pet regards a piece of food.
+ * @return one of the food rankings, best first -- so a lower answer is a better food
+ * @warning The scale runs the opposite way from intuition. A pet chooses by preferring the smaller value, so comparing these as though larger were better inverts every pet's taste.
+ */
+/**
+ * @brief 애완동물이 음식을 어떻게 보는지.
+ * @return 음식 순위 중 하나. 좋은 것부터. 그래서 낮은 답이 더 좋은 음식이다
+ * @warning 그 척도는 직관과 반대 방향으로 간다. 애완동물은 더 작은 값을 선호해서 고르므로, 큰 것이 낫다는 듯이 이것을 비교하면 모든 애완동물의 취향이 뒤집힌다.
+ */
 extern int dogfood(struct monst *, struct obj *) NONNULLPTRS;
+/**
+ * @brief Attempt to tame a monster, optionally by offering it something.
+ * @return whether it became tame
+ * @note The object may be null, for taming by means other than food. What will work depends on the monster, and the balance decisions behind that are documented with the test in
+ *       mondata.h rather than here.
+ */
+/**
+ * @brief 몬스터를 길들이려 시도한다. 선택적으로 무언가를 내주어서.
+ * @return 그것이 길들여졌는지
+ * @note 물건은 널일 수 있다. 음식 말고 다른 수단으로 길들이는 경우를 위해서다. 무엇이 통할지는 몬스터에 달려 있고, 그 뒤의 균형에 관한 결정은 여기가 아니라 mondata.h 의 검사와 함께 기록되어 있다.
+ */
 extern boolean tamedog(struct monst *, struct obj *, boolean) NONNULLARG1;
+/**
+ * @brief Record that the hero mistreated a pet.
+ * @note Counted rather than acted on immediately. A pet's loyalty erodes with accumulated mistreatment, so one abuse rarely does anything visible and the record is what makes the
+ *       eventual desertion follow from the history.
+ */
+/**
+ * @brief 영웅이 애완동물을 학대했음을 기록한다.
+ * @note 즉시 행동으로 옮겨지는 것이 아니라 세어진다. 애완동물의 충성은 쌓인 학대와 함께 무너지므로, 한 번의 학대가 눈에 보이는 일을 하는 경우는 드물고, 그 기록이 결국의 이탈이 그 이력에서 따라 나오게 하는 것이다.
+ */
 extern void abuse_dog(struct monst *) NONNULLARG1;
+/**
+ * @brief Make a pet distrustful, which is a step short of no longer being a pet.
+ * @note A wary pet is still tame but keeps its distance and is harder to command. That intermediate state exists so that losing a pet's trust is visible before the pet is lost.
+ */
+/**
+ * @brief 애완동물을 불신하게 만든다. 더는 애완동물이 아니게 되는 것의 한 단계 앞이다.
+ * @note 경계하는 애완동물은 여전히 길들여져 있으나 거리를 두고 명령하기 어렵다. 그 중간 상태가 있는 것은, 애완동물을 잃기 전에 그 신뢰를 잃는 것이 눈에 보이도록 하기 위함이다.
+ */
 extern void wary_dog(struct monst *, boolean) NONNULLARG1;
 
 /* ### dogmove.c ### */
 
+/**
+ * @brief Whether a square holds anything cursed.
+ * @note Asked of pets, who avoid cursed things they can detect. So this is the game answering on the pet's behalf using knowledge the hero does not have -- which is why a pet refusing a
+ *       square is information to the player.
+ */
+/**
+ * @brief 어떤 칸이 저주받은 것을 담고 있는지.
+ * @note 애완동물에게 물어진다. 그들은 감지할 수 있는 저주받은 것을 피한다. 그래서 이것은 게임이 영웅이 갖지 않은 지식으로 애완동물을 대신해 답하는 것이며, 애완동물이 어떤 칸을 거부하는 것이 플레이어에게 정보인 이유다.
+ */
 extern boolean cursed_object_at(coordxy, coordxy);
+/**
+ * @brief The things a monster is carrying that it would be willing to put down.
+ * @return the first such object, or null if there are none
+ * @note Not everything it carries. A monster keeps what it is using and what it values, so this is what a pet might fetch or a thief might discard.
+ */
+/**
+ * @brief 몬스터가 지니고 있는 것 중 내려놓을 만한 것들.
+ * @return 그런 물건 중 첫 번째. 없으면 널
+ * @note 그것이 지닌 전부가 아니다. 몬스터는 쓰고 있는 것과 값지게 여기는 것을 지키므로, 이것은 애완동물이 물어 올 만한 것이거나 도둑이 버릴 만한 것이다.
+ */
 extern struct obj *droppables(struct monst *) NONNULLARG1;
 extern int dog_nutrition(struct monst *, struct obj *) NONNULLPTRS;
 extern int dog_eat(struct monst *, struct obj *,
                    coordxy, coordxy, boolean) NONNULLPTRS;
 extern int pet_ranged_attk(struct monst *, boolean) NONNULLARG1;
 extern int dog_move(struct monst *, int) NONNULLARG1;
+/**
+ * @brief Whether a monster could get at something on a given square.
+ * @note About the medium rather than the distance: a land pet cannot reach into water, and a swimmer cannot reach onto land. So a nearby object may be unreachable and this is what says
+ *       so.
+ */
+/**
+ * @brief 몬스터가 주어진 칸의 무언가에 닿을 수 있을지.
+ * @note 거리가 아니라 매체에 관한 것이다. 땅의 애완동물은 물속으로 손을 뻗을 수 없고, 수영하는 것은 땅으로 뻗을 수 없다. 그래서 가까운 물건이 닿을 수 없을 수 있고, 이것이 그것을 말한다.
+ */
 extern boolean could_reach_item(struct monst *, coordxy, coordxy) NONNULLARG1;
+/**
+ * @brief End a monster's meal, whether it finished or was interrupted.
+ * @note A monster eating occupies several turns, so the meal is state that has to be cleared -- and it has to be cleared on interruption as well as completion, which is why this is one
+ *       routine for both.
+ */
+/**
+ * @brief 몬스터의 식사를 끝낸다. 그것을 마쳤든 방해받았든.
+ * @note 몬스터가 먹는 것은 여러 턴을 차지하므로, 그 식사는 정리되어야 하는 상태다. 그리고 완료뿐 아니라 방해에서도 정리되어야 하며, 그래서 이것이 둘 모두를 위한 하나의 루틴이다.
+ */
 extern void finish_meating(struct monst *) NONNULLARG1;
+/**
+ * @brief Make a monster take on a disguise immediately.
+ * @note Immediately rather than at the monster's own choosing, for the cases where the disguise is imposed -- a mimic created already hidden, or one made to hide by something else.
+ */
+/**
+ * @brief 몬스터가 즉시 위장을 취하게 한다.
+ * @note 그 몬스터 자신의 선택이 아니라 즉시다. 위장이 부과되는 경우를 위한 것이다. 이미 숨은 상태로 만들어진 모방자, 또는 다른 무엇에 의해 숨게 된 것.
+ */
 extern void quickmimic(struct monst *) NONNULLARG1;
 
 /* ### dokick.c ### */
@@ -1580,10 +1709,46 @@ extern void quickmimic(struct monst *) NONNULLARG1;
 extern boolean ghitm(struct monst *, struct obj *) NONNULLPTRS;
 extern void container_impact_dmg(struct obj *, coordxy, coordxy) NONNULLARG1;
 extern int dokick(void);
+/**
+ * @brief Send an object down a hole, a trapdoor or a chute to another level.
+ * @return whether it was sent, since the square may have nothing to send it down
+ * @note The object leaves this level and arrives on another, so it goes through the same setting-aside as a migrating monster. That is why it does not simply appear where it was aimed.
+ */
+/**
+ * @brief 물건을 구멍이나 뚜껑문이나 활송로로 다른 레벨로 보낸다.
+ * @return 보내졌는지. 그 칸에 그것을 내려보낼 것이 없을 수 있다
+ * @note 물건이 이 레벨을 떠나 다른 레벨에 도착하므로, 이동하는 몬스터와 같은 따로 두기를 거친다. 그것이 겨냥된 곳에 그냥 나타나지 않는 이유다.
+ */
 extern boolean ship_object(struct obj *, coordxy, coordxy, boolean);
+/**
+ * @brief Place the objects that were set aside for this level.
+ * @note The counterpart of sending them. Called on arriving at a level, and its argument distinguishes objects that should land where they were aimed from those that may scatter.
+ */
+/**
+ * @brief 이 레벨을 위해 따로 두어졌던 물건들을 놓는다.
+ * @note 그것들을 보낸 것의 짝이다. 레벨에 도착할 때 호출되며, 그 인자가 겨냥된 곳에 놓여야 하는 물건과 흩어져도 되는 물건을 구별한다.
+ */
 extern void obj_delivery(boolean);
 extern void deliver_obj_to_mon(struct monst *mtmp, int, unsigned long) NONNULLARG1;
+/**
+ * @brief What kind of way down, if any, a square has.
+ * @return the kind, or the no-destination value when there is none
+ * @warning The failure value is not zero and is documented with the migration codes. Treating a zero answer as "nothing here" is wrong -- zero is a valid kind.
+ */
+/**
+ * @brief 어떤 칸에 내려가는 길이 있다면 어떤 종류인지.
+ * @return 그 종류. 없으면 목적지 없음 값
+ * @warning 실패 값은 0이 아니며 이동 코드와 함께 기록되어 있다. 0인 답을 "여기 아무것도 없음"으로 취급하는 것은 틀리다. 0은 유효한 종류다.
+ */
 extern schar down_gate(coordxy, coordxy);
+/**
+ * @brief Shake loose whatever a heavy impact would dislodge from above.
+ * @note What falls depends on where the impact was -- a ceiling above, a level above -- so this is about the impact's surroundings and not about the object that caused it.
+ */
+/**
+ * @brief 무거운 충격이 위에서 흔들어 떨어뜨릴 것을 떨어뜨린다.
+ * @note 무엇이 떨어지는지는 그 충격이 어디였는지에 달려 있다. 위의 천장, 위의 레벨. 그래서 이것은 그것을 일으킨 물건에 관한 것이 아니라 그 충격의 둘레에 관한 것이다.
+ */
 extern void impact_drop(struct obj *, coordxy, coordxy, xint16);
 
 /* ### dothrow.c ### */
@@ -1593,20 +1758,90 @@ extern int dothrow(void);
 extern int dofire(void);
 extern void endmultishot(boolean);
 extern void hitfloor(struct obj *, boolean) NONNULLARG1;
+/**
+ * @name Being flung across the map
+ * @brief Moving someone along a line against their will, a square at a time.
+ *
+ * Being knocked back is not a move the hero or a monster chose, so it does not go through the ordinary movement code. It is walked square by square instead, stopping when something is
+ * in the way, and each step may have consequences of its own.
+ *
+ * @note The step routines take an untyped pointer because the same path-walking serves the hero and a monster, and the two are not the same type. What it points at is settled by which
+ *       routine is being used.
+ * @note A jump is separate from a step because a jump passes over the squares between rather than entering them, so what stops it is different.
+ * @{
+ */
+/**
+ * @name 지도를 가로질러 날려지기
+ * @brief 누군가를 그 뜻과 무관하게 선을 따라 한 칸씩 옮기기.
+ *
+ * 뒤로 밀려나는 것은 영웅이나 몬스터가 고른 이동이 아니므로, 평범한 이동 코드를 거치지 않는다. 대신 칸 단위로 걸어지며 무언가가 가로막을 때 멈추고, 각 걸음이 자기 결과를 가질 수 있다.
+ *
+ * @note 걸음 루틴들이 타입 없는 포인터를 받는 것은, 같은 경로 걷기가 영웅과 몬스터를 함께 맡고 그 둘이 같은 타입이 아니기 때문이다. 그것이 무엇을 가리키는지는 어느 루틴이 쓰이고 있는지가 정한다.
+ * @note 도약이 걸음과 따로 있는 것은, 도약이 사이의 칸에 들어가는 것이 아니라 그 위를 지나기 때문이다. 그래서 그것을 멈추는 것이 다르다.
+ * @{
+ */
 extern boolean hurtle_jump(genericptr_t, coordxy, coordxy) NONNULLARG1;
 extern boolean hurtle_step(genericptr_t, coordxy, coordxy) NONNULLARG1;
+/**
+ * @brief Whether a monster would actually be moved by a knock-back.
+ * @note Asked before applying one, because a monster that is too heavy, anchored or otherwise immovable should produce a different message rather than a knock-back that goes nowhere.
+ */
+/**
+ * @brief 몬스터가 밀려남에 의해 실제로 움직여질지.
+ * @note 그것을 적용하기 전에 물어진다. 너무 무겁거나 고정되어 있거나 그 밖의 이유로 움직일 수 없는 몬스터는 아무 데도 가지 않는 밀려남 대신 다른 메시지를 내야 하기 때문이다.
+ */
 extern boolean will_hurtle(struct monst *, coordxy, coordxy) NONNULLARG1;
 extern void hurtle(int, int, int, boolean);
 extern void mhurtle(struct monst *, int, int, int) NONNULLARG1;
+/** @} */
+/**
+ * @brief Whether a thrown object would do no damage at all.
+ * @note Exists so that throwing something harmless can be described differently rather than reported as a miss. A cream pie striking a monster is an event, not a failed attack.
+ */
+/**
+ * @brief 던진 물건이 아무 피해도 주지 않을지.
+ * @note 무해한 것을 던지는 일이 빗맞음으로 보고되는 대신 다르게 기술될 수 있도록 존재한다. 크림 파이가 몬스터를 맞히는 것은 실패한 공격이 아니라 하나의 사건이다.
+ */
 extern boolean harmless_missile(struct obj *) NONNULLARG1;
+/**
+ * @brief Whether an object is a weapon meant to be thrown.
+ * @note Not whether it can be thrown -- anything can. This is whether throwing it is its intended use, which decides whether the hero's skill with it applies.
+ */
+/**
+ * @brief 물건이 던지도록 만들어진 무기인지.
+ * @note 던질 수 있는지가 아니다. 무엇이든 던질 수 있다. 이것은 던지는 것이 그 의도된 용도인지이며, 그것이 영웅의 그 기술이 적용되는지를 정한다.
+ */
 extern boolean throwing_weapon(struct obj *) NONNULLARG1;
 extern boolean throwit_mon_hit(struct obj *, struct monst *) NONNULLARG1;
 extern void throwit(struct obj *, long, boolean, struct obj *) NONNULLARG1;
 extern int omon_adj(struct monst *, struct obj *, boolean) NONNULLPTRS;
+/**
+ * @brief Whether a fired missile should be destroyed rather than recovered.
+ * @note Missiles are consumed at a rate rather than always or never, so that firing is not free and not prohibitively expensive. This is where that rate is applied, which is why an
+ *       arrow sometimes survives and sometimes does not.
+ */
+/**
+ * @brief 발사된 투사체가 회수되는 대신 파괴되어야 하는지.
+ * @note 투사체는 항상도 결코도 아니라 어떤 비율로 소모된다. 그래서 발사가 공짜도 아니고 감당 못 할 만큼 비싸지도 않다. 그 비율이 적용되는 곳이 여기이며, 그래서 화살이 때로는 살아남고 때로는 그렇지 않다.
+ */
 extern boolean should_mulch_missile(struct obj *);
 extern int thitmonst(struct monst *, struct obj *) NONNULLPTRS;
+/**
+ * @name Breaking an object
+ * @brief Break something, with one form that attributes the breakage to the hero.
+ * @note Two forms because the consequences differ, not the breaking: something the hero broke may be paid for, may anger a shopkeeper, may count against a conduct. The general form is
+ *       for breakage with no culprit.
+ * @{
+ */
+/**
+ * @name 물건 부수기
+ * @brief 무언가를 부순다. 한 형태는 그 부숨을 영웅에게 귀속시킨다.
+ * @note 두 형태인 것은 부숨이 아니라 그 결과가 다르기 때문이다. 영웅이 부순 것은 값을 물어야 할 수도, 상점 주인을 화나게 할 수도, 계율에 셈해질 수도 있다. 일반 형태는 범인이 없는 부숨을 위한 것이다.
+ * @{
+ */
 extern int hero_breaks(struct obj *, coordxy, coordxy, unsigned);
 extern int breaks(struct obj *, coordxy, coordxy) NONNULLARG1;
+/** @} */
 extern void release_camera_demon(struct obj *, coordxy, coordxy) NONNULLARG1;
 extern int breakobj(struct obj *, coordxy, coordxy, boolean, boolean) NONNULLARG1;
 extern boolean breaktest(struct obj *) NONNULLARG1;
