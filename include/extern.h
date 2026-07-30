@@ -5,6 +5,55 @@
    rt_world_tick_ready() for the real-time build; see MODIFICATIONS.md.
    This file differs from the upstream NetHack distribution. */
 
+/**
+ * @file extern.h
+ * @brief Every function the game shares between its files.
+ *
+ * Almost three thousand prototypes, and the largest header in the game. It exists because NetHack has no per-module headers: a file declares nothing for its callers, and everything
+ * that is not private to one file is declared here instead.
+ *
+ * It is organised by the file each function lives in, marked by the section comments. That is the only organisation, and it is a useful one -- a name found here tells you where the
+ * code is, which in a codebase of this size is most of what you wanted to know.
+ *
+ * Two things about the file are worth knowing before reading it.
+ *
+ * The first is the nullability annotations. Every prototype may carry a note saying which of its pointer arguments must not be null, and the long comment below sets out both what each
+ * annotation means and -- more usefully -- the rule by which it was decided. Read that rule: an argument is marked non-null if the function dereferences it without checking, and left
+ * unmarked if the function tests it. So an annotation is a statement about what the function actually does, and the absence of one on an analysed function is equally informative.
+ *
+ * The second is the conditional covering nearly the whole file. Several small tools are built from the game's sources and include this header but link against almost none of the game,
+ * so the bulk of the declarations are hidden from them and the few they need are picked out individually.
+ *
+ * @note One annotation exists purely to record that a function was examined and found to need none. That distinction -- unexamined versus examined and clean -- is why it is not simply
+ *       omitted.
+ * @note Several of the annotations exist for one function each, and their comments say which and why. Those are the cases where the non-null arguments are not adjacent, and one of the
+ *       comments observes that reordering that function's parameters would let its annotation be retired.
+ * @note This is a modified copy of NetHack. The real-time fork's two shared functions are declared here alongside the rest; the file header above records that.
+ * @warning An annotation is an assertion the compiler is allowed to act on, not a check. Marking an argument non-null when a caller may pass null turns a defensive test into
+ *          undefined behaviour, and the comment below notes that such a test inside the function will itself draw a warning.
+ */
+
+/**
+ * @file extern.h
+ * @brief 게임이 자기 파일들 사이에서 공유하는 모든 함수.
+ *
+ * 프로토타입이 거의 삼천 개이며, 게임에서 가장 큰 헤더다. NetHack 에 모듈별 헤더가 없기 때문에 존재한다. 파일은 자기 호출자를 위해 아무것도 선언하지 않고, 한 파일에만 사적이지 않은 모든 것이 대신 여기에 선언된다.
+ *
+ * 각 함수가 사는 파일별로 조직되어 있고, 절 주석이 그것을 표시한다. 그것이 유일한 조직이며 쓸모 있는 것이다. 여기서 찾은 이름이 그 코드가 어디 있는지 알려 주고, 이만한 크기의 코드베이스에서 그것이 알고 싶었던 것의 대부분이다.
+ *
+ * 이 파일에 대해 읽기 전에 알아 둘 만한 두 가지가 있다.
+ *
+ * 첫째는 널 가능성 표시다. 모든 프로토타입이 자기 포인터 인자 중 어느 것이 널이어서는 안 되는지 말하는 메모를 지닐 수 있고, 아래의 긴 주석이 각 표시가 무엇을 뜻하는지와 -- 더 쓸모 있게 -- 그것이 어떤 규칙으로 정해졌는지를 밝힌다. 그 규칙을 읽을 것. 함수가 확인 없이
+ * 역참조하는 인자는 널 아님으로 표시되고, 함수가 검사하는 인자는 표시되지 않는다. 그래서 표시는 함수가 실제로 무엇을 하는지에 관한 선언이며, 분석된 함수에 그것이 없다는 것도 똑같이 정보를 준다.
+ *
+ * 둘째는 파일 거의 전체를 덮는 조건문이다. 게임의 소스에서 몇 개의 작은 도구가 빌드되어 이 헤더를 포함하면서 게임의 거의 어느 것에도 링크하지 않으므로, 선언의 대부분이 그것들에게 감춰지고 그것들이 필요로 하는 몇 개만 개별적으로 골라진다.
+ *
+ * @note 표시 하나는 순전히 어떤 함수가 검토되었고 아무 표시도 필요하지 않다고 판단되었음을 기록하기 위해 존재한다. 검토되지 않은 것과 검토되었고 깨끗한 것의 그 구별이, 그것이 그냥 생략되지 않는 이유다.
+ * @note 몇몇 표시는 각각 함수 하나를 위해 존재하고, 그 주석들이 어느 함수이고 왜인지 밝힌다. 그것들은 널 아닌 인자들이 인접하지 않은 경우이며, 그 주석 중 하나는 그 함수의 매개변수 순서를 바꾸면 그 표시를 없앨 수 있으리라고 지적한다.
+ * @note 이것은 NetHack 의 수정된 사본이다. 실시간 포크의 공유 함수 둘이 나머지와 나란히 여기에 선언되어 있으며, 위의 파일 머리말이 그것을 기록한다.
+ * @warning 표시는 검사가 아니라 컴파일러가 그것에 따라 행동해도 되는 주장이다. 호출자가 널을 넘길 수 있는 인자를 널 아님으로 표시하는 것은 방어적 검사를 정의되지 않은 동작으로 바꾸며, 아래의 주석은 함수 안의 그런 검사가 그 자체로 경고를 낼 것이라고 밝힌다.
+ */
+
 #ifndef EXTERN_H
 #define EXTERN_H
 
@@ -95,24 +144,99 @@ extern unsigned FITSuint_(unsigned long long, const char *, int) NONNULLARG2;
 
 #include "hacklib.h"
 
+/**
+ * @note Everything from here to near the end of the file is hidden from the small tools built out of the game's sources. They include this header for a handful of declarations and link
+ *       against almost none of the game, so declaring the rest to them would leave them unable to link. The conditional is reopened here and there to let one function through, and each
+ *       of those interruptions is a tool needing that one function.
+ */
+/**
+ * @note 여기서부터 파일 끝 부근까지의 모든 것이 게임 소스에서 빌드되는 작은 도구들에게 감춰진다. 그것들은 몇 개의 선언을 위해 이 헤더를 포함하면서 게임의 거의 어느 것에도 링크하지 않으므로, 나머지를 그것들에게 선언하면 링크할 수 없게 된다. 이 조건문은 함수 하나를 통과시키기
+ *       위해 여기저기서 다시 열리며, 그 중단들 각각은 그 하나의 함수를 필요로 하는 도구다.
+ */
 /* This next pre-processor directive covers almost the entire file,
  * interrupted only occasionally to pick up specific functions as needed. */
 #if !defined(MAKEDEFS_C) && !defined(MDLIB_C) && !defined(CPPREGEX_C)
 
 /* ### allmain.c ### */
 
+/**
+ * @brief Set up the things that must exist before anything else can run.
+ * @note Takes the command line because some of what it decides comes from there -- so this runs before options are read, not after.
+ */
+/**
+ * @brief 다른 무엇도 돌아가기 전에 존재해야 하는 것들을 세운다.
+ * @note 명령줄을 받는다. 그것이 정하는 것 중 일부가 거기서 오기 때문이다. 그래서 이것은 옵션이 읽힌 뒤가 아니라 그 전에 돌아간다.
+ */
 extern void early_init(int, char *[]);
+/**
+ * @brief One pass of the main loop: let the hero act, then let everything else.
+ * @note Separated from the loop itself so that a port which cannot give up control of its own event loop can drive the game one pass at a time.
+ */
+/**
+ * @brief 주 루프의 한 번의 통과. 영웅이 행동하게 하고, 그다음 나머지 전부가 행동하게 한다.
+ * @note 루프 자체와 분리되어 있어, 자기 사건 루프의 통제를 내줄 수 없는 포트가 게임을 한 번에 한 통과씩 몰 수 있다.
+ */
 extern void moveloop_core(void);
+/**
+ * @brief The main loop, which does not return until the game ends.
+ * @note Its argument distinguishes a new game from a restored one, because the first pass differs -- a restored game must not repeat what already happened.
+ */
+/**
+ * @brief 주 루프. 게임이 끝나기 전까지 반환하지 않는다.
+ * @note 그 인자가 새 게임과 복원된 게임을 구별한다. 첫 통과가 다르기 때문이다. 복원된 게임은 이미 일어난 일을 되풀이해서는 안 된다.
+ */
 extern void moveloop(boolean);
 #ifdef REALTIME_PROTO
+/**
+ * @brief Whether enough real time has passed for the world to advance a turn.
+ *
+ * This fork's clock. It is asked rather than waited on, so a caller can do something else while the answer is no -- which is the whole difference between this and the turn-based loop,
+ * where the world advanced when the player acted.
+ *
+ * @return true if a turn is due, and consumes it -- so two calls in the same interval do not both succeed
+ * @note Catches up rather than drifting: the next turn is due a fixed interval after the last one was, not after this call. A long pause therefore does not slow the game down
+ *       permanently, though it is capped so a very long one does not produce a flood of turns.
+ * @warning Not part of upstream NetHack. It is declared here alongside the loop it belongs to.
+ */
+/**
+ * @brief 세계가 한 턴 진행하기에 충분한 실제 시간이 지났는지.
+ *
+ * 이 포크의 시계. 기다리는 것이 아니라 묻는 것이므로, 답이 아니오인 동안 호출자가 다른 일을 할 수 있다. 그것이 이것과 턴제 루프의 차이 전부다. 그쪽에서는 플레이어가 행동할 때 세계가 진행했다.
+ *
+ * @return 턴이 도래했으면 참. 그리고 그것을 소비한다. 그래서 같은 간격 안의 두 호출이 둘 다 성공하지는 않는다
+ * @note 밀리는 대신 따라잡는다. 다음 턴은 이 호출로부터가 아니라 지난 턴이 도래했던 때로부터 고정된 간격 뒤에 도래한다. 그래서 긴 멈춤이 게임을 영구히 느리게 만들지는 않는다. 다만 아주 긴 멈춤이 턴의 홍수를 내지 않도록 상한이 있다.
+ * @warning 상류 NetHack 의 일부가 아니다. 자신이 속한 루프와 나란히 여기에 선언되어 있다.
+ */
 extern boolean rt_world_tick_ready(void);
 #endif
+/**
+ * @brief Abandon whatever multi-turn action the hero was performing.
+ * @note What is abandoned rather than paused. An occupation that could be resumed is left alone by this; it is for the cases where continuing no longer makes sense.
+ */
+/**
+ * @brief 영웅이 수행하던 여러 턴짜리 행동을 포기한다.
+ * @note 멈추는 것이 아니라 포기하는 것이다. 이어 갈 수 있는 작업은 이것이 건드리지 않는다. 이어 가는 것이 더는 뜻이 통하지 않는 경우를 위한 것이다.
+ */
 extern void stop_occupation(void);
 extern void init_sound_disp_gamewindows(void);
 extern void newgame(void);
 extern void welcome(boolean);
+/**
+ * @name Working with wall-clock time
+ * @brief Turning the system's notion of time into plain numbers the game can store.
+ * @note The system's time type is not a number the game may assume anything about, so it is converted here rather than used directly. That is what lets an elapsed time be saved and
+ *       compared across platforms.
+ * @{
+ */
+/**
+ * @name 실제 시계 시간 다루기
+ * @brief 시스템의 시간 개념을 게임이 저장할 수 있는 평범한 숫자로 바꾸기.
+ * @note 시스템의 시간 타입은 게임이 무엇을 가정해도 되는 숫자가 아니므로, 직접 쓰이는 대신 여기서 변환된다. 그것이 경과 시간이 저장되고 플랫폼을 건너 비교될 수 있게 하는 것이다.
+ * @{
+ */
 extern long timet_to_seconds(time_t);
 extern long timet_delta(time_t, time_t);
+/** @} */
 
 /* ### apply.c ### */
 
@@ -125,11 +249,61 @@ extern int number_leashed(void);
 extern void o_unleash(struct obj *) NONNULLPTRS;
 extern void m_unleash(struct monst *, boolean) NONNULLPTRS;
 extern void unleash_all(void);
+/**
+ * @brief Whether this monster could be put on a leash.
+ * @note A question about the monster's suitability, not about whether one is available or whether it is already leashed. So a true answer is not permission to leash it.
+ */
+/**
+ * @brief 이 몬스터를 목줄에 묶을 수 있을지.
+ * @note 목줄이 있는지나 이미 묶여 있는지가 아니라 그 몬스터가 적합한지에 대한 질문이다. 그래서 참이라는 답이 그것을 묶어도 된다는 허락은 아니다.
+ */
 extern boolean leashable(struct monst *) NONNULLARG1;
+/**
+ * @brief Whether every leashed pet is still within reach of the hero.
+ * @note Asks about all of them at once rather than one, since the interesting moment is when any leash has been stretched too far.
+ */
+/**
+ * @brief 목줄에 묶인 모든 애완동물이 여전히 영웅의 손이 닿는 곳에 있는지.
+ * @note 하나가 아니라 그 전부에 대해 한꺼번에 묻는다. 흥미로운 순간은 어느 목줄이든 너무 멀리 당겨졌을 때이기 때문이다.
+ */
 extern boolean next_to_u(void);
+/**
+ * @brief The leash this monster is on, if it is on one.
+ * @return the leash object, or null if the monster is not leashed
+ * @note Both a test and a lookup: the null answer is how code asks whether a monster is leashed at all, so there is no separate predicate.
+ */
+/**
+ * @brief 이 몬스터가 묶여 있는 목줄. 묶여 있다면.
+ * @return 그 목줄 물건. 몬스터가 묶여 있지 않으면 널
+ * @note 검사이면서 조회다. 널이라는 답이 코드가 몬스터가 아예 묶여 있는지 묻는 방식이므로, 따로 판정 함수가 없다.
+ */
 extern struct obj *get_mleash(struct monst *) NONNULLARG1;
+/**
+ * @brief A word for how something looks, chosen to suit the hero's own senses.
+ * @note Exists because "beautiful" is wrong for a hero who cannot see. The word returned depends on the hero's condition, so a message using it reads correctly either way.
+ */
+/**
+ * @brief 무언가가 어떻게 보이는지에 대한 낱말. 영웅 자신의 감각에 맞게 골라진다.
+ * @note 볼 수 없는 영웅에게 "아름답다"가 틀리기 때문에 존재한다. 반환되는 낱말이 영웅의 상태에 달려 있으므로, 그것을 쓰는 메시지가 어느 쪽이든 올바르게 읽힌다.
+ */
 extern const char *beautiful(void);
+/**
+ * @brief Deal with every leash after the hero has moved to the given square.
+ * @note Called after the move rather than before, so it reacts to a leash that is now too long instead of preventing the move. A leash may snap here.
+ */
+/**
+ * @brief 영웅이 주어진 칸으로 움직인 뒤 모든 목줄을 처리한다.
+ * @note 움직이기 전이 아니라 뒤에 호출되므로, 그 움직임을 막는 것이 아니라 이제 너무 길어진 목줄에 반응한다. 여기서 목줄이 끊어질 수 있다.
+ */
 extern void check_leash(coordxy, coordxy);
+/**
+ * @brief Whether a square is farther from the hero than a given distance.
+ * @note The sense is "beyond", not "within" -- so a true answer means too far. The distance is compared in the game's usual squared form.
+ */
+/**
+ * @brief 어떤 칸이 영웅에게서 주어진 거리보다 먼지.
+ * @note 그 뜻은 "안"이 아니라 "밖"이다. 그래서 참이라는 답은 너무 멀다는 뜻이다. 거리는 게임의 통상적인 제곱된 형태로 비교된다.
+ */
 extern boolean um_dist(coordxy, coordxy, xint16);
 extern boolean snuff_candle(struct obj *) NONNULLPTRS;
 extern boolean snuff_lit(struct obj *) NONNULLPTRS;
