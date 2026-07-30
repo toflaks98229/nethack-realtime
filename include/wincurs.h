@@ -2,6 +2,38 @@
 /* Copyright (c) Karl Garrison, 2010. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file wincurs.h
+ * @brief The curses display's own declarations.
+ *
+ * One of the display family. Where the terminal display models the screen itself, this one delegates that to a terminal library -- so what it keeps is not a model of the screen but
+ * handles into one, and the difference is why the two displays share almost nothing.
+ *
+ * That delegation is what the whole display buys: real windows that can overlap and be drawn independently, and a library that knows what the terminal can do. What remains for this
+ * header is which windows exist, what state the terminal was in before the game took it over, and a few facts the library does not supply.
+ *
+ * @note The original cursor state is kept because the display changes it and must put it back. That is a general obligation of a display that takes over a terminal: whatever it
+ *       alters, it owns until the game ends.
+ * @note One of the window handles is kept for an unobvious reason recorded beside it -- a menu asking for a count affects how a different window is refreshed, so the two have to know
+ *       about each other.
+ * @warning The on and off values defined here have the same names as the shared ones in the game's own header. They agree in value, but a reader should not assume a use of one refers
+ *          to the other.
+ */
+
+/**
+ * @file wincurs.h
+ * @brief curses 표시부 자신의 선언들.
+ *
+ * 표시부 가족의 하나. 터미널 표시부가 화면 자체를 모형화하는 곳에서, 이것은 그것을 터미널 라이브러리에 맡긴다. 그래서 보관하는 것이 화면의 모형이 아니라 그 안으로의 핸들이며, 그 차이가 두 표시부가 거의 아무것도 공유하지 않는 이유다.
+ *
+ * 그 위임이 이 표시부 전체가 사 오는 것이다. 겹칠 수 있고 각각 따로 그려질 수 있는 진짜 창, 그리고 터미널이 무엇을 할 수 있는지 아는 라이브러리. 이 헤더에 남는 것은 어떤 창이 존재하는지, 게임이 터미널을 넘겨받기 전에 그것이 어떤 상태였는지, 그리고 라이브러리가 제공하지
+ * 않는 몇 가지 사실이다.
+ *
+ * @note 원래 커서 상태가 보관되는 것은 표시부가 그것을 바꾸고 되돌려 놓아야 하기 때문이다. 그것은 터미널을 넘겨받는 표시부의 일반적인 의무다. 무엇을 바꾸든, 게임이 끝날 때까지 그것을 소유한다.
+ * @note 창 핸들 중 하나는 그 곁에 기록된 뻔하지 않은 이유로 보관된다. 개수를 묻는 메뉴가 다른 창이 어떻게 갱신되는지에 영향을 주므로, 그 둘이 서로에 대해 알아야 한다.
+ * @warning 여기 정의된 켜기와 끄기 값은 게임 자체 헤더의 공유 값들과 이름이 같다. 값은 일치하지만, 독자는 한쪽의 사용이 다른 쪽을 가리킨다고 가정해서는 안 된다.
+ */
+
 #ifndef WINCURS_H
 #define WINCURS_H
 

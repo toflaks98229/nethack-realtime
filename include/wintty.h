@@ -2,6 +2,39 @@
 /* Copyright (c) David Cohrs, 1991,1992                           */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file wintty.h
+ * @brief The terminal display's own declarations.
+ *
+ * One of a family, one per display: each implements the interface the game defines and keeps whatever it needs to do so behind this header. Nothing in the game includes these --
+ * only the display itself does -- which is what keeps the boundary a boundary.
+ *
+ * What a terminal display needs is a model of the screen. A terminal has no windows, so the display makes them: it keeps for each what it contains and where on the screen it sits,
+ * and draws them by moving the cursor. That is why the structures here describe rectangles of characters rather than anything windowlike.
+ *
+ * The persistent inventory support is the most involved part, and its shape follows from the same limitation. A terminal cannot have a second window beside the map, so the inventory
+ * occupies part of the same screen, held as a grid of cells with each cell remembering whether it needs redrawing. Redrawing only what changed is not an optimisation here -- a
+ * terminal is slow enough that redrawing everything would be visible.
+ *
+ * @note A cell holds either a character or a glyph, and the union is arranged with the pointer first so that a zeroed cell is a valid empty one, as the accompanying comment records.
+ * @note The minimum dimensions declared for the inventory are why it can be refused: a terminal too small to hold it is told so rather than having it drawn over the map.
+ */
+
+/**
+ * @file wintty.h
+ * @brief 터미널 표시부 자신의 선언들.
+ *
+ * 표시부마다 하나씩 있는 가족의 하나다. 각각은 게임이 정의한 인터페이스를 구현하고, 그렇게 하기 위해 필요한 것을 이 헤더 뒤에 보관한다. 게임의 어느 것도 이 헤더들을 포함하지 않으며 -- 표시부 자신만이 포함한다 -- 그것이 그 경계를 경계로 유지하는 것이다.
+ *
+ * 터미널 표시부가 필요로 하는 것은 화면의 모형이다. 터미널에는 창이 없으므로 표시부가 그것을 만든다. 각각에 대해 무엇을 담고 있고 화면의 어디에 놓이는지를 보관하고, 커서를 옮기며 그것들을 그린다. 여기의 구조체들이 창 같은 무엇이 아니라 문자의 사각형을 기술하는 이유가 그것이다.
+ *
+ * 지속 소지품 지원이 가장 복잡한 부분이며, 그 모양이 같은 제약에서 따라 나온다. 터미널은 지도 옆에 두 번째 창을 가질 수 없으므로, 소지품이 같은 화면의 일부를 차지하고 칸의 격자로 보관되며 각 칸이 자신이 다시 그려져야 하는지를 기억한다. 바뀐 것만 다시 그리는 것은 여기서
+ * 최적화가 아니다. 터미널은 전부를 다시 그리는 것이 눈에 보일 만큼 느리다.
+ *
+ * @note 칸은 문자나 글리프 중 하나를 담으며, 딸린 주석이 기록하듯 그 공용체는 포인터가 먼저 오도록 짜여 있다. 그래서 0으로 채워진 칸이 유효한 빈 칸이 된다.
+ * @note 소지품에 대해 선언된 최소 크기가 그것이 거절될 수 있는 이유다. 그것을 담기에 너무 작은 터미널은 그것이 지도 위에 그려지는 대신 그렇다고 통보받는다.
+ */
+
 #ifndef WINTTY_H
 #define WINTTY_H
 

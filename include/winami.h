@@ -3,9 +3,48 @@
 /* Copyright (c) Gregg Wonderly, Naperville, Illinois, 1992, 1993. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file winami.h
+ * @brief The Amiga display's own declarations.
+ *
+ * One of the display family. Its distinctive feature is that it is a graphical display of an older kind: real windows, but drawn with the system's own facilities and with the game
+ * managing far more of the detail than a modern display would.
+ *
+ * The menu structures are the substantial part. A menu is held as a list of entries, each carrying not only what it stands for but the letter that selects it, the letter that selects
+ * its group, and whether it is currently selected. The game supplies the first and the display assigns the rest -- so this is where the display's own bookkeeping about a menu lives,
+ * separate from the menu the game asked for.
+ *
+ * @note Each entry can carry a glyph, so this display can show what an item looks like beside its name. That is why the entry holds a glyph as well as text.
+ * @note A group selector is a letter that picks every entry of a kind at once. It is per entry rather than per group because which entries share a kind is decided as the menu is
+ *       built.
+ */
+
+/**
+ * @file winami.h
+ * @brief Amiga 표시부 자신의 선언들.
+ *
+ * 표시부 가족의 하나. 그 특징은 그것이 더 예전 종류의 그래픽 표시부라는 것이다. 진짜 창이지만 시스템 자신의 기능으로 그려지고, 현대적인 표시부라면 하지 않을 만큼 게임이 훨씬 많은 세부를 관리한다.
+ *
+ * 메뉴 구조체가 그 중요한 부분이다. 메뉴는 항목의 목록으로 보관되며, 각각이 그것이 나타내는 것만이 아니라 그것을 고르는 글자, 그 묶음을 고르는 글자, 그리고 지금 선택되어 있는지를 지닌다. 게임이 첫 번째를 제공하고 표시부가 나머지를 배정한다. 그래서 이곳이 메뉴에 대한 표시부
+ * 자신의 기록이 사는 곳이며, 게임이 요청한 메뉴와는 별개다.
+ *
+ * @note 각 항목이 글리프를 지닐 수 있으므로, 이 표시부는 항목의 이름 곁에 그것이 어떻게 보이는지를 보일 수 있다. 항목이 글이와 함께 글리프도 담는 이유가 그것이다.
+ * @note 묶음 선택자는 한 종류의 모든 항목을 한꺼번에 고르는 글자다. 묶음마다가 아니라 항목마다인 것은, 어느 항목들이 종류를 공유하는지가 메뉴가 만들어지면서 정해지기 때문이다.
+ */
+
 #ifndef WINAMI_H
 #define WINAMI_H
 
+/**
+ * @def MAXWINTAGS
+ * @brief How many system window attributes this display can set at once.
+ * @note A limit on one call rather than on windows. The system takes attributes as a list, and this is the size of the buffer that list is built in.
+ */
+/**
+ * @def MAXWINTAGS
+ * @brief 이 표시부가 한 번에 설정할 수 있는 시스템 창 속성의 개수.
+ * @note 창에 대한 한계가 아니라 한 번의 호출에 대한 한계다. 시스템이 속성을 목록으로 받으며, 이것은 그 목록이 만들어지는 버퍼의 크기다.
+ */
 #define MAXWINTAGS 5
 
 /*

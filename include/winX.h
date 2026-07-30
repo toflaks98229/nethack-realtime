@@ -2,6 +2,36 @@
 /* Copyright (c) Dean Luick, 1992                                 */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file winX.h
+ * @brief The X11 display's own declarations.
+ *
+ * One of the display family, and the one that is least like a terminal. It has real windows supplied by a window system, real fonts, a pointer, and events that arrive when they arrive
+ * rather than when the game asks -- and that last difference is the substantial one.
+ *
+ * Everything else in the game is written on the assumption that input is requested. A window system delivers it instead, whenever it likes, including while the game is busy. So this
+ * display has to hold events that arrived early, and much of what is declared here exists to bridge that: the game asks for a keystroke, and the display answers from what the window
+ * system has already handed it.
+ *
+ * @note This display includes only two of the game's headers, and the accompanying comments name what it needs from each. That is deliberate and is the reason a few definitions the
+ *       game would otherwise keep elsewhere live in the shared display vocabulary instead -- so this file can see them without seeing the game.
+ * @note The widened argument type defined at the top is the same accommodation the shared compatibility header makes, repeated here because the window system's own declarations need
+ *       it too.
+ */
+
+/**
+ * @file winX.h
+ * @brief X11 표시부 자신의 선언들.
+ *
+ * 표시부 가족의 하나이며, 터미널과 가장 닮지 않은 것이다. 창 시스템이 제공하는 진짜 창, 진짜 글꼴, 포인터, 그리고 게임이 물을 때가 아니라 도착할 때 도착하는 사건을 가진다. 그리고 그 마지막 차이가 실질적인 것이다.
+ *
+ * 게임의 다른 모든 것은 입력이 요청된다는 전제 위에 쓰였다. 창 시스템은 대신 그것을 배달한다. 자기가 원할 때, 게임이 바쁜 동안에도 포함해서. 그래서 이 표시부는 일찍 도착한 사건을 보관해야 하고, 여기 선언된 것의 상당 부분이 그것을 잇기 위해 존재한다. 게임이 키 입력을
+ * 요청하고, 표시부가 창 시스템이 이미 건네준 것에서 답한다.
+ *
+ * @note 이 표시부는 게임의 헤더 중 둘만을 포함하며, 딸린 주석들이 각각에서 무엇을 필요로 하는지 밝힌다. 의도적이며, 게임이 그러지 않으면 다른 곳에 두었을 몇몇 정의가 대신 공유 표시부 어휘에 사는 이유다. 그래서 이 파일이 게임을 보지 않고 그것들을 볼 수 있다.
+ * @note 위쪽에 정의된 확장된 인자 타입은 공유 호환성 헤더가 하는 것과 같은 조치이며, 창 시스템 자신의 선언도 그것을 필요로 하기 때문에 여기서 되풀이된다.
+ */
+
 /*
  * Definitions for the X11 window-port.  See doc/window.txt for details on
  * the window interface.
