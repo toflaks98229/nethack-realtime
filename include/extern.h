@@ -5389,6 +5389,31 @@ extern void skill_based_spellbook_id(void);
 
 /* ### stairs.c ### */
 
+/**
+ * @name The level's ways up and down
+ * @brief Record a staircase, and find one by any of the several things one might know about it.
+ *
+ * A level's stairs are held as a list rather than on the map, because a staircase is more than a square: it knows which level it leads to and whether it is a ladder or a branch. So the map says
+ * something is here and this says what.
+ *
+ * The several finding forms are the several questions that arise: which stairs are at this square, which lead to that level, which go up, which of a particular kind go up. Each exists because some
+ * piece of code has exactly that much information and no more.
+ *
+ * @note The branch and special forms are separate because a branch's stairs are not interchangeable with the ordinary ones -- descending the mines is not descending the dungeon, even though both are
+ *       downward.
+ * @{
+ */
+/**
+ * @name 레벨의 오르내리는 길
+ * @brief 계단을 기록하고, 그것에 대해 알 만한 여러 가지 중 무엇으로든 하나를 찾는다.
+ *
+ * 레벨의 계단은 지도가 아니라 목록으로 보관된다. 계단이 칸 이상이기 때문이다. 그것은 자신이 어느 레벨로 이어지는지와 사다리인지 분기인지를 안다. 그래서 지도는 여기 무언가가 있다고 말하고 이것이 그것이 무엇인지 말한다.
+ *
+ * 여러 찾기 형태는 생기는 여러 질문이다. 이 칸에 어느 계단이 있는지, 어느 것이 그 레벨로 이어지는지, 어느 것이 올라가는지, 특정 종류 중 어느 것이 올라가는지. 각각이 존재하는 것은 어떤 코드가 정확히 그만큼의 정보를 가지고 그 이상은 갖지 않기 때문이다.
+ *
+ * @note 분기 형태와 특수 형태가 따로 있는 것은, 분기의 계단이 평범한 것과 바꿔 쓸 수 없기 때문이다. 광산을 내려가는 것은 던전을 내려가는 것이 아니다. 둘 다 아래쪽이더라도.
+ * @{
+ */
 extern void stairway_add(coordxy, coordxy,
                          boolean, boolean, d_level *) NONNULLPTRS;
 extern void stairway_free_all(void);
@@ -5398,6 +5423,7 @@ extern stairway *stairway_find_from(d_level *, boolean) NONNULLARG1;
 extern stairway *stairway_find_dir(boolean);
 extern stairway *stairway_find_type_dir(boolean, boolean);
 extern stairway *stairway_find_special_dir(boolean);
+/** @} */
 extern void u_on_sstairs(int);
 extern void u_on_upstairs(void);
 extern void u_on_dnstairs(void);
@@ -5405,7 +5431,23 @@ extern boolean On_stairs(coordxy, coordxy);
 extern boolean On_ladder(coordxy, coordxy);
 extern boolean On_stairs_up(coordxy, coordxy);
 extern boolean On_stairs_dn(coordxy, coordxy);
+/**
+ * @brief Whether the hero knows that a staircase leads out of this dungeon.
+ * @note Knowing that stairs are there and knowing where they go are separate. A branch's stairs look like any others until they have been taken, so the overview cannot mark them until then.
+ */
+/**
+ * @brief 영웅이 어떤 계단이 이 던전 밖으로 이어진다는 것을 아는지.
+ * @note 계단이 있다는 것을 아는 것과 그것이 어디로 가는지 아는 것은 별개다. 분기의 계단은 지나가 보기 전까지 다른 것과 똑같아 보이므로, 개요가 그때까지는 그것을 표시할 수 없다.
+ */
 extern boolean known_branch_stairs(stairway *);
+/**
+ * @brief Describe a staircase, writing into the caller's buffer.
+ * @note Its boolean asks whether to include where the stairs lead, which the hero may not know -- so the same routine serves both a description of what is here and a fuller one for the overview.
+ */
+/**
+ * @brief 계단을 기술하며, 호출자의 버퍼에 쓴다.
+ * @note 그 논리값은 그 계단이 어디로 이어지는지를 포함할지 묻는다. 영웅이 그것을 모를 수 있다. 그래서 같은 루틴이 여기 무엇이 있는지에 대한 기술과 개요를 위한 더 온전한 기술을 함께 맡는다.
+ */
 extern char *stairs_description(stairway *, char *, boolean) NONNULLARG1;
 
 /* ### steal.c ### */
@@ -5413,8 +5455,37 @@ extern char *stairs_description(stairway *, char *, boolean) NONNULLARG1;
 extern long somegold(long);
 extern void stealgold(struct monst *) NONNULLARG1;
 extern void thiefdead(void);
+/**
+ * @brief Whether the hero is in no state to resist what is being done to them.
+ * @note Gathers the several conditions that amount to helplessness -- sleep, paralysis, being fainted -- because a thief, a nurse and a few other things all need the same question and none of them
+ *       cares which condition it is.
+ */
+/**
+ * @brief 영웅이 자신에게 가해지는 것에 저항할 수 없는 상태인지.
+ * @note 무력함에 해당하는 여러 상태 -- 잠, 마비, 기절 -- 를 모은다. 도둑, 간호사, 그 밖의 몇 가지가 모두 같은 질문을 필요로 하고 그 중 어느 것도 그것이 어느 상태인지 신경 쓰지 않기 때문이다.
+ */
 extern boolean unresponsive(void);
+/**
+ * @brief Take a worn item off, whether or not the hero agreed to it.
+ * @note For theft and for forced removal. It does the bookkeeping of unwearing without the checks and the delay of the hero choosing to -- so it must not be used for an ordinary removal, which the
+ *       player is allowed to be told about and to spend time on.
+ */
+/**
+ * @brief 착용한 물건을 벗긴다. 영웅이 동의했는지와 무관하게.
+ * @note 도둑질과 강제 탈거를 위한 것이다. 영웅이 스스로 택할 때의 검사와 지연 없이 벗기의 기록만을 한다. 그래서 평범한 탈거에 써서는 안 된다. 그것은 플레이어가 알려질 수 있고 시간을 들일 수 있는 것이다.
+ */
 extern void remove_worn_item(struct obj *, boolean) NONNULLARG1;
+/**
+ * @brief Have a monster steal something from the hero.
+ * @return whether the thief should now flee -- a successful theft is usually followed by escape
+ * @note The second argument receives the name of what was taken, because the caller composes the message and the theft has to happen before the name can be given. So the name comes back rather than
+ *       being printed here.
+ */
+/**
+ * @brief 몬스터가 영웅에게서 무언가를 훔치게 한다.
+ * @return 그 도둑이 이제 달아나야 하는지. 성공한 도둑질에는 보통 도주가 따른다
+ * @note 두 번째 인자가 무엇이 빼앗겼는지의 이름을 받는다. 호출자가 메시지를 짓고, 그 이름이 주어질 수 있기 전에 도둑질이 일어나야 하기 때문이다. 그래서 그 이름이 여기서 인쇄되는 대신 되돌려진다.
+ */
 extern int steal(struct monst *, char *) NONNULLARG1;
 /* mpickobj() contains a test for NULL arg2 obj and a code path
    that leads to impossible(). Prevents NONNULLARG12. */
@@ -5423,7 +5494,23 @@ extern void stealamulet(struct monst *) NONNULLARG1;
 extern void maybe_absorb_item(struct monst *, struct obj *, int, int) NONNULLARG12;
 extern void mdrop_obj(struct monst *, struct obj *, boolean) NONNULLARG12;
 extern void mdrop_special_objs(struct monst *) NONNULLARG1;
+/**
+ * @brief Have a monster put down everything it is carrying.
+ * @note Used when a monster dies or is removed, and its middle argument says how far the objects may scatter -- because a monster that exploded should not leave a neat pile.
+ */
+/**
+ * @brief 몬스터가 지니고 있는 모든 것을 내려놓게 한다.
+ * @note 몬스터가 죽거나 없애질 때 쓰이며, 가운데 인자가 그 물건들이 얼마나 멀리 흩어져도 되는지를 말한다. 폭발한 몬스터가 깔끔한 무더기를 남겨서는 안 되기 때문이다.
+ */
 extern void relobj(struct monst *, int, boolean) NONNULLARG1;
+/**
+ * @brief The gold in a chain of objects, if any.
+ * @warning Accepts null, and the annotation records that this was examined: it is often asked of a monster's possessions, which may be empty. An empty chain has no gold rather than being an error.
+ */
+/**
+ * @brief 물건 사슬 안의 금화. 있다면.
+ * @warning 널을 받아들이며, 그 표시가 이것이 검토되었음을 기록한다. 몬스터의 소지품에 대해 자주 물어지고 그것이 비어 있을 수 있다. 빈 사슬은 오류가 아니라 금화가 없는 것이다.
+ */
 extern struct obj *findgold(struct obj *) NO_NNARGS;
 
 /* ### steed.c ### */
@@ -5438,8 +5525,36 @@ extern boolean mount_steed(struct monst *, boolean) NO_NNARGS;
 extern void exercise_steed(void);
 extern void kick_steed(void);
 extern void dismount_steed(int);
+/**
+ * @brief Put a monster on a square, updating the grid that maps squares to monsters.
+ *
+ * The lowest layer of monster placement. The map holds a one-to-one association from square to monster, and this is what maintains it -- so a monster's coordinates and the grid entry that finds it
+ * are set together and cannot drift apart.
+ *
+ * @warning It writes the grid, not the map's contents. Removing a monster from its old square is a separate operation and must have happened first, or the old entry is left pointing at a monster that
+ *          has moved.
+ * @note This is the function this fork's continuous-position work hooks, because it is the single point through which a monster's square changes -- which is what lets the vector position be kept in
+ *       step without touching the movement rules.
+ */
+/**
+ * @brief 몬스터를 어떤 칸에 놓으며, 칸에서 몬스터로의 대응 격자를 갱신한다.
+ *
+ * 몬스터 배치의 가장 낮은 층이다. 지도는 칸에서 몬스터로의 일대일 연관을 지니고, 이것이 그것을 유지하는 것이다. 그래서 몬스터의 좌표와 그것을 찾아 주는 격자 항목이 함께 설정되고 서로 어긋날 수 없다.
+ *
+ * @warning 지도의 내용이 아니라 그 격자에 쓴다. 몬스터를 예전 칸에서 없애는 것은 별개의 연산이며 먼저 일어나 있어야 한다. 그러지 않으면 예전 항목이 옮겨 간 몬스터를 계속 가리킨다.
+ * @note 이 포크의 연속 위치 작업이 이 함수에 걸려 있다. 몬스터의 칸이 바뀌는 유일한 지점이기 때문이며, 그것이 이동 규칙을 건드리지 않고 벡터 위치를 보조 맞추게 하는 것이다.
+ */
 extern void place_monster(struct monst *, coordxy, coordxy) NONNULLARG1;
 extern void poly_steed(struct monst *, struct permonst *) NONNULLARG12;
+/**
+ * @brief Whether the hero's mount is stuck and so the hero cannot move either.
+ * @note A rider's movement is the mount's, so anything holding the mount holds the rider. This exists because the hero's own held state does not record that -- the mount is what is held, and the
+ *       hero is merely on it.
+ */
+/**
+ * @brief 영웅의 탈것이 붙잡혀 있어서 영웅도 움직일 수 없는지.
+ * @note 탄 자의 이동은 탈것의 것이므로, 탈것을 붙잡는 무엇이든 탄 자를 붙잡는다. 이것이 존재하는 것은 영웅 자신의 붙잡힘 상태가 그것을 기록하지 않기 때문이다. 붙잡힌 것은 탈것이고, 영웅은 그저 그 위에 있다.
+ */
 extern boolean stucksteed(boolean);
 
 /* ### symbols.c ### */
