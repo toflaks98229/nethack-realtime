@@ -2,8 +2,57 @@
 /* Copyright (c) Michael Allison, 2023                                */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file seffects.h
+ * @brief The list of every sound effect the game can ask for, written once.
+ *
+ * A sound effect needs to exist twice: as a value the game passes around, and as a name a sound library looks up. Writing both lists by hand would let them drift, so this file is
+ * the single list and is read twice -- once with a macro that turns each entry into an enumerator, once with a macro that turns it into a name-and-value pair.
+ *
+ * So this is not a header in the usual sense. It has no include guard and defines nothing on its own; it is a list, and what it produces depends on which macro the includer defined
+ * first.
+ *
+ * The names are descriptive of the sound rather than of the situation -- a squeaking board, a growling canine -- which is what lets one effect serve wherever that sound belongs and
+ * lets a sound library supply a file per sound without knowing the game.
+ *
+ * @note Alphabetical, and worth keeping so: it is long, and a name is looked for by eye more often than by search.
+ * @note The macro is undefined at the end, so the file can be read again for the other purpose without interference.
+ * @warning Adding an entry adds both the value and the name, which is the point. Removing one silently changes the numbering of everything after it -- harmless within a build, but
+ *          not if a value has been written down anywhere outside it.
+ */
+
+/**
+ * @file seffects.h
+ * @brief 게임이 요청할 수 있는 모든 음향 효과의 목록. 한 번만 적힌 것.
+ *
+ * 음향 효과는 두 번 존재해야 한다. 게임이 주고받는 값으로, 그리고 사운드 라이브러리가 찾아보는 이름으로. 두 목록을 손으로 적으면 서로 어긋날 수 있으므로, 이 파일이 그 하나뿐인 목록이고 두 번 읽힌다. 한 번은 각 항목을 열거자로 바꾸는 매크로와 함께, 한 번은 그것을
+ * 이름과 값의 짝으로 바꾸는 매크로와 함께.
+ *
+ * 그래서 이것은 통상적인 의미의 헤더가 아니다. 포함 보호가 없고 스스로는 아무것도 정의하지 않는다. 그것은 목록이며, 무엇을 만들어 내는지는 포함하는 쪽이 먼저 어느 매크로를 정의했는지에 달려 있다.
+ *
+ * 이름들은 상황이 아니라 소리를 기술한다. 삐걱이는 널판, 으르렁거리는 개. 그것이 하나의 효과를 그 소리가 어울리는 어디서든 쓸 수 있게 하고, 사운드 라이브러리가 게임을 모른 채로 소리마다 파일을 제공할 수 있게 하는 것이다.
+ *
+ * @note 알파벳 순서이며 그렇게 유지할 가치가 있다. 목록이 길고, 이름은 검색보다 눈으로 찾는 일이 더 많다.
+ * @note 매크로는 끝에서 정의 해제되므로, 이 파일을 다른 목적으로 다시 읽을 때 방해가 없다.
+ * @warning 항목을 더하는 것은 값과 이름을 함께 더하는 일이며, 그것이 요점이다. 하나를 없애면 그 뒤의 모든 것의 번호가 조용히 바뀐다. 한 빌드 안에서는 해롭지 않지만, 어떤 값이 그 밖에 적혀 있다면 그렇지 않다.
+ */
+
 #if defined(SEFFECTS_ENUM) || defined(SEFFECTS_AUTOMAP)
 
+/**
+ * @def seffect
+ * @brief One entry of the list, expanded according to what the includer asked for.
+ * @param basename the effect's descriptive name
+ * @note Two expansions from one entry: an enumerator, or a pair of that enumerator and its name as text. That is what keeps the values and the names in step.
+ * @warning Not usable outside this file. It is defined here, used, and undefined again -- the includer supplies only the choice of which expansion.
+ */
+/**
+ * @def seffect
+ * @brief 목록의 한 항목. 포함하는 쪽이 요청한 것에 따라 펼쳐진다.
+ * @param basename 그 효과의 기술적인 이름
+ * @note 하나의 항목에서 두 가지 펼침. 열거자, 또는 그 열거자와 그것의 글로서의 이름의 짝. 그것이 값과 이름을 보조를 맞추게 하는 것이다.
+ * @warning 이 파일 밖에서는 쓸 수 없다. 여기서 정의되고 쓰이고 다시 정의 해제된다. 포함하는 쪽은 어느 펼침인지의 선택만을 제공한다.
+ */
 #if defined(SEFFECTS_ENUM)
 #define seffect(basename) se_##basename
 #else
