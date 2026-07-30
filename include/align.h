@@ -2,17 +2,76 @@
 /* Copyright (c) Mike Stephenson, Izchak Miller  1991.            */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file align.h
+ * @brief Which side someone is on, and how well they have kept to it.
+ *
+ * Alignment is two separate things. Which one -- lawful, neutral, chaotic -- is
+ * fixed; how faithfully the hero has behaved is a running record that rises and
+ * falls with their conduct, and it is that record, not the side, which decides
+ * whether a god is willing to help.
+ *
+ * Abuse is counted apart from the record, because some transgressions are
+ * remembered permanently even after the record has been repaired.
+ *
+ * @note Monsters and objects carry an alignment too, which is what makes a
+ *       creature's reaction and an artifact's willingness to be wielded depend
+ *       on whose side the hero is on.
+ * @warning The record's limit grows with elapsed game time, so the same value
+ *          means less late in a game than early -- comparisons must use
+ *          @c ALIGNLIM rather than a constant.
+ */
+
+/**
+ * @file align.h
+ * @brief 누가 어느 편인지, 그리고 그 편을 얼마나 잘 지켰는지.
+ *
+ * 성향은 서로 다른 두 가지다. 어느 편인지 -- 질서, 중립, 혼돈 -- 는 고정되어 있고,
+ * 영웅이 얼마나 충실히 행동했는지는 처신에 따라 오르내리는 기록이다. 신이 도울 마음이
+ * 있는지를 정하는 것은 편이 아니라 바로 그 기록이다.
+ *
+ * 남용(abuse)은 기록과 별도로 세어진다. 어떤 위반은 기록을 회복한 뒤에도 영구히
+ * 기억되기 때문이다.
+ *
+ * @note 몬스터와 물건도 성향을 지닌다. 생물의 반응과 아티팩트가 휘둘리기를 받아들이는지가
+ *       영웅이 어느 편인지에 달려 있는 이유다.
+ * @warning 기록의 상한은 경과한 게임 시간과 함께 커진다. 그래서 같은 값이 게임 후반에는
+ *          초반보다 덜한 의미를 가진다. 비교는 상수가 아니라 @c ALIGNLIM 을 써야 한다.
+ */
+
 #ifndef ALIGN_H
 #define ALIGN_H
 
+/** @brief Which side: see the @c A_ values below. */
+/** @brief 어느 편인지. 아래의 @c A_ 값들 참고. */
 typedef schar aligntyp; /* basic alignment type */
 
+/**
+ * @brief A side, together with how faithfully it has been kept.
+ * @note @c record moves with conduct; @c abuse counts transgressions that are
+ *       remembered regardless of later repair.
+ */
+/**
+ * @brief 어느 편인지와, 그 편을 얼마나 충실히 지켰는지.
+ * @note @c record 는 처신에 따라 움직이고, @c abuse 는 나중에 회복해도 기억되는
+ *       위반의 횟수를 센다.
+ */
 typedef struct align { /* alignment & record */
     aligntyp type;
     int record;
     unsigned abuse;
 } align;
 
+/**
+ * @brief Upper bound on the alignment record at this point in the game.
+ * @note Grows with elapsed turns, so a record cannot be banked early and relied
+ *       on forever; the starting value of 10 is what the bound respects.
+ */
+/**
+ * @brief 현재 시점에서 성향 기록의 상한.
+ * @note 경과 턴과 함께 커진다. 그래서 초반에 쌓아 둔 기록을 끝까지 믿을 수는 없다.
+ *       이 상한이 존중하는 것이 초기값 10 이다.
+ */
 /* bounds for "record" -- respect initial alignments of 10 */
 #define ALIGNLIM (10L + (svm.moves / 200L))
 

@@ -2,6 +2,38 @@
 /*-Copyright (c) Robert Patrick Rankin, 2017. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file cstd.h
+ * @brief The standard library headers the game relies on, included once.
+ *
+ * Gathered here so that every translation unit gets the same set, and so the
+ * list of what is depended upon is a single visible thing rather than scattered
+ * across a hundred files.
+ *
+ * The catalogue below records the whole standard set, including the headers the
+ * game deliberately does not use -- that is its purpose: to note what exists so
+ * that a name from one of them is not accidentally reused, and so adopting one
+ * later is a considered step.
+ *
+ * @note A C++ compiler gets only @c <stdio.h>, since the C++ ports need @c FILE
+ *       but supply the rest themselves.
+ */
+
+/**
+ * @file cstd.h
+ * @brief 게임이 의존하는 표준 라이브러리 헤더들을 한 번에 포함한다.
+ *
+ * 모든 번역 단위가 동일한 집합을 얻도록, 그리고 무엇에 의존하는지가 백 개 파일에
+ * 흩어지지 않고 한눈에 보이는 하나가 되도록 여기에 모았다.
+ *
+ * 아래 목록은 게임이 의도적으로 쓰지 않는 헤더까지 포함해 표준 집합 전체를 기록한다.
+ * 그것이 이 목록의 목적이다. 무엇이 존재하는지를 적어 두어 그 안의 이름을 실수로 다시
+ * 쓰지 않게 하고, 나중에 그중 하나를 채택하는 일이 숙고된 선택이 되게 한다.
+ *
+ * @note C++ 컴파일러에는 @c <stdio.h> 만 준다. C++ 포팅은 @c FILE 이 필요하지만
+ *       나머지는 스스로 공급하기 때문이다.
+ */
+
 #ifndef CSTD_H
 #define CSTD_H
 
