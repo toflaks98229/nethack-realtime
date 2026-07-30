@@ -3,6 +3,45 @@
 /*-Copyright (c) Pasi Kallinen, 2017. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file rm.h
+ * @brief A single square of the level, and what may be known about it.
+ *
+ * Each square carries two different things at once: what it actually is, and what
+ * the hero remembers seeing there. Keeping both is what lets the map show a
+ * corridor nobody is looking at, and show a monster where it was last seen rather
+ * than where it now is.
+ *
+ * Terrain is more than a symbol. Walls carry which corner or junction they form so
+ * the map can be drawn with connected lines, doors carry their state, and a square
+ * records whether it is lit, whether it has been seen, and from which directions
+ * it can be seen.
+ *
+ * @note The wall diagram below is the reason the wall types are ordered as they
+ *       are: the drawing code derives which glyph to use from the neighbouring
+ *       terrain, so the names describe shapes rather than materials.
+ * @warning Occupancy is not here. A square does not know what stands on it; the
+ *          monster grid answers that separately, and the two must agree.
+ */
+
+/**
+ * @file rm.h
+ * @brief 레벨의 한 칸과, 그에 대해 알려질 수 있는 것.
+ *
+ * 각 칸은 서로 다른 두 가지를 동시에 지닌다. 실제로 무엇인지, 그리고 영웅이 거기서 무엇을
+ * 보았다고 기억하는지다. 둘을 함께 지니는 덕분에 아무도 보고 있지 않은 복도를 지도가 계속
+ * 보여 주고, 몬스터를 지금 있는 곳이 아니라 마지막으로 본 곳에 그릴 수 있다.
+ *
+ * 지형은 기호 이상이다. 벽은 자신이 어떤 모서리나 교차를 이루는지를 지녀 지도가 이어진 선으로
+ * 그려질 수 있게 하고, 문은 자기 상태를 지니며, 칸은 밝은지, 본 적이 있는지, 어느 방향에서
+ * 보이는지를 기록한다.
+ *
+ * @note 아래의 벽 도해가 벽 종류들이 그런 순서로 있는 이유다. 그리기 코드가 이웃 지형에서
+ *       어떤 glyph 를 쓸지 유도하므로, 이름들은 재질이 아니라 모양을 기술한다.
+ * @warning 점유 정보는 여기 없다. 칸은 그 위에 무엇이 서 있는지 알지 못한다. 그것은 몬스터
+ *          격자가 따로 답하며, 둘은 항상 일치해야 한다.
+ */
+
 #ifndef RM_H
 #define RM_H
 

@@ -3,6 +3,48 @@
 /*-Copyright (c) Robert Patrick Rankin, 2016. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file monst.h
+ * @brief An individual creature, as distinct from its species.
+ *
+ * A @c monst holds what varies between two creatures of the same kind: position,
+ * hit points, tameness, what it is carrying, what it currently believes about
+ * where the hero is. What they share -- attacks, resistances, size -- lives in the
+ * @c permonst it points at.
+ *
+ * Several fields are beliefs rather than facts. A monster remembers where it last
+ * saw the hero and where it has recently been, so its behaviour can be wrong in
+ * the way a creature's would be.
+ *
+ * @note The hero is also a @c monst (@c youmonst), which is what lets a polymorphed
+ *       hero be handled by the same rules as the creature they became without
+ *       duplicating them.
+ * @note Role-specific state -- a shopkeeper's bill, a priest's temple, a pet's
+ *       history -- is not in every monster; it lives in an extension attached only
+ *       to those that need one.
+ * @warning Being saved, a @c monst cannot hold pointers to other creatures or to
+ *          the level, which is why relationships are recorded as identifiers.
+ */
+
+/**
+ * @file monst.h
+ * @brief 개별 생물. 그것이 속한 종과 대비되는 것.
+ *
+ * @c monst 는 같은 종류의 두 생물 사이에서 달라지는 것을 담는다. 위치, 체력, 길들여진 정도,
+ * 지니고 있는 것, 영웅이 어디 있다고 지금 믿는지다. 공유하는 것 -- 공격, 저항, 크기 -- 은
+ * 그것이 가리키는 @c permonst 에 있다.
+ *
+ * 몇몇 필드는 사실이 아니라 믿음이다. 몬스터는 영웅을 마지막으로 본 곳과 자신이 최근에
+ * 지나온 곳을 기억하므로, 그 행동이 생물이 그러할 만한 방식으로 틀릴 수 있다.
+ *
+ * @note 영웅도 @c monst 다(@c youmonst). 덕분에 변신한 영웅을 그가 된 생물과 같은 규칙으로
+ *       다룰 수 있으며, 규칙을 두 번 쓰지 않아도 된다.
+ * @note 역할별 상태 -- 상점 주인의 청구서, 사제의 신전, 애완동물의 이력 -- 는 모든 몬스터에
+ *       있지 않다. 그것을 필요로 하는 개체에만 붙는 확장에 들어 있다.
+ * @warning 저장되기 때문에 @c monst 는 다른 생물이나 레벨을 가리키는 포인터를 지닐 수 없다.
+ *          관계가 식별자로 기록되는 이유다.
+ */
+
 #ifndef MONST_H
 #define MONST_H
 
@@ -24,6 +66,23 @@ struct obj;
  * weapon, to avoid the overhead of a call to mon_wield_item, but it turns out
  * that there are enough situations which might make a monster change its
  * weapon that this is impractical.  --KAA
+ */
+/**
+ * @brief What a monster wants done about its weapon, and what it has learned.
+ * @note The field carries two different meanings at different moments, as the
+ *       comment above explains: a request when calling, and a remembered
+ *       conclusion between calls -- which is how a monster stops retrying a weapon
+ *       it has discovered to be cursed.
+ * @warning Because the meanings overlap in one field, a value read at the wrong
+ *          moment is not merely stale but means something else entirely.
+ */
+/**
+ * @brief 몬스터가 자기 무기에 대해 무엇을 원하는지, 그리고 무엇을 알게 되었는지.
+ * @note 이 필드는 시점에 따라 서로 다른 두 의미를 지닌다. 위 주석이 설명하듯 호출할 때는
+ *       요청이고, 호출 사이에는 기억된 결론이다. 몬스터가 저주받았음을 알아낸 무기를 다시
+ *       시도하지 않게 되는 방식이 그것이다.
+ * @warning 두 의미가 한 필드에 겹쳐 있으므로, 잘못된 시점에 읽은 값은 낡은 정도가 아니라
+ *          아예 다른 것을 뜻한다.
  */
 enum wpn_chk_flags {
     NO_WEAPON_WANTED    = 0,
