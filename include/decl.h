@@ -3,16 +3,101 @@
 /*-Copyright (c) Michael Allison, 2007. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/**
+ * @file decl.h
+ * @brief Every global the game has, gathered and grouped.
+ *
+ * NetHack accumulated a great many globals over its history, scattered across the files that happened to need them. They have since been
+ * collected here, and the collection has a shape worth understanding before reading it.
+ *
+ * The globals live in structures grouped by the first letter of their name. So a global called @c bases sits in the @c b structure and is
+ * written @c gb.bases. That looks arbitrary, and it is -- the grouping carries no meaning at all. Its purpose is mechanical: a global is
+ * findable by its own name, every reference to one is visibly a reference to a global, and adding one does not mean choosing which of
+ * twenty-six structures it thematically belongs to.
+ *
+ * The important division is not the letters but the two families. The @c g structures hold engine state that is rebuilt each time the game
+ * runs, and the @c sv structures hold state that is saved with the game. Which family a global is in decides whether it survives saving,
+ * and that is the one thing about this file that has consequences.
+ *
+ * Above the structures sit the constants and tables that are not state at all: the names of colours, the strings the game says often enough
+ * to be worth naming, the default symbol tables. Many are reached through short aliases so that a message can read as prose.
+ *
+ * @note Alongside the two families there is a small structure of pre-zeroed values. Clearing a structure by copying from it is safer than
+ *       clearing it field by field, since the structures gain fields.
+ * @note The comments inside the structures name the file each global came from. Some of the comments that travelled with them, as the
+ *       existing note admits, no longer make sense away from their original surroundings.
+ * @warning Putting a global in the wrong family is not a compile error. It is a value that silently fails to persist, or one that persists
+ *          when it should have been rebuilt.
+ */
+
+/**
+ * @file decl.h
+ * @brief 게임이 가진 모든 전역 변수를 모아 묶은 것.
+ *
+ * NetHack 은 그 역사를 거치며 아주 많은 전역 변수를 쌓았고, 그것들은 마침 필요했던 파일들에 흩어져 있었다. 그 뒤로 여기에 모였으며, 그 모음에는 읽기 전에 이해해 둘 만한 형태가 있다.
+ *
+ * 전역 변수들은 이름의 첫 글자로 묶인 구조체 안에 산다. 그래서 @c bases 라는 전역 변수는 @c b 구조체에 있고 @c gb.bases 로 적힌다. 그것은 임의적으로 보이고, 실제로 임의적이다. 그 묶음에는 아무 의미도 없다. 목적은
+ * 기계적이다. 전역 변수를 자기 이름으로 찾을 수 있고, 그것에 대한 모든 참조가 눈에 보이게 전역 참조이며, 하나를 더하는 일이 스물여섯 구조체 중 어디에 주제적으로 속하는지 고르는 일이 되지 않는다.
+ *
+ * 중요한 구분은 글자가 아니라 두 계열이다. @c g 구조체들은 게임이 실행될 때마다 다시 만들어지는 엔진 상태를 담고, @c sv 구조체들은 게임과 함께 저장되는 상태를 담는다. 어느 계열에 있는지가 그 전역 변수가 저장을 견디는지를
+ * 정하며, 이 파일에서 결과를 낳는 것은 그 하나다.
+ *
+ * 구조체들 위에는 상태가 전혀 아닌 상수와 표들이 놓인다. 색의 이름, 게임이 이름 붙일 만큼 자주 말하는 문장, 기본 심볼 표. 많은 것이 짧은 별칭으로 접근되어 메시지가 산문처럼 읽히게 한다.
+ *
+ * @note 두 계열과 나란히 미리 0으로 채워진 값들의 작은 구조체가 있다. 그것에서 복사해 구조체를 비우는 것이 필드 하나하나를 비우는 것보다 안전하다. 구조체는 필드가 늘어나기 때문이다.
+ * @note 구조체 안의 주석들은 각 전역 변수가 어느 파일에서 왔는지 밝힌다. 기존 주석이 인정하듯, 그것들과 함께 따라온 주석 중 일부는 원래의 주변에서 떨어져 나오면 더는 뜻이 통하지 않는다.
+ * @warning 전역 변수를 잘못된 계열에 두는 것은 컴파일 오류가 아니다. 조용히 보존되지 못하는 값이거나, 다시 만들어져야 했는데 보존되는 값이다.
+ */
+
 #ifndef DECL_H
 #define DECL_H
 
+/**
+ * @var c_obj_colors
+ * @brief The colour words used to describe an unidentified object.
+ * @note These are the words the player sees -- "ruby", "amber" -- not display colours. A potion's appearance is one of these, and which one
+ *       is shuffled each game.
+ */
+/**
+ * @var c_obj_colors
+ * @brief 미확인 물건을 기술하는 데 쓰이는 색 낱말들.
+ * @note 이들은 표시 색이 아니라 플레이어가 보는 낱말이다. "루비", "호박". 물약의 외형이 이 중 하나이며, 어느 것인지는 매 게임 섞인다.
+ */
 /* The names of the colors used for gems, etc. */
 extern const char *c_obj_colors[];
 
+/**
+ * @name Script callbacks
+ * @brief The names of the events a level script may hook, and how many hooks each has.
+ * @note Names and counts are separate arrays indexed alike, so a script registering a hook increments a count without the name table being
+ *       writable.
+ * @{
+ */
+/**
+ * @name 스크립트 콜백
+ * @brief 레벨 스크립트가 걸 수 있는 사건들의 이름과, 각각에 걸린 개수.
+ * @note 이름과 개수가 같은 방식으로 색인되는 별개의 배열이다. 그래서 스크립트가 훅을 등록할 때 이름 표가 쓰기 가능해지지 않고도 개수가 늘어난다.
+ * @{
+ */
 /* lua callback queue names */
 extern const char * const nhcb_name[];
 extern int nhcb_counts[];
+/** @} */
 
+/**
+ * @name Colour names
+ * @brief The words for colours, held in one place and reached by alias.
+ * @note Named rather than written as literals so that a colour word appears once in the binary and so that the same word is used everywhere --
+ *       a message saying "amber" and another saying "orange-brown" for the same colour would be a bug the compiler cannot see.
+ * @{
+ */
+/**
+ * @name 색 이름
+ * @brief 색을 가리키는 낱말들. 한곳에 보관되고 별칭으로 접근된다.
+ * @note 리터럴로 적지 않고 이름을 붙인 것은, 색 낱말이 실행 파일에 한 번만 나오게 하고 어디서나 같은 낱말이 쓰이게 하기 위함이다. 같은 색에 대해 한 메시지는 "호박"이라 하고 다른 메시지는 "주황갈색"이라 하는 것은 컴파일러가
+ *       볼 수 없는 버그다.
+ * @{
+ */
 extern NEARDATA const struct c_color_names c_color_names;
 #define NH_BLACK c_color_names.c_black
 #define NH_AMBER c_color_names.c_amber
@@ -25,7 +110,29 @@ extern NEARDATA const struct c_color_names c_color_names;
 #define NH_PURPLE c_color_names.c_purple
 #define NH_WHITE c_color_names.c_white
 #define NH_ORANGE c_color_names.c_orange
+/** @} */
 
+/**
+ * @name Common phrases
+ * @brief Sentences the game says often enough to be worth naming.
+ *
+ * Held once and aliased so that "nothing happens" is the same sentence everywhere it is said. That matters more than it sounds: a player learns
+ * to read these as signals, and two wordings of the same outcome would read as two different outcomes.
+ *
+ * @note @c fakename is not a phrase but a placeholder name, and the existing comment gives the reason it exists: a monster whose given name ends
+ *       in "s" would otherwise fool the code that chooses between singular and plural verb forms.
+ * @{
+ */
+/**
+ * @name 자주 쓰는 문구
+ * @brief 게임이 이름을 붙일 만큼 자주 말하는 문장들.
+ *
+ * 한 번만 보관되고 별칭으로 쓰여, "아무 일도 일어나지 않는다"가 말해지는 모든 곳에서 같은 문장이 되게 한다. 그것은 들리는 것보다 중요하다. 플레이어는 이 문장들을 신호로 읽는 것을 익히며, 같은 결과에 대한 두 가지 표현은 두 가지
+ * 다른 결과로 읽힌다.
+ *
+ * @note @c fakename 은 문구가 아니라 자리 표시 이름이며, 기존 주석이 그것이 존재하는 이유를 밝힌다. 이름이 "s"로 끝나는 몬스터는 그러지 않으면 단수와 복수 동사형 중에서 고르는 코드를 속인다.
+ * @{
+ */
 /* common_strings */
 extern const struct c_common_strings c_common_strings;
 #define nothing_happens c_common_strings.c_nothing_happens
@@ -42,16 +149,53 @@ extern const struct c_common_strings c_common_strings;
 /* fakename[] used occasionally so vtense() won't be fooled by an assigned
    name ending in 's' */
 #define fakename c_common_strings.c_fakename
+/** @} */
 
+/**
+ * @name Default symbols
+ * @brief The built-in appearance of each object class and monster class.
+ * @note Constant, and not the tables drawn from. The writable versions below are copied from these, so a player's symbol changes can always be
+ *       undone.
+ * @{
+ */
+/**
+ * @name 기본 심볼
+ * @brief 각 물건 계열과 몬스터 계열의 내장 외형.
+ * @note 상수이며, 그릴 때 쓰는 표가 아니다. 아래의 쓰기 가능한 판본이 이것에서 복사되므로, 플레이어의 심볼 변경은 언제든 되돌릴 수 있다.
+ * @{
+ */
 /* default object class symbols */
 extern const struct class_sym def_oc_syms[MAXOCLASSES];
 
 /* default mon class symbols */
 extern const struct class_sym def_monsyms[MAXMCLASSES];
+/** @} */
 
+/**
+ * @var disclosure_options
+ * @brief The letters naming each kind of end-of-game disclosure.
+ * @note The order matches the disclosure settings array in flag.h, so a letter and a setting correspond by position.
+ */
+/**
+ * @var disclosure_options
+ * @brief 게임 종료 시 공개의 각 종류를 지칭하는 글자들.
+ * @note 순서가 flag.h 의 공개 설정 배열과 맞으므로, 글자와 설정이 위치로 대응된다.
+ */
 extern const char disclosure_options[];
 
-/* empty string that is non-const for parameter use */
+/**
+ * @var emptystr
+ * @brief An empty string that is writable.
+ * @note Exists because a function taking a writable buffer cannot be handed a literal. The existing comment records this; passing a literal would
+ *       compile and then be written to.
+ * @warning Writable and shared. Anything that writes into it affects every other user.
+ */
+/**
+ * @var emptystr
+ * @brief 쓰기 가능한 빈 문자열.
+ * @note 쓰기 가능한 버퍼를 받는 함수에 리터럴을 건넬 수 없기 때문에 존재한다. 기존 주석이 이것을 기록한다. 리터럴을 넘기면 컴파일된 뒤 그것에 쓰게 된다.
+ * @warning 쓰기 가능하고 공유된다. 여기에 쓰는 것은 다른 모든 사용자에게 영향을 준다.
+ */
 extern char emptystr[];
 
 #ifdef WIN32
@@ -64,18 +208,63 @@ extern const char *fqn_prefix_names[PREFIX_COUNT];
 extern NEARDATA boolean has_strong_rngseed;
 extern struct engr *head_engr;
 
+/**
+ * @var hexdd
+ * @brief The hexadecimal digits, in both cases.
+ * @note Held once because four separate files need it, as the existing comment lists. Its length covers both cases plus a terminator.
+ */
+/**
+ * @var hexdd
+ * @brief 십육진 숫자들. 대소문자 둘 다.
+ * @note 기존 주석이 나열하듯 네 개의 서로 다른 파일이 그것을 필요로 하므로 한 번만 보관된다. 그 길이는 두 대소문자와 종결자를 덮는다.
+ */
 /* used by coloratt.c, options.c, utf8map.c, windows.c */
 extern const char hexdd[33];
 
+/**
+ * @var materialnm
+ * @brief The word for each material an object can be made of.
+ * @note Indexed by material, so the order matches the material enumeration in objclass.h and cannot be sorted.
+ */
+/**
+ * @var materialnm
+ * @brief 물건이 만들어질 수 있는 각 재질을 가리키는 낱말.
+ * @note 재질로 색인되므로 순서가 objclass.h 의 재질 열거와 맞아야 하고 정렬할 수 없다.
+ */
 /* material strings */
 extern const char *materialnm[];
 
+/**
+ * @name Symbols in use
+ * @brief The symbol tables actually drawn from, after any changes the player made.
+ * @note Writable, unlike the default tables above. These are what a symbol set or a customisation modifies, and the defaults are what they are
+ *       restored from.
+ * @{
+ */
+/**
+ * @name 사용 중인 심볼
+ * @brief 플레이어가 한 변경이 반영된 뒤 실제로 그릴 때 쓰이는 심볼 표.
+ * @note 위의 기본 표와 달리 쓰기 가능하다. 심볼 세트나 사용자 지정이 바꾸는 것이 이것이고, 그것을 되돌릴 때 쓰는 것이 기본 표다.
+ * @{
+ */
 /* current mon class symbols */
 extern uchar monsyms[MAXMCLASSES];
 
 /* current object class symbols */
 extern uchar oc_syms[MAXOCLASSES];
+/** @} */
 
+/**
+ * @var quitchars
+ * @brief The keys that mean "never mind" at a prompt.
+ * @note Several rather than one, since a player may reach for escape, a space or a return depending on what they think the prompt is. Accepting
+ *       all of them is what makes cancelling reliable.
+ */
+/**
+ * @var quitchars
+ * @brief 프롬프트에서 "그만두겠다"를 뜻하는 키들.
+ * @note 하나가 아니라 여럿인 것은, 플레이어가 그 프롬프트를 무엇이라 여기는지에 따라 escape 나 공백이나 return 으로 손을 뻗기 때문이다. 그 전부를 받아들이는 것이 취소를 믿을 수 있게 만드는 것이다.
+ */
 extern const char quitchars[];
 extern NEARDATA char tune[6];
 extern const schar xdir[], ydir[], zdir[], dirs_ord[];
@@ -105,6 +294,22 @@ extern NEARDATA winid WIN_MESSAGE;
 extern NEARDATA winid WIN_STATUS;
 extern NEARDATA winid WIN_MAP, WIN_INVEN;
 
+/**
+ * @brief The few terminal facts the core itself needs.
+ *
+ * Declared here as well as in the terminal header, as the existing comment records, so that code which does not include the terminal machinery can
+ * still ask how many lines there are. The duplicate declaration is guarded so that including both does not conflict.
+ *
+ * @note The two string members are the sequences that switch a terminal into and out of its line-drawing font. They are held rather than emitted
+ *       directly because a terminal that has neither must be able to supply nothing.
+ */
+/**
+ * @brief 코어 자신이 필요로 하는 몇 가지 터미널 사실.
+ *
+ * 기존 주석이 기록하듯 터미널 헤더와 함께 여기에도 선언된다. 그래서 터미널 기제를 포함하지 않는 코드도 줄이 몇 개인지 물을 수 있다. 그 중복 선언은 둘 다 포함해도 충돌하지 않도록 보호되어 있다.
+ *
+ * @note 두 문자열 멤버는 터미널을 선 그리기 글꼴로 넣고 빼는 열이다. 직접 내보내는 대신 보관되는 것은, 둘 다 없는 터미널이 아무것도 제공하지 않을 수 있어야 하기 때문이다.
+ */
 #ifndef TCAP_H
 extern struct tc_gbl_data {   /* also declared in tcap.h */
     char *tc_AS, *tc_AE; /* graphics start and end (tty font swapping) */
@@ -120,6 +325,22 @@ extern struct tc_gbl_data {   /* also declared in tcap.h */
 extern const char *ARGV0;
 #endif
 
+/**
+ * @brief Requests that the status line needs redrawing, and how much of it.
+ *
+ * Three levels rather than one flag, because the status line is redrawn far more often than anything on it changes. Asking for the least that will
+ * do is what keeps the display quiet -- which matters especially to a player using a screen reader, for whom a redraw is something spoken.
+ *
+ * @note The narrowest of the three is for the turn counter alone, since that changes every move and nothing else usually does.
+ */
+/**
+ * @brief 상태줄을 다시 그려야 한다는 요청과, 그 중 얼마만큼인지.
+ *
+ * 플래그 하나가 아니라 세 단계인 것은, 상태줄이 그 위의 무엇이 바뀌는 것보다 훨씬 자주 다시 그려지기 때문이다. 충분한 만큼 중 가장 적은 것을 요청하는 것이 표시부를 조용하게 유지하는 것이며, 그것은 특히 화면 읽기 프로그램을 쓰는
+ * 플레이어에게 중요하다. 그에게 다시 그리기는 말해지는 것이다.
+ *
+ * @note 셋 중 가장 좁은 것은 턴 계수기만을 위한 것이다. 그것은 매 걸음 바뀌고 다른 것은 보통 그렇지 않다.
+ */
 struct display_hints {
     boolean botl;            /* partially redo status line */
     boolean botlx;           /* print an entirely new bottom line */
@@ -138,6 +359,32 @@ extern struct display_hints disp;
  * which came with them don't make much sense out of their original context.
  */
 
+/**
+ * @name Engine globals
+ * @brief Globals that are rebuilt each time the game runs, grouped by first letter.
+ *
+ * Twenty-six structures, one per initial letter, and the grouping means nothing. What it buys is that a global is found by its own name, that every
+ * use of one is visibly a global, and that adding one requires no decision.
+ *
+ * These are not saved. Their starting values are set during early initialisation, as the existing comment records, and that is the whole of their
+ * lifecycle -- so anything here that ought to survive a save is in the wrong family.
+ *
+ * @note Unlike the option flags, these may be of any type. That is the point of the arrangement: it collects globals without forcing them into a
+ *       common shape.
+ * @{
+ */
+/**
+ * @name 엔진 전역 변수
+ * @brief 게임이 실행될 때마다 다시 만들어지는 전역 변수들. 첫 글자로 묶여 있다.
+ *
+ * 첫 글자마다 하나씩 스물여섯 구조체이며, 그 묶음에는 아무 의미가 없다. 그것이 사 주는 것은, 전역 변수를 자기 이름으로 찾을 수 있다는 것, 그것을 쓰는 모든 곳이 눈에 보이게 전역이라는 것, 그리고 하나를 더하는 데 아무 결정도 필요하지
+ * 않다는 것이다.
+ *
+ * 이들은 저장되지 않는다. 기존 주석이 기록하듯 초기 초기화 중에 시작값이 정해지며, 그것이 그 수명의 전부다. 그래서 여기 있는 것 중 저장을 견뎌야 하는 것은 잘못된 계열에 있는 것이다.
+ *
+ * @note 옵션 플래그와 달리 이들은 어떤 타입이든 될 수 있다. 그것이 이 배치의 요점이다. 전역 변수들을 공통된 모양으로 억지로 맞추지 않고 모은다.
+ * @{
+ */
 struct instance_globals_a {
     /* decl.c */
     int (*afternmv)(void);
@@ -1112,6 +1359,32 @@ struct instance_globals_z {
     boolean havestate;
 };
 
+/** @} */
+
+/**
+ * @name Saved globals
+ * @brief Globals that are written into the saved game, grouped the same way.
+ *
+ * The same alphabetical arrangement, and the same lack of meaning in it. The difference is the one that matters: everything in this family is part of
+ * the saved game, so its type and layout are part of the save format.
+ *
+ * A global belongs here if losing it would lose something about the game rather than about this run -- the dungeon's shape, the state of every level,
+ * the hero's spells and discoveries.
+ *
+ * @warning Adding a member changes the save format. Moving a global from the engine family to this one does too, and neither is a compile error.
+ * @{
+ */
+/**
+ * @name 저장되는 전역 변수
+ * @brief 저장 게임에 기록되는 전역 변수들. 같은 방식으로 묶여 있다.
+ *
+ * 같은 알파벳 배치이고, 그 배치에 의미가 없는 것도 같다. 다른 점은 중요한 그 한 가지다. 이 계열의 모든 것이 저장 게임의 일부이므로, 그 타입과 배치가 저장 형식의 일부다.
+ *
+ * 어떤 전역 변수가 여기 속하는 것은, 그것을 잃는 것이 이번 실행에 관한 무엇이 아니라 그 게임에 관한 무엇을 잃는 경우다. 던전의 모양, 모든 레벨의 상태, 영웅의 주문과 감별.
+ *
+ * @warning 멤버를 더하는 것은 저장 형식을 바꾼다. 전역 변수를 엔진 계열에서 이 계열로 옮기는 것도 그렇고, 어느 쪽도 컴파일 오류가 아니다.
+ * @{
+ */
 struct instance_globals_saved_b {
     /* dungeon.c */
     branch *branches; /* dungeon branch list */
@@ -1290,13 +1563,57 @@ extern struct instance_globals_saved_u svu;
 extern struct instance_globals_saved_w svw;
 extern struct instance_globals_saved_x svx;
 extern struct instance_globals_saved_y svy;
+/** @} */
+
+/**
+ * @var program_state
+ * @brief What the game is currently doing, at the coarsest level.
+ * @note Consulted by code that must behave differently while the game is starting up, saving, or ending -- a message routine called before the display
+ *       exists cannot use it, and one called while panicking must not risk failing again.
+ */
+/**
+ * @var program_state
+ * @brief 게임이 지금 무엇을 하고 있는지. 가장 거친 수준에서.
+ * @note 게임이 시작 중이거나 저장 중이거나 끝나는 중일 때 다르게 동작해야 하는 코드가 참조한다. 표시부가 존재하기 전에 호출된 메시지 루틴은 그것을 쓸 수 없고, 이상 종료 중에 호출된 것은 다시 실패할 위험을 감수해서는 안 된다.
+ */
 extern struct sinfo program_state; /* flags describing game's current state */
 /* flags describing current level's loading/making/readiness status;
  * restlevelstate() already associated term 'levelstate' for a different
  * purpose, so attempt to avoid confusion
  */
+/**
+ * @var level_status
+ * @brief How far along the current level is in being made or loaded.
+ * @note Separate from the program state because a level can be half-built while the game is running normally, and code that runs during level creation
+ *       must know not to expect a finished level.
+ * @note Named as it is to avoid a collision the existing comment records: an unrelated routine had already taken the obvious name for a different
+ *       purpose.
+ */
+/**
+ * @var level_status
+ * @brief 현재 레벨이 만들어지거나 적재되는 과정에서 어디까지 왔는지.
+ * @note 프로그램 상태와 별개인 것은, 게임이 정상적으로 돌아가는 동안에도 레벨이 반쯤 지어진 상태일 수 있고, 레벨 생성 중에 돌아가는 코드가 완성된 레벨을 기대하지 않아야 하기 때문이다.
+ * @note 기존 주석이 기록하는 충돌을 피하기 위해 이런 이름이 되었다. 무관한 어떤 루틴이 이미 다른 목적으로 그 뻔한 이름을 차지하고 있었다.
+ */
 extern struct levelstatus level_status;
 
+/**
+ * @brief Pre-zeroed values of the structures that are cleared most often.
+ *
+ * Clearing a structure by copying one of these is safer than assigning to its fields, because these structures gain fields over time and a
+ * field-by-field clear silently stops being complete.
+ *
+ * @note Constant, so a clear cannot accidentally modify the template.
+ * @note There is one per structure rather than a generic zeroing routine because the compiler can then copy them as whole values.
+ */
+/**
+ * @brief 가장 자주 비워지는 구조체들의 미리 0으로 채워진 값.
+ *
+ * 이 중 하나를 복사해 구조체를 비우는 것이 그 필드들에 대입하는 것보다 안전하다. 이 구조체들은 시간이 흐르며 필드가 늘어나고, 필드 하나하나 비우기는 조용히 완전하지 않게 되기 때문이다.
+ *
+ * @note 상수이므로, 비우기가 실수로 그 원형을 바꿀 수 없다.
+ * @note 일반적인 0 채우기 루틴 대신 구조체마다 하나씩 있는 것은, 그러면 컴파일러가 그것들을 값 전체로 복사할 수 있기 때문이다.
+ */
 struct const_globals {
     const struct obj zeroobj;      /* used to zero out a struct obj */
     const struct monst zeromonst;  /* used to zero out a struct monst */
@@ -1306,6 +1623,19 @@ struct const_globals {
 
 extern const struct const_globals cg;
 
+/**
+ * @var hands_obj
+ * @brief A stand-in object representing the hero's bare hands.
+ * @note Exists so that fighting unarmed can go through the same code as fighting with a weapon. Rules that take a weapon do not need a separate path
+ *       for having none.
+ * @warning Not a real object. It is not in any inventory and must not be treated as something that can be dropped, named or destroyed.
+ */
+/**
+ * @var hands_obj
+ * @brief 영웅의 맨손을 나타내는 대역 물건.
+ * @note 맨손으로 싸우는 것이 무기로 싸우는 것과 같은 코드를 거칠 수 있도록 존재한다. 무기를 받는 규칙이 무기가 없는 경우를 위한 별도 경로를 필요로 하지 않는다.
+ * @warning 실제 물건이 아니다. 어느 소지품에도 없으며, 버리거나 이름 붙이거나 파괴할 수 있는 것으로 취급되어서는 안 된다.
+ */
 extern struct obj hands_obj;
 
 #endif /* DECL_H */
