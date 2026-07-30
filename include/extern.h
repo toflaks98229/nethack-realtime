@@ -339,14 +339,63 @@ extern boolean confers_luck(struct obj *) NONNULLPTRS;
 extern boolean arti_reflects(struct obj *);
 extern boolean shade_glare(struct obj *) NONNULLPTRS;
 extern boolean restrict_name(struct obj *, const char *) NONNULLPTRS;
+/**
+ * @name What an artifact does about a kind of harm
+ * @brief Whether an artifact attacks with, or defends against, a given damage type.
+ * @note Three questions rather than two, and the third is the one worth knowing about: an artifact may defend only while wielded, or also while merely carried, and the two are separate
+ *       because a player can benefit from one without using the weapon.
+ * @note Each accepts a null object, so a caller need not check before asking -- which is why the wielded weapon can be passed directly even when there is none.
+ * @{
+ */
+/**
+ * @name 아티팩트가 어떤 종류의 피해에 대해 무엇을 하는지
+ * @brief 아티팩트가 주어진 피해 종류로 공격하는지, 또는 그것을 막는지.
+ * @note 둘이 아니라 세 질문이며, 세 번째가 알아 둘 만한 것이다. 아티팩트는 들고 있을 때만 막을 수도, 그저 지니고 있을 때도 막을 수도 있으며, 그 둘이 따로 있는 것은 플레이어가 그 무기를 쓰지 않고도 하나의 이득을 볼 수 있기 때문이다.
+ * @note 각각이 널 물건을 받아들이므로 호출자가 묻기 전에 확인할 필요가 없다. 그래서 든 무기가 없을 때도 그것을 직접 넘길 수 있다.
+ * @{
+ */
 extern boolean attacks(int, struct obj *);
 extern boolean defends(int, struct obj *);
 extern boolean defends_when_carried(int, struct obj *);
+/** @} */
+/**
+ * @brief Whether an artifact confers protection, optionally counting one carried rather than worn.
+ * @note The boolean widens the question rather than narrowing it, which is the opposite of what such an argument usually does here.
+ */
+/**
+ * @brief 아티팩트가 방호를 주는지. 선택적으로 착용한 것이 아니라 지닌 것도 셈하여.
+ * @note 그 논리값은 질문을 좁히는 것이 아니라 넓힌다. 여기서 그런 인자가 보통 하는 것과 반대다.
+ */
 extern boolean protects(struct obj *, boolean);
 extern void set_artifact_intrinsic(struct obj *, boolean, long);
+/**
+ * @brief Attempt to handle an artifact, which may refuse and may hurt.
+ * @return whether the handling is permitted; a refusal has already been reported
+ * @warning Not a test. It has effects -- it may blast the toucher and may destroy what they were holding -- so it must not be called to find out what would happen.
+ */
+/**
+ * @brief 아티팩트를 다루려 시도한다. 거부될 수 있고 다칠 수 있다.
+ * @return 그 다룸이 허용되는지. 거부는 이미 알려져 있다
+ * @warning 검사가 아니다. 효과가 있다. 만지는 자를 후려칠 수 있고 그가 들고 있던 것을 파괴할 수 있다. 그래서 무슨 일이 일어날지 알아보려고 호출해서는 안 된다.
+ */
 extern int touch_artifact(struct obj *, struct monst *) NONNULLARG2;
+/**
+ * @name An artifact's bonus against a particular target
+ * @brief How much an artifact adds to accuracy, or to damage, against this monster.
+ * @note Against this monster specifically -- an artifact's bonus is usually conditional on what it is fighting, which is why the target is required rather than optional.
+ * @note The object may be null, since an unarmed attack still has to be asked.
+ * @{
+ */
+/**
+ * @name 특정 대상에 대한 아티팩트의 보너스
+ * @brief 아티팩트가 이 몬스터에 대해 명중이나 피해에 얼마를 더하는지.
+ * @note 특히 이 몬스터에 대해서다. 아티팩트의 보너스는 보통 무엇과 싸우는지에 조건적이며, 그래서 대상이 선택이 아니라 필수다.
+ * @note 물건은 널일 수 있다. 맨손 공격도 여전히 물어야 하기 때문이다.
+ * @{
+ */
 extern int spec_abon(struct obj *, struct monst *) NONNULLARG2;
 extern int spec_dbon(struct obj *, struct monst *, int) NONNULLARG2;
+/** @} */
 extern void discover_artifact(xint16);
 extern boolean undiscovered_artifact(xint16);
 extern int disp_artifact_discoveries(winid);
@@ -360,32 +409,148 @@ extern boolean artifact_light(struct obj *);
 extern long spec_m2(struct obj *);
 extern boolean artifact_has_invprop(struct obj *, uchar);
 extern long arti_cost(struct obj *) NONNULLARG1;
+/**
+ * @brief Which piece of equipment is granting a property.
+ * @param  a pointer to the property's own source word, not the property's number
+ * @return the object responsible, or null if none is
+ * @note Answers "why do I have this" for the player. The argument is unusual: it is the address of the field recording the property's sources, because the answer is found by matching
+ *       what is worn against that field rather than by looking the property up.
+ */
+/**
+ * @brief 어떤 장비가 속성을 주고 있는지.
+ * @param  그 속성의 번호가 아니라 그 속성의 출처 워드에 대한 포인터
+ * @return 책임이 있는 물건. 없으면 널
+ * @note 플레이어를 위해 "내가 왜 이것을 지니는가"에 답한다. 그 인자가 특이하다. 속성의 출처를 기록하는 필드의 주소인데, 그 답이 속성을 찾아보는 것이 아니라 착용한 것을 그 필드와 맞춰 보아 나오기 때문이다.
+ */
 extern struct obj *what_gives(long *) NONNULLARG1;
 extern const char *glow_color(int);
 extern const char *glow_verb(int, boolean);
 extern void Sting_effects(int);
+/**
+ * @brief Reconsider whether the hero may still be holding an object, now that something has changed.
+ * @warning Takes a pointer to the pointer because the object may be dropped or destroyed -- the caller's own reference is updated, and may be left null.
+ * @note Called after a change of form or alignment, when something that was safe to hold no longer is. So it is not about touching a new object but about re-examining one already held.
+ */
+/**
+ * @brief 무언가가 바뀐 지금, 영웅이 여전히 그 물건을 들고 있어도 되는지 다시 판단한다.
+ * @warning 물건이 떨어지거나 파괴될 수 있으므로 포인터에 대한 포인터를 받는다. 호출자 자신의 참조가 갱신되며, 널로 남을 수 있다.
+ * @note 형태나 진영이 바뀐 뒤, 들고 있어도 안전했던 것이 더는 그렇지 않을 때 호출된다. 그래서 새 물건을 만지는 것에 관한 것이 아니라 이미 든 것을 다시 살피는 것에 관한 것이다.
+ */
 extern int retouch_object(struct obj **, boolean) NONNULLARG1;
+/**
+ * @brief The same, for everything the hero is wearing or wielding at once.
+ * @note A separate routine rather than a loop over the other, because equipment has to come off in a valid order and dropping one piece may affect another.
+ */
+/**
+ * @brief 같은 일을 영웅이 착용하거나 들고 있는 모든 것에 대해 한꺼번에 한다.
+ * @note 앞의 것을 순회하는 대신 별도의 루틴인 것은, 장비가 유효한 순서로 벗겨져야 하고 한 벌을 떨어뜨리는 것이 다른 벌에 영향을 줄 수 있기 때문이다.
+ */
 extern void retouch_equipment(int);
-extern void mkot_trap_warn(void);
+/**
+ * @name Recognising a magic key
+ * @brief Whether a monster has one, and which object it is.
+ * @note Two forms of one question, and the second is the useful one -- it both answers whether and hands back what, so the caller does not ask twice.
+ * @note A magic key never fails to open a lock, so this decides an outcome rather than a chance.
+ * @{
+ */
+/**
+ * @name 마법 열쇠 알아보기
+ * @brief 몬스터가 그것을 가지고 있는지, 그리고 어느 물건인지.
+ * @note 하나의 질문의 두 형태이며, 두 번째가 쓸모 있는 것이다. 그것은 여부에 답하면서 무엇인지를 되돌려주므로, 호출자가 두 번 묻지 않는다.
+ * @note 마법 열쇠는 자물쇠를 여는 데 결코 실패하지 않으므로, 이것은 확률이 아니라 결과를 정한다.
+ * @{
+ */
 extern boolean is_magic_key(struct monst *, struct obj *);
 extern struct obj *has_magic_key(struct monst *);
+/** @} */
 extern boolean is_art(struct obj *, int);
 extern boolean permapoisoned(struct obj *);
 
 /* ### attrib.c ### */
 
+/**
+ * @brief Change one of the hero's attributes, reporting whether it actually moved.
+ * @return false if the attribute was already at its limit, so nothing changed
+ * @note The return value is what a caller needs in order to decide what to say: an attribute that could not rise is a different message from one that did.
+ */
+/**
+ * @brief 영웅의 능력치 하나를 바꾸고, 실제로 움직였는지 알린다.
+ * @return 그 능력치가 이미 한계에 있어서 아무것도 바뀌지 않았으면 거짓
+ * @note 그 반환값이 호출자가 무엇을 말할지 정하기 위해 필요한 것이다. 오를 수 없었던 능력치는 오른 능력치와 다른 메시지다.
+ */
 extern boolean adjattrib(int, int, int);
+/**
+ * @name Changing strength
+ * @brief Gain or lose strength, with the loss carrying who or what caused it.
+ * @note The loss takes a killer and its format because losing strength can be fatal, and the cause has to be recorded at the moment it happens rather than when the hero dies of it.
+ * @note The gain takes the object responsible instead, because gaining is never fatal and what matters is the message.
+ * @{
+ */
+/**
+ * @name 힘 바꾸기
+ * @brief 힘을 얻거나 잃는다. 잃는 쪽은 누가 또는 무엇이 그렇게 했는지를 지닌다.
+ * @note 잃는 쪽이 살해자와 그 형식을 받는 것은 힘을 잃는 것이 치명적일 수 있기 때문이다. 그 원인은 영웅이 그것으로 죽을 때가 아니라 그 일이 일어나는 순간에 기록되어야 한다.
+ * @note 얻는 쪽은 대신 책임이 있는 물건을 받는다. 얻는 것은 결코 치명적이지 않고 중요한 것은 메시지이기 때문이다.
+ * @{
+ */
 extern void gainstr(struct obj *, int, boolean);
 extern void losestr(int, const char *, schar);
+/** @} */
 extern void poison_strdmg(int, int, const char *, schar);
 extern void poisontell(int, boolean);
 extern void poisoned(const char *, int, const char *, int, boolean) NONNULLARG1;
 extern void change_luck(schar);
+/**
+ * @brief The luck contributed by carried luckstones.
+ * @note Separate from the hero's earned luck, which is what makes the total exceedable and the two worth keeping apart. Its argument asks whether to count a stone whose blessing is
+ *       unknown.
+ */
+/**
+ * @brief 지니고 있는 행운석이 기여하는 운.
+ * @note 영웅이 쌓은 운과 별개이며, 그것이 총합을 한계 넘게 만들 수 있게 하고 그 둘을 떼어 놓을 가치가 있게 하는 것이다. 그 인자는 축복 여부를 모르는 돌을 셈할지를 묻는다.
+ */
 extern int stone_luck(boolean);
+/**
+ * @brief Recompute the carried luck bonus after the pack has changed.
+ * @note A cache refresh. Nothing recomputes it as luck is read, so failing to call this after picking up or dropping a luckstone leaves the bonus wrong until something else does.
+ */
+/**
+ * @brief 가방이 바뀐 뒤 지닌 운 보너스를 다시 계산한다.
+ * @note 캐시 갱신이다. 운을 읽을 때 그것을 다시 계산하는 것이 없으므로, 행운석을 집거나 버린 뒤 이것을 호출하지 않으면 다른 무엇이 그렇게 하기까지 그 보너스가 틀린 채로 남는다.
+ */
 extern void set_moreluck(void);
+/**
+ * @brief Move attributes back toward their true values after temporary changes expire.
+ * @note Called once per turn. It is what makes a temporary attribute change temporary, so an effect that alters an attribute does not need to schedule its own reversal.
+ */
+/**
+ * @brief 일시적 변화가 끝난 뒤 능력치를 참된 값 쪽으로 되돌린다.
+ * @note 턴마다 한 번 호출된다. 일시적인 능력치 변화를 일시적으로 만드는 것이며, 그래서 능력치를 바꾸는 효과가 자기 되돌림을 따로 예약할 필요가 없다.
+ */
 extern void restore_attrib(void);
+/**
+ * @name Exercising an attribute
+ * @brief Note that the hero did something that should train an attribute, and later act on it.
+ *
+ * Exercise is not an immediate change. Doing something strenuous records a lean toward higher strength, and the accumulated lean is applied occasionally -- which is why these are two
+ * routines and why the first has no visible effect.
+ *
+ * @note That is the point of the design: an attribute rises because of how the hero has been played rather than because of one action, and no single action can be identified as the one
+ *       that raised it.
+ * @{
+ */
+/**
+ * @name 능력치 단련
+ * @brief 영웅이 능력치를 단련할 만한 일을 했음을 기록하고, 나중에 그것에 따라 행동한다.
+ *
+ * 단련은 즉각적인 변화가 아니다. 힘든 일을 하는 것은 더 높은 힘 쪽으로의 기울기를 기록하고, 쌓인 기울기가 이따금 적용된다. 그것이 이들이 두 루틴인 이유이고 첫 번째가 눈에 보이는 효과가 없는 이유다.
+ *
+ * @note 그것이 이 설계의 요점이다. 능력치는 하나의 행동 때문이 아니라 영웅이 어떻게 플레이되어 왔는지 때문에 오르며, 어느 한 행동도 그것을 올린 것으로 지목될 수 없다.
+ * @{
+ */
 extern void exercise(int, boolean);
 extern void exerchk(void);
+/** @} */
 extern void init_attr(int);
 extern void redist_attr(void);
 extern void vary_init_attr(void);
@@ -394,11 +559,66 @@ extern int newhp(void);
 extern int minuhpmax(int);
 extern void setuhpmax(int, boolean);
 extern int adjuhploss(int, int);
+/**
+ * @brief The value of an attribute as the rules see it, after every influence.
+ * @note The one to use. An attribute is not stored as a single number but assembled from a base, a maximum, a bonus and a temporary change -- this is what performs that assembly, so
+ *       reading any of those fields directly gives a partial answer.
+ */
+/**
+ * @brief 모든 영향이 반영된 뒤, 규칙이 보는 능력치의 값.
+ * @note 써야 할 것이다. 능력치는 하나의 숫자로 저장되지 않고 기준값, 최대값, 보너스, 일시적 변화로 조립된다. 이것이 그 조립을 수행하는 것이므로, 그 필드 중 어느 것을 직접 읽으면 부분적인 답이 나온다.
+ */
 extern schar acurr(int);
+/**
+ * @brief The same for strength, which needs its own routine.
+ * @warning Strength does not use a plain numeric scale in the range where it is exceptional, so it cannot be read through the general routine. Doing so yields a number that is on the
+ *          wrong scale rather than merely wrong.
+ */
+/**
+ * @brief 힘에 대한 같은 것. 힘은 자기 루틴을 필요로 한다.
+ * @warning 힘은 뛰어난 범위에서 평범한 숫자 척도를 쓰지 않으므로 일반 루틴으로 읽을 수 없다. 그렇게 하면 단지 틀린 것이 아니라 잘못된 척도의 숫자가 나온다.
+ */
 extern schar acurrstr(void);
+/**
+ * @brief Whether an attribute is at either of its limits.
+ * @note Either end, not just the top -- so it answers "cannot move further" in whichever direction, which is what a caller deciding whether to bother usually wants.
+ */
+/**
+ * @brief 능력치가 그 두 한계 중 어느 쪽에 있는지.
+ * @note 위쪽만이 아니라 양쪽이다. 그래서 어느 방향이든 "더 움직일 수 없음"에 답하며, 그것이 애쓸 만한지 정하려는 호출자가 보통 원하는 것이다.
+ */
 extern boolean extremeattr(int);
+/**
+ * @brief Move the hero's standing with their god.
+ * @note Not the same as changing alignment: the hero's alignment is what they are, and this is how well they are living up to it. A single act cannot change the former.
+ */
+/**
+ * @brief 영웅이 자기 신 앞에서 서 있는 자리를 움직인다.
+ * @note 진영을 바꾸는 것과 같지 않다. 영웅의 진영은 그가 무엇인지이고, 이것은 그가 그것에 얼마나 부합하게 살고 있는지다. 하나의 행위가 앞의 것을 바꿀 수는 없다.
+ */
 extern void adjalign(int);
+/**
+ * @brief Whether a property is the hero's own rather than granted by something.
+ * @return which kind of source it is, not a plain yes or no
+ * @note More than a test: the several ways a property can be the hero's own -- from their role, their race, their experience -- are distinguished, because the answer is shown to the
+ *       player and each reads differently.
+ */
+/**
+ * @brief 어떤 속성이 무엇에 의해 주어진 것이 아니라 영웅 자신의 것인지.
+ * @return 평범한 예/아니오가 아니라 어떤 종류의 출처인지
+ * @note 검사 이상이다. 속성이 영웅 자신의 것일 수 있는 여러 방식 -- 직업에서, 종족에서, 경험에서 -- 이 구별된다. 그 답이 플레이어에게 보여지고 각각이 다르게 읽히기 때문이다.
+ */
 extern int is_innate(int);
+/**
+ * @brief A phrase naming where a property comes from, for showing to the player.
+ * @return the phrase, which may be empty when the source is not worth naming
+ * @warning Returns a pointer into a shared buffer. A second call replaces the first answer, so two sources cannot be described in one sentence without copying.
+ */
+/**
+ * @brief 속성이 어디서 오는지 지칭하는 구절. 플레이어에게 보이기 위한 것.
+ * @return 그 구절. 출처가 지칭할 가치가 없을 때는 빈 것일 수 있다
+ * @warning 공유 버퍼를 가리키는 포인터를 반환한다. 두 번째 호출이 첫 답을 대체하므로, 복사하지 않고 두 출처를 한 문장에 기술할 수 없다.
+ */
 extern char *from_what(int);
 extern void uchangealign(int, int);
 
