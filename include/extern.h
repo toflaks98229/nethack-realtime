@@ -4238,46 +4238,254 @@ extern void objects_globals_init(void);
 
 /* ### objnam.c ### */
 
+/**
+ * @note Almost every routine in this section returns a pointer into a shared pool of buffers rather than into memory of its own. That single fact governs how the whole section must be used, and it
+ *       is why the naming routines look interchangeable and are not safe to nest freely.
+ *
+ *       The pool is a rotation: each call takes the next buffer, so several answers can be live at once but not indefinitely many. Building a sentence from two names works; building one from a
+ *       dozen does not, and the failure is that an early name has been quietly overwritten by the time the sentence is assembled.
+ *
+ *       Where a caller must hold a name for longer than that, it has to copy it. Where a caller has finished with one early, releasing it back explicitly is what the release routine is for.
+ */
+/**
+ * @note 이 절의 거의 모든 루틴이 자기 메모리가 아니라 공유된 버퍼 풀을 가리키는 포인터를 반환한다. 그 하나의 사실이 이 절 전체를 어떻게 써야 하는지를 지배하며, 그것이 이름 짓기 루틴들이 서로 바꿔 쓸 수 있어 보이면서 자유롭게 중첩해도 안전하지는 않은 이유다.
+ *
+ *       그 풀은 순환이다. 각 호출이 다음 버퍼를 가져가므로, 여러 답이 동시에 살아 있을 수 있으나 무한히 많이는 아니다. 두 이름으로 문장을 짓는 것은 통한다. 열두 개로 짓는 것은 통하지 않으며, 그 실패는 문장이 조립될 때쯤 이른 이름이 조용히 덮어써져 있었다는 것이다.
+ *
+ *       호출자가 이름을 그보다 오래 쥐어야 하는 곳에서는 그것을 복사해야 한다. 호출자가 하나를 일찍 다 쓴 곳에서는 그것을 명시적으로 되돌려주는 것이 해제 루틴의 목적이다.
+ */
+/**
+ * @brief Give a name buffer back to the pool early.
+ * @note Optional, and worth using where a routine takes several names in a loop -- returning each as it finishes keeps the rotation from being exhausted.
+ * @warning The pointer must be one the pool handed out. Passing anything else is undefined, and there is nothing that checks.
+ */
+/**
+ * @brief 이름 버퍼를 풀에 일찍 되돌려준다.
+ * @note 선택적이며, 어떤 루틴이 반복문에서 여러 이름을 가져가는 곳에서 쓸 가치가 있다. 각각을 다 쓸 때마다 되돌려주면 그 순환이 소진되지 않는다.
+ * @warning 그 포인터는 풀이 내준 것이어야 한다. 다른 것을 넘기는 것은 정의되지 않았고, 검사하는 것이 없다.
+ */
 extern void maybereleaseobuf(char *) NONNULLARG1;
+/**
+ * @name Naming a kind of object
+ * @brief The name of an object kind, in three degrees of caution.
+ *
+ * The plain form gives the name as the hero knows it, which may be its appearance rather than its identity. The simple form omits the decoration -- no charges, no called-name. The safe form is
+ * the one to reach for when it is not certain the kind is valid.
+ *
+ * @note The safe form exists because a name is sometimes wanted for a value that came from outside the game -- a configuration file, a saved log -- where an invalid kind is possible. The others
+ *       would fail on such a value.
+ * @{
+ */
+/**
+ * @name 물건 종류의 이름 짓기
+ * @brief 물건 종류의 이름. 세 단계의 조심스러움으로.
+ *
+ * 평범한 형태는 영웅이 아는 대로의 이름을 준다. 그것은 정체가 아니라 외형일 수 있다. 단순 형태는 장식을 뺀다. 충전도, 붙여진 이름도 없이. 안전한 형태는 그 종류가 유효한지 확실하지 않을 때 손을 뻗을 것이다.
+ *
+ * @note 안전한 형태가 있는 것은, 이름이 때때로 게임 밖에서 온 값 -- 설정 파일, 저장된 로그 -- 에 대해 필요하고 그곳에서는 유효하지 않은 종류가 가능하기 때문이다. 나머지는 그런 값에서 실패한다.
+ * @{
+ */
 extern char *obj_typename(int);
 extern char *simple_typename(int);
 extern char *safe_typename(int);
+/** @} */
+/**
+ * @brief Whether an object's name is a proper name and so takes no article.
+ * @note Asked before adding "a" or "the". An artifact is called Excalibur and not the Excalibur, so this is what keeps the naming routines from producing that.
+ */
+/**
+ * @brief 물건의 이름이 고유명사여서 관사를 받지 않는지.
+ * @note "a"나 "the"를 붙이기 전에 물어진다. 아티팩트는 the Excalibur 가 아니라 Excalibur 라고 불리므로, 이것이 이름 짓기 루틴이 그것을 만들어 내지 않게 하는 것이다.
+ */
 extern boolean obj_is_pname(struct obj *) NONNULLARG1;
+/**
+ * @brief Name an object as it would be described from a distance.
+ * @param  the object
+ * @param  the naming routine to use for the parts that are visible from afar
+ * @note Takes the naming routine as an argument because "from a distance" is a modification of naming rather than a kind of it: the caller says how it would name the object up close, and this
+ *       withholds what could not be seen from where the hero is.
+ */
+/**
+ * @brief 물건을 멀리서 기술될 대로 이름 짓는다.
+ * @param  그 물건
+ * @param  멀리서 보이는 부분에 대해 쓸 이름 짓기 루틴
+ * @note 이름 짓기 루틴을 인자로 받는 것은, "멀리서"가 이름 짓기의 한 종류가 아니라 그것에 대한 수정이기 때문이다. 호출자가 가까이서 그 물건을 어떻게 이름 짓겠는지 말하고, 이것이 영웅이 있는 곳에서 볼 수 없었을 것을 보류한다.
+ */
 extern char *distant_name(struct obj *, char *(*)(struct obj *)) NONNULLPTRS;
 extern char *fruitname(boolean);
 extern struct fruit *fruit_from_indx(int);
 extern struct fruit *fruit_from_name(const char *, boolean, int *) NONNULLARG1;
 extern void reorder_fruit(boolean);
+/**
+ * @brief The bare name of an object, without article, quantity or condition.
+ * @note The foundation the rest of the naming routines are built on. It gives what the hero knows the object to be and nothing more, so a caller adds whatever the sentence needs.
+ * @warning There is a variant of this taking flags, and one of the flags exists because this is sometimes called indirectly and the caller cannot reach the variant. That is recorded with the flag
+ *          in flag.h rather than here.
+ */
+/**
+ * @brief 물건의 맨 이름. 관사도 수량도 상태도 없이.
+ * @note 나머지 이름 짓기 루틴들이 그 위에 세워지는 토대다. 영웅이 그 물건을 무엇이라고 아는지를 주고 그 이상은 주지 않으므로, 호출자가 문장이 필요로 하는 것을 더한다.
+ * @warning 플래그를 받는 이것의 변종이 있고, 그 플래그 중 하나가 존재하는 것은 이것이 때때로 간접적으로 호출되어 호출자가 그 변종에 닿을 수 없기 때문이다. 그것은 여기가 아니라 flag.h 의 그 플래그와 함께 기록되어 있다.
+ */
 extern char *xname(struct obj *) NONNULLARG1;
+/**
+ * @brief The name of an object as part of a multi-shot volley.
+ * @note Volleys are described once for several missiles -- "you shoot 3 arrows" -- so the name has to agree with a count the caller is about to print rather than with the object's own quantity.
+ */
+/**
+ * @brief 여러 발 사격의 일부로서의 물건 이름.
+ * @note 여러 투사체에 대해 한 번 기술되므로 -- "화살 3발을 쏜다" -- 그 이름이 물건 자신의 수량이 아니라 호출자가 곧 인쇄할 개수와 맞아야 한다.
+ */
 extern char *mshot_xname(struct obj *) NONNULLARG1;
 extern boolean the_unique_obj(struct obj *) NONNULLARG1;
 extern boolean the_unique_pm(struct permonst *) NONNULLARG1;
+/**
+ * @brief Whether an object's erosion is worth mentioning.
+ * @note Not whether it is eroded. Erosion is only worth reporting on something whose condition affects its use, so an eroded object may still be described without it -- and that judgement is made
+ *       here rather than in each naming routine.
+ */
+/**
+ * @brief 물건의 삭음이 언급할 가치가 있는지.
+ * @note 그것이 삭았는지가 아니다. 삭음은 상태가 그 용도에 영향을 주는 것에 대해서만 보고할 가치가 있으므로, 삭은 물건도 그것 없이 기술될 수 있다. 그리고 그 판단이 이름 짓기 루틴마다가 아니라 여기서 내려진다.
+ */
 extern boolean erosion_matters(struct obj *) NONNULLARG1;
+/**
+ * @name The full name of an object
+ * @brief An object named as the inventory would show it, in variants for particular situations.
+ *
+ * The plain form is the one to use: quantity, condition, enchantment where known, what it is being used for. The variants each add or alter one thing -- a shop price, a statue's or corpse's sex, a
+ * quantity given vaguely rather than exactly.
+ *
+ * @note They exist as separate routines rather than as flags because each is wanted in one specific place: a shop listing, a description of a statue, a message about a pile too large to count.
+ *       Reading the list is therefore a reasonable way to find which situations the game distinguishes.
+ * @{
+ */
+/**
+ * @name 물건의 온전한 이름
+ * @brief 소지품이 보이는 대로 이름 붙은 물건. 특정 상황을 위한 변종들로.
+ *
+ * 평범한 형태가 써야 할 것이다. 수량, 상태, 알려진 경우의 강화, 무엇에 쓰이고 있는지. 변종들은 각각 한 가지를 더하거나 바꾼다. 상점 가격, 조각상이나 시체의 성별, 정확하게가 아니라 어림으로 주어진 수량.
+ *
+ * @note 플래그가 아니라 별개의 루틴으로 존재하는 것은, 각각이 특정한 한 곳에서 필요하기 때문이다. 상점 목록, 조각상의 기술, 셀 수 없이 큰 무더기에 관한 메시지. 그래서 이 목록을 읽는 것은 게임이 어떤 상황을 구별하는지 알아내는 합당한 방법이다.
+ * @{
+ */
 extern char *doname(struct obj *) NONNULLARG1;
 extern char *doname_with_price(struct obj *) NONNULLARG1;
 extern char *doname_with_cgender(struct obj *) NONNULLARG1;
 extern char *doname_with_price_and_cgender(struct obj *) NONNULLARG1;
 extern char *doname_vague_quan(struct obj *) NONNULLARG1;
+/** @} */
 extern boolean not_fully_identified(struct obj *) NONNULLARG1;
 extern char *corpse_xname(struct obj *, const char *, unsigned) NONNULLARG1;
 extern char *cxname(struct obj *) NONNULLARG1;
 extern char *cxname_singular(struct obj *) NONNULLARG1;
+/**
+ * @brief The name of an object as it should appear in a death message.
+ * @note Different from ordinary naming in one important way: it names the object as it truly is rather than as the hero knew it, because a death is recorded permanently and "killed by an unlabeled
+ *       scroll" would be a worse record than the truth.
+ */
+/**
+ * @brief 사망 메시지에 나타나야 하는 대로의 물건 이름.
+ * @note 평범한 이름 짓기와 한 가지 중요한 점에서 다르다. 영웅이 알던 대로가 아니라 실제 그대로 그 물건을 이름 짓는다. 죽음은 영구히 기록되고, "이름 없는 두루마리에게 죽었다"는 진실보다 나쁜 기록이 되기 때문이다.
+ */
 extern char *killer_xname(struct obj *) NONNULLARG1;
+/**
+ * @brief Name an object, falling back to a shorter naming if the first result is too long.
+ * @param  the object
+ * @param  the preferred naming routine
+ * @param  the naming routine to fall back to
+ * @param  the length to stay within
+ * @note Takes two naming routines because there is no general way to shorten a name -- so the caller supplies both the full and the abbreviated way of saying it, and this chooses. That is how a
+ *       message fits on a line without the caller measuring anything.
+ */
+/**
+ * @brief 물건을 이름 짓되, 첫 결과가 너무 길면 더 짧은 이름 짓기로 돌아간다.
+ * @param  그 물건
+ * @param  선호하는 이름 짓기 루틴
+ * @param  돌아갈 이름 짓기 루틴
+ * @param  머물러야 할 길이
+ * @note 두 이름 짓기 루틴을 받는 것은, 이름을 줄이는 일반적인 방법이 없기 때문이다. 그래서 호출자가 온전한 방식과 줄인 방식 둘 다를 제공하고 이것이 고른다. 그것이 호출자가 아무것도 재지 않고 메시지가 한 줄에 들어가는 방식이다.
+ */
 extern char *short_oname(struct obj *, char *(*)(struct obj *),
                          char *(*)(struct obj *), unsigned) NONNULLARG12;
+/**
+ * @brief Name an object as though there were one of it.
+ * @note Takes the naming routine as an argument for the same reason as the distant form: it is a modification of naming rather than a kind of it, so it works with whichever naming the caller
+ *       intended.
+ */
+/**
+ * @brief 물건을 하나만 있는 것처럼 이름 짓는다.
+ * @note 멀리서 보는 형태와 같은 이유로 이름 짓기 루틴을 인자로 받는다. 이름 짓기의 한 종류가 아니라 그것에 대한 수정이므로, 호출자가 의도한 어느 이름 짓기와도 함께 작동한다.
+ */
 extern const char *singular(struct obj *, char *(*)(struct obj *)) NONNULLPTRS;
+/**
+ * @brief Put the right indefinite article in front of a name, writing into the caller's buffer.
+ * @note The only one of the article routines that does not use the shared pool. That is why it exists: a caller that needs the result to outlive the pool's rotation uses this and supplies the
+ *       memory.
+ */
+/**
+ * @brief 이름 앞에 알맞은 부정관사를 붙이며, 호출자의 버퍼에 쓴다.
+ * @note 관사 루틴 중 공유 풀을 쓰지 않는 유일한 것이다. 그것이 존재하는 이유다. 결과가 풀의 순환보다 오래 살아야 하는 호출자가 이것을 쓰고 메모리를 제공한다.
+ */
 extern char *just_an(char *, const char *) NONNULL NONNULLARG12;
+/**
+ * @name Articles
+ * @brief Put an article in front of a name, choosing it from the name itself.
+ *
+ * Four routines because English needs both articles in both cases: the indefinite and the definite, each with and without a capital. The capitalisation is a separate routine rather than a flag
+ * because it is the first letter of the article and not of the name, so it cannot be applied afterwards.
+ *
+ * @note Choosing the indefinite article is not a matter of looking at the first letter: a name may begin with a vowel and take "a", or be a proper name and take nothing at all. That judgement is
+ *       what these are for.
+ * @warning All four accept null, and the accompanying comment records that this is why they are not annotated as requiring an argument. A null name is handled rather than rejected.
+ * @{
+ */
+/**
+ * @name 관사
+ * @brief 이름 앞에 관사를 붙인다. 그 이름 자체에서 관사를 골라서.
+ *
+ * 네 루틴인 것은 영어가 두 관사를 두 형태로 필요로 하기 때문이다. 부정관사와 정관사, 각각 대문자로와 그렇지 않게. 대문자화가 플래그가 아니라 별개의 루틴인 것은, 그것이 이름의 첫 글자가 아니라 관사의 첫 글자이기 때문이다. 그래서 나중에 적용할 수 없다.
+ *
+ * @note 부정관사를 고르는 것은 첫 글자를 보는 문제가 아니다. 이름이 모음으로 시작하면서 "a"를 받을 수도, 고유명사여서 아무것도 받지 않을 수도 있다. 그 판단이 이들의 목적이다.
+ * @warning 넷 모두 널을 받아들이며, 딸린 주석이 그것이 이들이 인자를 요구하는 것으로 표시되지 않은 이유라고 기록한다. 널 이름은 거부되는 것이 아니라 처리된다.
+ * @{
+ */
 /* an(), the() contain tests for NULL arg, preventing NONNULLARG1 */
 extern char *an(const char *) NONNULL NO_NNARGS;
 extern char *An(const char *) NONNULL NO_NNARGS;
 extern char *The(const char *) NONNULL NO_NNARGS;
 extern char *the(const char *) NONNULL NO_NNARGS;
+/** @} */
 extern char *aobjnam(struct obj *, const char *) NONNULL NONNULLARG1;
 extern char *yobjnam(struct obj *, const char *) NONNULL NONNULLARG1;
 extern char *Yobjnam2(struct obj *, const char *) NONNULL NONNULLARG1;
 extern char *Tobjnam(struct obj *, const char *) NONNULL NONNULLARG1;
+/**
+ * @name Making a verb agree
+ * @brief Put a verb into the form that agrees with its subject.
+ *
+ * English inflects a verb by number, so a message about one object and a message about several need different verbs. Rather than writing both sentences, the game writes one and asks for the verb in
+ * the right form.
+ *
+ * @note The object form takes the object as the subject; the general form takes any subject as text. The second exists because the subject is not always an object -- it may be a monster, the hero,
+ *       or a phrase.
+ * @warning The general form's subject may be null, and that is not an error: a null subject means the caller has already established agreement and wants only the default inflection. Its annotation
+ *          reflects that only the verb is required.
+ * @{
+ */
+/**
+ * @name 동사를 일치시키기
+ * @brief 동사를 그 주어와 일치하는 형태로 만든다.
+ *
+ * 영어는 동사를 수에 따라 굴절시키므로, 물건 하나에 관한 메시지와 여럿에 관한 메시지는 다른 동사를 필요로 한다. 두 문장을 쓰는 대신 게임은 하나를 쓰고 알맞은 형태의 동사를 요청한다.
+ *
+ * @note 물건 형태는 그 물건을 주어로 받는다. 일반 형태는 아무 주어든 글로 받는다. 두 번째가 있는 것은 주어가 항상 물건은 아니기 때문이다. 몬스터일 수도, 영웅일 수도, 구절일 수도 있다.
+ * @warning 일반 형태의 주어는 널일 수 있고 그것은 오류가 아니다. 널 주어는 호출자가 이미 일치를 확정했고 기본 굴절만을 원한다는 뜻이다. 그 표시가 동사만이 필수임을 반영한다.
+ * @{
+ */
 extern char *otense(struct obj *, const char *) NONNULL NONNULLARG12;
 extern char *vtense(const char *, const char *) NONNULL NONNULLARG2;
+/** @} */
 extern char *Doname2(struct obj *) NONNULL NONNULLARG1;
 extern char *paydoname(struct obj *) NONNULL NONNULLARG1;
 extern char *yname(struct obj *) NONNULL NONNULLARG1;
@@ -4289,10 +4497,48 @@ extern char *ansimpleoname(struct obj *) NONNULL NONNULLARG1;
 extern char *thesimpleoname(struct obj *) NONNULL NONNULLARG1;
 extern char *actualoname(struct obj *) NONNULL NONNULLARG1;
 extern char *bare_artifactname(struct obj *) NONNULL NONNULLARG1;
+/**
+ * @name Changing a name's number
+ * @brief Turn a name into its plural or its singular.
+ *
+ * English pluralisation is irregular, and the game's vocabulary contains a good deal of it -- "staves", "dwarves", "mice", names ending in "s" that are already singular. These handle the cases the
+ * game actually needs rather than implementing a general rule.
+ *
+ * @warning Not inverses. Making a name plural and then singular again does not reliably return the original, because some plurals are ambiguous about what they came from.
+ * @note Both accept null and both report an internal error rather than failing on input they cannot handle, which the accompanying comment records as the reason they are not annotated as requiring an
+ *       argument.
+ * @{
+ */
+/**
+ * @name 이름의 수를 바꾸기
+ * @brief 이름을 복수형이나 단수형으로 바꾼다.
+ *
+ * 영어의 복수화는 불규칙하고, 게임의 어휘에는 그것이 상당히 많다. "staves", "dwarves", "mice", 이미 단수인데 "s"로 끝나는 이름들. 이들은 일반 규칙을 구현하는 대신 게임이 실제로 필요로 하는 경우들을 다룬다.
+ *
+ * @warning 서로의 역이 아니다. 이름을 복수로 만든 뒤 다시 단수로 만드는 것이 원래 것을 믿을 만하게 되돌려주지는 않는다. 어떤 복수형은 그것이 무엇에서 왔는지에 대해 모호하기 때문이다.
+ * @note 둘 다 널을 받아들이고, 둘 다 다룰 수 없는 입력에서 실패하는 대신 내부 오류를 알린다. 딸린 주석이 그것이 이들이 인자를 요구하는 것으로 표시되지 않은 이유라고 기록한다.
+ * @{
+ */
 /* makeplural() and makesingular() never return NULL but have tests for NULL
    arg1, and code path that leads to impossible(), preventing NONNULLARG1 */
 extern char *makeplural(const char *) NONNULL NO_NNARGS;
 extern char *makesingular(const char *) NONNULL NO_NNARGS;
+/** @} */
+/**
+ * @brief Build an object from a name the player typed.
+ * @return the object, or null if the name could not be made into one
+ * @note The inverse of all the naming above, and far harder: it accepts what a player might reasonably write, including quantities, conditions, enchantments and partial names. That is what makes
+ *       wishing work.
+ * @note A null name is not an error but a request for a random object, as the accompanying comment records -- which is how a wish for nothing in particular is expressed.
+ * @warning It may modify the string it is given. A caller must not pass a literal or a buffer it needs afterwards.
+ */
+/**
+ * @brief 플레이어가 입력한 이름에서 물건을 만든다.
+ * @return 그 물건. 그 이름으로 하나를 만들 수 없었으면 널
+ * @note 위의 모든 이름 짓기의 역이며 훨씬 어렵다. 플레이어가 합당하게 적을 만한 것을 받아들인다. 수량, 상태, 강화, 부분적인 이름까지. 그것이 소원을 작동하게 하는 것이다.
+ * @note 널 이름은 오류가 아니라 무작위 물건에 대한 요청이며, 딸린 주석이 그것을 기록한다. 그것이 특정한 것 없는 소원이 표현되는 방식이다.
+ * @warning 건네진 문자열을 바꿀 수 있다. 호출자는 리터럴이나 그 뒤에 필요한 버퍼를 넘겨서는 안 된다.
+ */
 /* readobjnam() can return NULL and  allows a NULL to trigger code path for
    random object */
 extern struct obj *readobjnam(char *, struct obj *) NO_NNARGS;
