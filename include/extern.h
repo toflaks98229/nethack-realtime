@@ -2583,50 +2583,268 @@ extern void ustatusline(void);
 /* ### invent.c ### */
 
 extern void loot_classify(Loot *, struct obj *) NONNULLPTRS;
+/**
+ * @name Sorting a list of objects for display
+ * @brief Produce a sorted view of a chain of objects, and release it afterwards.
+ * @warning The result is a separate array that must be released, and the pair is not optional -- the sorted view does not own the objects but does own itself. The release form takes a pointer to
+ *          the pointer so it can be nulled, which is how a caller cannot release it twice.
+ * @note It sorts a view rather than the chain. The objects' own order is untouched, which matters because the pack's order is the hero's and the player may have arranged it.
+ * @{
+ */
+/**
+ * @name 표시를 위해 물건 목록을 정렬하기
+ * @brief 물건 사슬의 정렬된 뷰를 만들고, 나중에 그것을 놓아준다.
+ * @warning 결과는 놓아주어야 하는 별개의 배열이며, 그 짝은 선택이 아니다. 정렬된 뷰는 그 물건들을 소유하지 않지만 자기 자신은 소유한다. 놓아주는 형태는 널로 만들 수 있도록 포인터에 대한 포인터를 받으며, 그것이 호출자가 그것을 두 번 놓아줄 수 없게 하는 방식이다.
+ * @note 사슬이 아니라 뷰를 정렬한다. 물건들 자신의 순서는 건드려지지 않으며, 가방의 순서가 영웅의 것이고 플레이어가 그것을 정돈했을 수 있으므로 그것이 중요하다.
+ * @{
+ */
 extern Loot *sortloot(struct obj **, unsigned, boolean,
                       boolean(*)(struct obj *)) NONNULLARG1;
 extern void unsortloot(Loot **) NONNULLARG1;
+/** @} */
+/**
+ * @brief Give an object a letter in the hero's pack.
+ * @note The letters are a scarce resource -- fifty-two of them -- and this is where the overflow character is handed out when they run out. So an object is not guaranteed a letter of its own.
+ */
+/**
+ * @brief 물건에 영웅의 가방에서의 글자를 부여한다.
+ * @note 그 글자들은 희소한 자원이다. 쉰두 개. 그리고 그것들이 다했을 때 넘침 문자가 주어지는 곳이 여기다. 그래서 물건이 자기 글자를 보장받지는 않는다.
+ */
 extern void assigninvlet(struct obj *) NONNULLARG1;
+/**
+ * @name Combining identical objects
+ * @brief Find what an object could merge with, and merge it.
+ *
+ * Two routines because the question and the act are needed separately: a caller may need to know where an object would go before deciding to put it there.
+ *
+ * @warning The merging form destroys one of the two objects and takes pointers to the pointers so both callers' references can be corrected. After it succeeds, one of the two pointers refers to
+ *          freed memory unless it was updated -- which is precisely why the arguments have that shape.
+ * @note Merging is not only about saving space. Two objects that merge become indistinguishable, so a merge can lose information the player had -- which is why the rules about what may merge are
+ *       strict and are documented with the object's own fields.
+ * @{
+ */
+/**
+ * @name 똑같은 물건 합치기
+ * @brief 물건이 무엇과 합쳐질 수 있는지 찾고, 그것을 합친다.
+ *
+ * 두 루틴인 것은 질문과 행위가 따로 필요하기 때문이다. 호출자는 물건을 어디에 둘지 정하기 전에 그것이 어디로 갈지 알아야 할 수 있다.
+ *
+ * @warning 합치는 형태는 두 물건 중 하나를 파괴하며, 두 호출자의 참조가 모두 바로잡힐 수 있도록 포인터에 대한 포인터를 받는다. 그것이 성공한 뒤에는, 갱신되지 않았다면 두 포인터 중 하나가 해제된 메모리를 가리킨다. 그것이 바로 인자가 그런 모양인 이유다.
+ * @note 합치기는 공간을 아끼는 것에 관한 것만이 아니다. 합쳐진 두 물건은 구별할 수 없게 되므로, 합치기가 플레이어가 가졌던 정보를 잃을 수 있다. 그래서 무엇이 합쳐져도 되는지에 관한 규칙이 엄격하고 물건 자신의 필드와 함께 기록되어 있다.
+ * @{
+ */
 extern struct obj *merge_choice(struct obj *, struct obj *) NONNULLARG2;
 extern int merged(struct obj **, struct obj **) NONNULLPTRS;
+/** @} */
+/**
+ * @name Putting an object into the pack
+ * @brief The several forms of adding to inventory, and the two halves each of them performs.
+ *
+ * The plain form is what almost everything should use. It may merge the object with one already held, which means the object handed in may cease to exist -- so it returns what is now in the pack,
+ * and using the original pointer afterwards is the mistake this shape is meant to prevent.
+ *
+ * The other forms exist for the cases where merging or ordering must be controlled: one adds at a given place in the pack, one refuses to merge at all.
+ *
+ * The two numbered halves are the internals. They are separate because adding has bookkeeping that must happen before the object is linked in and bookkeeping that must happen after, and a few
+ * callers need to do something in between.
+ *
+ * @warning Every form may free the object passed in. The return value is the surviving object and is not optional to use.
+ * @{
+ */
+/**
+ * @name 물건을 가방에 넣기
+ * @brief 소지품에 더하는 여러 형태와, 각각이 수행하는 두 절반.
+ *
+ * 평범한 형태가 거의 모든 것이 써야 하는 것이다. 그것은 그 물건을 이미 지닌 것과 합칠 수 있으며, 그것은 건네진 물건이 존재하기를 그만둘 수 있다는 뜻이다. 그래서 지금 가방에 있는 것을 반환하며, 그 뒤로 원래 포인터를 쓰는 것이 이 모양이 막으려는 잘못이다.
+ *
+ * 다른 형태들은 합치기나 순서가 통제되어야 하는 경우를 위해 존재한다. 하나는 가방의 주어진 자리에 더하고, 하나는 합치기를 아예 거부한다.
+ *
+ * 번호가 붙은 두 절반은 내부다. 따로 있는 것은, 더하기에 물건이 이어 붙여지기 전에 일어나야 하는 기록과 그 뒤에 일어나야 하는 기록이 있고, 몇몇 호출자가 그 사이에 무언가를 해야 하기 때문이다.
+ *
+ * @warning 모든 형태가 건네진 물건을 해제할 수 있다. 반환값이 살아남은 물건이며 그것을 쓰는 것은 선택이 아니다.
+ * @{
+ */
 extern void addinv_core1(struct obj *) NONNULLARG1;
 extern void addinv_core2(struct obj *) NONNULLARG1;
 extern struct obj *addinv(struct obj *) NONNULLARG1;
 extern struct obj *addinv_before(struct obj *, struct obj *) NONNULLARG1;
 extern struct obj *addinv_nomerge(struct obj *) NONNULLARG1;
+/** @} */
+/**
+ * @brief Add an object to the pack and tell the player, dealing with not being able to carry it.
+ * @note The form to use when the hero is acquiring something during play. It handles the whole situation: the object may be too heavy, may not fit, may go into a container, may need a different
+ *       message -- and the three text arguments are those messages, supplied by the caller because only the caller knows how the object was acquired.
+ */
+/**
+ * @brief 물건을 가방에 더하고 플레이어에게 알리며, 그것을 나를 수 없는 경우를 처리한다.
+ * @note 영웅이 플레이 중에 무언가를 얻을 때 써야 할 형태다. 그 상황 전체를 다룬다. 물건이 너무 무거울 수도, 들어가지 않을 수도, 용기 안으로 갈 수도, 다른 메시지가 필요할 수도 있다. 그리고 세 개의 글 인자가 그 메시지들이며, 호출자만이 그 물건이 어떻게 얻어졌는지 알기
+ *       때문에 호출자가 제공한다.
+ */
 extern struct obj *hold_another_object(struct obj *, const char *,
                                        const char *, const char *) NONNULLARG1;
 /* nhlua.c calls useupall(gi.invent), but checks gi.invent against NULL
  * before doing so. useupall() won't handle NULL*/
 extern void useupall(struct obj *) NONNULLARG1;
+/**
+ * @brief Consume one of a stack, or the whole object if only one remains.
+ * @warning May free the object. Its distinction from consuming the whole stack is exactly that it usually does not, so a caller cannot know from the call site whether its pointer is still good.
+ */
+/**
+ * @brief 묶음에서 하나를 소비하거나, 하나만 남았으면 그 물건 전체를 소비한다.
+ * @warning 그 물건을 해제할 수 있다. 묶음 전체를 소비하는 것과의 구별이 바로 그것이 보통 그러지 않는다는 것이므로, 호출자는 호출 지점에서 자기 포인터가 여전히 유효한지 알 수 없다.
+ */
 extern void useup(struct obj *) NONNULLARG1;
+/**
+ * @brief Spend one of a charged object's charges.
+ * @note Separate from using up the object because the two are different resources: a wand may be out of charges and still exist, which is a state the player can discover and act on.
+ */
+/**
+ * @brief 충전된 물건의 충전 하나를 쓴다.
+ * @note 물건을 소비하는 것과 따로 있는 것은, 그 둘이 다른 자원이기 때문이다. 지팡이는 충전이 다했으면서도 존재할 수 있고, 그것은 플레이어가 발견하고 그에 따라 행동할 수 있는 상태다.
+ */
 extern void consume_obj_charge(struct obj *, boolean) NONNULLARG1;
+/**
+ * @name Taking an object out of the pack
+ * @brief Remove an object from inventory without destroying it, and the internal half of doing so.
+ * @note The distinction from deleting is the point: an object taken out this way still exists and has to go somewhere -- onto the floor, into a container, into a monster's possession. Failing to
+ *       place it afterwards leaks it.
+ * @{
+ */
+/**
+ * @name 물건을 가방에서 꺼내기
+ * @brief 물건을 파괴하지 않고 소지품에서 꺼내고, 그렇게 하는 것의 내부 절반.
+ * @note 삭제와의 구별이 요점이다. 이 방식으로 꺼내진 물건은 여전히 존재하고 어딘가로 가야 한다. 바닥으로, 용기 안으로, 몬스터의 소유로. 그 뒤에 그것을 놓지 못하면 누수된다.
+ * @{
+ */
 extern void freeinv_core(struct obj *) NONNULLARG1;
 extern void freeinv(struct obj *) NONNULLARG1;
+/** @} */
 extern void delallobj(coordxy, coordxy);
+/**
+ * @name Destroying an object
+ * @brief Remove an object from the game entirely.
+ * @warning Frees the object and unlinks it from wherever it was. Anything holding a pointer to it -- an in-progress action, a shop bill, a container's contents -- has to have been dealt with
+ *          first, and nothing here checks that.
+ * @note The core form's boolean controls whether the object's contents go with it, which is why destroying a container is not simply destroying an object.
+ * @{
+ */
+/**
+ * @name 물건을 파괴하기
+ * @brief 물건을 게임에서 완전히 없애기.
+ * @warning 그 물건을 해제하고 그것이 있던 곳에서 떼어 낸다. 그것을 가리키는 포인터를 쥔 무엇이든 -- 진행 중인 행동, 상점 계산서, 용기의 내용물 -- 먼저 처리되어 있어야 하며, 여기의 어느 것도 그것을 검사하지 않는다.
+ * @note 핵심 형태의 논리값은 그 물건의 내용물이 함께 갈지를 통제한다. 그래서 용기를 파괴하는 것이 단순히 물건 하나를 파괴하는 것이 아니다.
+ * @{
+ */
 extern void delobj(struct obj *) NONNULLARG1;
 extern void delobj_core(struct obj *, boolean) NONNULLARG1;
+/** @} */
+/**
+ * @name Finding an object of a kind
+ * @brief Search a square, or the hero's pack, for an object of a given kind.
+ * @note The square form returns the first such object and the continuation form finds the next, which is how a caller walks all of them without holding the list itself -- necessary because
+ *       examining an object may remove it.
+ * @note Neither searches inside containers. That is deliberate: a boulder inside a bag is not a boulder in the way, and a caller wanting the contents has to ask for them.
+ * @{
+ */
+/**
+ * @name 어떤 종류의 물건 찾기
+ * @brief 어떤 칸이나 영웅의 가방에서 주어진 종류의 물건을 찾는다.
+ * @note 칸 형태는 그런 물건 중 첫 번째를 반환하고 이어가기 형태가 다음 것을 찾는다. 그것이 호출자가 목록 자체를 쥐지 않고 그 전부를 도는 방식이다. 물건을 살피는 것이 그것을 없앨 수 있으므로 필요하다.
+ * @note 어느 쪽도 용기 안을 찾지 않는다. 의도적이다. 가방 안의 바위는 길을 막는 바위가 아니며, 내용물을 원하는 호출자는 그것을 따로 요청해야 한다.
+ * @{
+ */
 extern struct obj *sobj_at(int, coordxy, coordxy);
 extern struct obj *nxtobj(struct obj *, int, boolean) NONNULLARG1;
 extern struct obj *carrying(int);
+/** @} */
 extern struct obj *u_carried_gloves(void);
 extern struct obj *u_have_novel(void);
 extern struct obj *o_on(unsigned int, struct obj *);
 extern boolean obj_here(struct obj *, coordxy, coordxy) NONNULLARG1;
 extern boolean wearing_armor(void);
+/**
+ * @name Whether an object is being used
+ * @brief Whether it is worn, and the wider question of whether it is in use at all.
+ * @note The wider one includes a wielded weapon, a lit lamp, an attached leash -- things that are not worn but must not simply be dropped. So "in use" is the question most callers actually want,
+ *       and "worn" is the narrower one about armour and accessories.
+ * @{
+ */
+/**
+ * @name 물건이 쓰이고 있는지
+ * @brief 착용되어 있는지, 그리고 아예 쓰이고 있는지에 대한 더 넓은 질문.
+ * @note 더 넓은 것은 들고 있는 무기, 켜진 등불, 매인 목줄을 포함한다. 착용된 것은 아니지만 그냥 버려져서는 안 되는 것들. 그래서 "쓰이는 중"이 대부분의 호출자가 실제로 원하는 질문이고, "착용됨"은 갑옷과 장신구에 관한 더 좁은 것이다.
+ * @{
+ */
 extern boolean is_worn(struct obj *) NONNULLARG1;
 extern boolean is_inuse(struct obj *) NONNULLARG1;
+/** @} */
 extern struct obj *g_at(coordxy, coordxy);
 extern boolean splittable(struct obj *) NONNULLARG1;
 extern int any_obj_ok(struct obj *);
+/**
+ * @name Asking the player to choose an object
+ * @brief The three ways the game asks which object a command should act on.
+ *
+ * They differ in how many and from where. The single form asks for one object and takes a routine deciding which are acceptable, so a command's own notion of a valid target is expressed as a
+ * function rather than as a class list. The counted form asks for several by class. The chain form walks a list asking about each.
+ *
+ * @note That the acceptability test is a function is what allows a command to accept, say, any weapon the hero could actually throw -- a condition no class list could express.
+ * @warning The chain form's annotation is one of the special cases the file's own header explains: its two required arguments are not adjacent, and the header observes that reordering its
+ *          parameters would let that annotation be retired.
+ * @{
+ */
+/**
+ * @name 플레이어에게 물건을 고르게 하기
+ * @brief 게임이 어떤 명령이 어느 물건에 대해 작동해야 하는지 묻는 세 방식.
+ *
+ * 몇 개를 어디서 묻는지에서 다르다. 단일 형태는 하나의 물건을 요청하고 어느 것이 받아들여지는지 정하는 루틴을 받는다. 그래서 명령 자신의 유효한 대상 개념이 계열 목록이 아니라 함수로 표현된다. 개수 형태는 계열별로 여럿을 요청한다. 사슬 형태는 목록을 돌며 각각에 대해 묻는다.
+ *
+ * @note 받아들임 검사가 함수라는 것이, 명령이 예컨대 영웅이 실제로 던질 수 있는 아무 무기든 받아들일 수 있게 하는 것이다. 어떤 계열 목록도 표현할 수 없는 조건이다.
+ * @warning 사슬 형태의 표시는 이 파일 자신의 머리말이 설명하는 특별한 경우 중 하나다. 그 두 필수 인자가 인접하지 않으며, 그 머리말은 그 매개변수 순서를 바꾸면 그 표시를 없앨 수 있으리라고 지적한다.
+ * @{
+ */
 extern struct obj *getobj(const char *, int(*)(struct obj *), unsigned int);
 extern int ggetobj(const char *, int(*)(struct obj *), int, boolean,
                    unsigned *) NONNULLARG1;
 extern int askchain(struct obj **, const char *, int, int(*)(struct obj *),
                     int(*)(struct obj *), int, const char *) NONNULLARG17;
+/** @} */
+/**
+ * @brief Record that the hero now knows whether a container is locked and what is in it.
+ * @note Two separate pieces of knowledge, set together because they are learned together -- opening a container reveals both. They are held apart because a container can be known to be locked
+ *       without its contents being known.
+ */
+/**
+ * @brief 영웅이 이제 용기가 잠겨 있는지와 그 안에 무엇이 있는지 안다고 기록한다.
+ * @note 두 개의 별개 앎이며, 함께 배워지기 때문에 함께 설정된다. 용기를 여는 것이 둘 다를 드러낸다. 따로 보관되는 것은, 용기가 잠겨 있다고 알려지면서 그 내용물은 알려지지 않을 수 있기 때문이다.
+ */
 extern void set_cknown_lknown(struct obj *) NONNULLARG1;
+/**
+ * @name Identifying an object
+ * @brief Make the hero know what an object is, in the full sense or by asking.
+ * @note The full form makes everything about the object known at once, including its enchantment and its blessing. The asking form is the player-facing one: it puts up the prompt, so it belongs to
+ *       a command rather than to an effect.
+ * @note Identification is per kind and not per object, so identifying one potion of healing identifies them all. That is why these are so consequential relative to how little they appear to do.
+ * @{
+ */
+/**
+ * @name 물건을 감별하기
+ * @brief 영웅이 물건이 무엇인지 알게 만든다. 온전한 의미로, 또는 물어서.
+ * @note 온전한 형태는 그 물건에 관한 모든 것을 한꺼번에 알려진 것으로 만든다. 강화와 축복까지 포함해서. 묻는 형태는 플레이어를 향한 것이다. 프롬프트를 띄우므로 효과가 아니라 명령에 속한다.
+ * @note 감별은 물건별이 아니라 종류별이므로, 치유의 물약 하나를 감별하면 그 전부가 감별된다. 그것이 이들이 하는 일이 적어 보이는 데 비해 그토록 결과가 큰 이유다.
+ * @{
+ */
 extern void fully_identify_obj(struct obj *) NONNULLARG1;
 extern int identify(struct obj *) NONNULLARG1;
+/** @} */
+/**
+ * @brief How many objects in a chain the hero does not fully know.
+ * @warning Accepts null, and the annotation records that this was examined -- the pack may be empty, and an empty pack has zero unidentified objects rather than being an error.
+ */
+/**
+ * @brief 사슬 안의 물건 중 영웅이 온전히 알지 못하는 것이 몇 개인지.
+ * @warning 널을 받아들이며, 그 표시가 이것이 검토되었음을 기록한다. 가방이 비어 있을 수 있고, 빈 가방은 오류가 아니라 미확인 물건이 0개인 것이다.
+ */
 extern int count_unidentified(struct obj *) NO_NNARGS;
 extern void identify_pack(int, boolean);
 extern void learn_unseen_invent(void);
@@ -2643,9 +2861,40 @@ extern int dotypeinv(void);
 extern const char *dfeature_at(coordxy, coordxy, char *) NONNULLARG3;
 extern int look_here(int, unsigned);
 extern int dolook(void);
+/**
+ * @name Touching something petrifying
+ * @brief Whether handling an object would turn the hero to stone, and doing so.
+ * @note The asking form exists so a command can refuse before it happens. That matters here more than usual: petrification is not damage but death, so a command that discovered it afterwards would
+ *       be a command that killed the hero for looking.
+ * @{
+ */
+/**
+ * @name 석화시키는 것을 만지기
+ * @brief 물건을 다루는 것이 영웅을 돌로 만들지, 그리고 그렇게 하기.
+ * @note 묻는 형태가 있는 것은 명령이 그 일이 일어나기 전에 거부할 수 있도록 하기 위함이다. 여기서는 그것이 평소보다 더 중요하다. 석화는 피해가 아니라 죽음이므로, 나중에 그것을 발견하는 명령은 영웅을 살펴본 대가로 죽이는 명령이 된다.
+ * @{
+ */
 extern boolean will_feel_cockatrice(struct obj *, boolean) NONNULLARG1;
 extern void feel_cockatrice(struct obj *, boolean) NONNULLARG1;
+/** @} */
+/**
+ * @brief Merge an object with whatever it belongs with on the floor.
+ * @warning May free the object, and unlike the pack's merging it returns nothing -- so a caller must not use its pointer afterwards at all, rather than reading back a survivor.
+ */
+/**
+ * @brief 물건을 바닥에서 그것이 속한 것과 합친다.
+ * @warning 그 물건을 해제할 수 있으며, 가방의 합치기와 달리 아무것도 반환하지 않는다. 그래서 호출자는 살아남은 것을 되읽는 대신 그 뒤로 그 포인터를 전혀 쓰지 않아야 한다.
+ */
 extern void stackobj(struct obj *) NONNULLARG1;
+/**
+ * @brief Whether two objects are alike enough to become one.
+ * @note Strict on purpose. Two objects that merge become indistinguishable, so anything the player might know about one and not the other has to prevent it -- which is why identical-looking
+ *       objects sometimes refuse to stack.
+ */
+/**
+ * @brief 두 물건이 하나가 될 만큼 비슷한지.
+ * @note 일부러 엄격하다. 합쳐진 두 물건은 구별할 수 없게 되므로, 플레이어가 한쪽에 대해 알고 다른 쪽에 대해 알지 못할 만한 것이 있으면 그것을 막아야 한다. 그것이 똑같아 보이는 물건이 때때로 쌓이기를 거부하는 이유다.
+ */
 extern boolean mergable(struct obj *, struct obj *) NONNULLPTRS;
 extern int doprgold(void);
 extern int doprwep(void);
