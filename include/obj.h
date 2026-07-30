@@ -9,11 +9,64 @@
 /* #define obj obj_nh */ /* uncomment for SCO UNIX, which has a conflicting
                           * typedef for "obj" in <sys/types.h> */
 
+/**
+ * @file obj.h
+ * @brief An object, and the several places one can be.
+ *
+ * An object is never simply "somewhere". It is on the floor, inside a container,
+ * in the hero's inventory, in a monster's, buried, migrating to another level, or
+ * free -- and @c where records which, because the chain it belongs to and the
+ * meaning of its coordinates both depend on that.
+ *
+ * The same pointer field means different things accordingly, which is why it is a
+ * union: the next object on this square, the container holding it, or the monster
+ * carrying it.
+ *
+ * @note @c spe carries a different meaning for nearly every object class -- charges,
+ *       enchantment, a candle count, a gender, a fruit index -- as the comment on
+ *       it enumerates. It cannot be read without knowing what the object is.
+ * @warning @c where and the object's actual position must agree. An object moved
+ *          between chains without updating it becomes unreachable from one and
+ *          doubly present in another.
+ */
+
+/**
+ * @file obj.h
+ * @brief 객체와, 객체가 있을 수 있는 여러 장소.
+ *
+ * 객체는 결코 그냥 "어딘가에" 있지 않다. 바닥에, 용기 안에, 영웅의 소지품에, 몬스터의
+ * 소지품에, 묻혀서, 다른 레벨로 이동 중에, 또는 어디에도 속하지 않은 채로 있다. @c where 가
+ * 그중 무엇인지 기록한다. 그것이 속한 사슬과 좌표의 의미가 모두 그에 달려 있기 때문이다.
+ *
+ * 같은 포인터 필드가 그에 따라 다른 것을 뜻한다. 그래서 공용체다. 이 칸의 다음 객체이거나,
+ * 그것을 담은 용기이거나, 그것을 지닌 몬스터다.
+ *
+ * @note @c spe 는 거의 모든 객체 분류마다 다른 의미를 지닌다. 충전 횟수, 마법 강화, 촛불
+ *       개수, 성별, 과일 색인 등이며 그 필드의 주석이 열거하고 있다. 그 객체가 무엇인지
+ *       모르고서는 읽을 수 없다.
+ * @warning @c where 와 객체의 실제 위치는 반드시 일치해야 한다. 그것을 갱신하지 않고 사슬
+ *          사이를 옮긴 객체는 한쪽에서 닿을 수 없게 되고 다른 쪽에는 두 번 존재하게 된다.
+ */
+
 /* start with incomplete types in case these aren't defined yet;
    basic pointers to them don't need to know their details */
 struct obj;
 struct monst;
 
+/**
+ * @brief The one pointer whose meaning depends on where the object is.
+ * @note A union rather than three fields because an object is only ever in one
+ *       place at a time; @c where says which member is the live one.
+ * @warning Reading the wrong member is unchecked. The macros defined just below
+ *          give each a name, but they do not verify @c where.
+ */
+/**
+ * @brief 객체가 어디 있는지에 따라 의미가 달라지는 단 하나의 포인터.
+ * @note 필드 세 개가 아니라 공용체인 것은 객체가 한 번에 한 곳에만 있기 때문이다. 어느
+ *       멤버가 유효한지는 @c where 가 말해 준다.
+ * @warning 잘못된 멤버를 읽는 것은 검사되지 않는다. 바로 아래 정의된 매크로들이 각각에
+ *          이름을 주지만, @c where 를 확인하지는 않는다.
+ */
 union vptrs {
     struct obj *v_nexthere;   /* floor location lists */
     struct obj *v_ocontainer; /* point back to container */
