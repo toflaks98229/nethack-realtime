@@ -649,12 +649,44 @@ extern void bc_sanity_check(void);
 
 /* ### bones.c ### */
 
+/**
+ * @brief Make a name safe to write into a shared file.
+ * @warning Alters the string in place. It exists because a bones file may be read by another player's game, so a name that could confuse the file's format has to be neutralised before
+ *          it is written -- this is a safety measure, not a formatting one.
+ */
+/**
+ * @brief 이름을 공유 파일에 기록해도 안전하게 만든다.
+ * @warning 문자열을 제자리에서 바꾼다. 유골 파일이 다른 플레이어의 게임에 읽힐 수 있으므로, 그 파일의 형식을 혼란시킬 수 있는 이름은 기록되기 전에 무해하게 되어야 한다. 이것은 서식이 아니라 안전 조치다.
+ */
 extern void sanitize_name(char *) NONNULLARG1;
-extern void drop_upon_death(struct monst *, struct obj *, coordxy, coordxy);
+/**
+ * @brief Whether this level may be saved as bones at all.
+ * @note Several things forbid it -- the level being special, the death being of a kind that leaves nothing, the option being off -- and asking first avoids doing the work of preparing
+ *       a bones file that will be discarded.
+ */
+/**
+ * @brief 이 레벨이 아예 유골로 저장되어도 되는지.
+ * @note 여러 가지가 그것을 금한다. 그 레벨이 특수하다는 것, 죽음이 아무것도 남기지 않는 종류라는 것, 그 선택지가 꺼져 있다는 것. 먼저 물으면 버려질 유골 파일을 준비하는 일을 피할 수 있다.
+ */
 extern boolean can_make_bones(void);
-extern void savebones(int, time_t, struct obj *);
-extern int getbones(void);
+/**
+ * @brief Whether a bones file's name matches one the current game should refuse.
+ * @note Used to keep a player from meeting their own remains, which would let a game feed itself equipment. So this is a fairness check rather than a validity one.
+ */
+/**
+ * @brief 유골 파일의 이름이 현재 게임이 거부해야 할 것과 일치하는지.
+ * @note 플레이어가 자기 자신의 잔해를 만나지 않게 하기 위해 쓰인다. 그러면 게임이 스스로에게 장비를 먹일 수 있게 된다. 그래서 이것은 유효성 검사가 아니라 공평성 검사다.
+ */
 extern boolean bones_include_name(const char *) NONNULLARG1;
+/**
+ * @brief Repair an object that has come from another game's bones file.
+ * @note An object from a bones file may refer to things that game had and this one does not -- a fruit name, a shuffled appearance. This reconciles it with the current game, which is
+ *       why an object arriving from bones cannot simply be used as it was read.
+ */
+/**
+ * @brief 다른 게임의 유골 파일에서 온 물건을 고친다.
+ * @note 유골 파일에서 온 물건은 그 게임이 가졌고 이 게임은 갖지 않은 것들을 가리킬 수 있다. 과일 이름, 섞인 외형. 이것이 그것을 현재 게임과 조화시키며, 그래서 유골에서 도착한 물건을 읽은 그대로 쓸 수는 없다.
+ */
 extern void fix_ghostly_obj(struct obj *) NONNULLARG1;
 extern void newebones(struct monst *) NONNULLARG1;
 extern void free_ebones(struct monst *) NONNULLARG1;
@@ -667,23 +699,127 @@ extern void check_gold_symbol(void);
 extern char *do_statusline2(void);
 extern void bot(void);
 extern void timebot(void);
+/**
+ * @name Experience level and rank title
+ * @brief Converting between how experienced the hero is and what they are called.
+ * @note Not a one-to-one mapping: a rank covers a span of levels, so converting a level to a rank and back does not return the original level. It returns the lowest level of that rank.
+ * @{
+ */
+/**
+ * @name 경험 레벨과 계급 칭호
+ * @brief 영웅이 얼마나 숙련되었는지와 그가 무엇이라 불리는지 사이의 변환.
+ * @note 일대일 대응이 아니다. 계급이 레벨의 구간을 덮으므로, 레벨을 계급으로 바꾸고 다시 되돌려도 원래 레벨이 나오지 않는다. 그 계급의 가장 낮은 레벨이 나온다.
+ * @{
+ */
 extern int xlev_to_rank(int);
 extern int rank_to_xlev(int);
+/** @} */
+/**
+ * @brief The title for a rank, in the right role and gender.
+ * @note Takes a role rather than assuming the hero's, so a title can be produced for a player-monster or for another hero's remains.
+ */
+/**
+ * @brief 어떤 계급의 칭호. 알맞은 직업과 성별로.
+ * @note 영웅의 것을 가정하는 대신 직업을 받는다. 그래서 플레이어 몬스터나 다른 영웅의 잔해에 대한 칭호를 만들 수 있다.
+ */
 extern const char *rank_of(int, short, boolean);
+/**
+ * @brief Work out which monster a rank title belongs to, and at what level.
+ * @return the monster, with the level and gender written back through the pointers
+ * @note The reverse of naming a rank, and it exists so that a title written in a file -- a bones file, a log -- can be turned back into who that was.
+ */
+/**
+ * @brief 계급 칭호가 어느 몬스터에게 속하는지, 그리고 어느 레벨인지 알아낸다.
+ * @return 그 몬스터. 레벨과 성별은 포인터를 통해 되기록된다
+ * @note 계급에 이름을 붙이는 것의 역이며, 파일 -- 유골 파일, 로그 -- 에 적힌 칭호를 그것이 누구였는지로 되돌릴 수 있도록 존재한다.
+ */
 extern int title_to_mon(const char *, int *, int *);
+/**
+ * @brief Work out how wide the widest rank title is.
+ * @note Called once, and what it produces is a layout figure: the status line reserves that much room so it does not shift as the hero is promoted.
+ */
+/**
+ * @brief 가장 긴 계급 칭호가 얼마나 넓은지 알아낸다.
+ * @note 한 번 호출되며, 그것이 내는 것은 배치용 수치다. 상태줄이 그만큼의 자리를 예약하므로 영웅이 승급할 때 그것이 밀리지 않는다.
+ */
 extern void max_rank_sz(void);
 #ifdef SCORE_ON_BOTL
 extern long botl_score(void);
 #endif
+/**
+ * @brief Write a description of where the hero is into a caller's buffer.
+ * @return how the description was formed, since a level may be named, numbered, or both
+ * @note The integer argument selects how much detail, because the same description serves the status line, where space is scarce, and the overview, where it is not.
+ */
+/**
+ * @brief 영웅이 어디 있는지에 대한 기술을 호출자의 버퍼에 쓴다.
+ * @return 그 기술이 어떻게 만들어졌는지. 레벨은 이름으로도, 번호로도, 둘 다로도 지칭될 수 있다
+ * @note 정수 인자가 얼마나 자세할지를 고른다. 같은 기술이 자리가 부족한 상태줄과 그렇지 않은 개요를 함께 맡기 때문이다.
+ */
 extern int describe_level(char *, int);
+/**
+ * @name Equipment summaries for the status line
+ * @brief Describe what the hero is wielding or wearing, briefly.
+ * @note Each writes into the caller's buffer and returns it, which is what lets one be used directly inside a larger piece of formatting.
+ * @warning The buffer must be large enough; neither is told its size. That is why both mark their argument as required rather than optional.
+ * @{
+ */
+/**
+ * @name 상태줄을 위한 장비 요약
+ * @brief 영웅이 무엇을 들고 있거나 입고 있는지 간략히 기술한다.
+ * @note 각각이 호출자의 버퍼에 쓰고 그것을 반환한다. 그것이 하나를 더 큰 서식 조각 안에서 직접 쓸 수 있게 하는 것이다.
+ * @warning 버퍼가 충분히 커야 한다. 어느 쪽도 자기 크기를 듣지 않는다. 둘 다 자기 인자를 선택이 아니라 필수로 표시하는 이유가 그것이다.
+ * @{
+ */
 extern char *weapon_status(char *) NONNULL NONNULLARG1;
 extern char *armor_status(char *) NONNULL NONNULLARG1;
+/** @} */
 extern void status_initialize(boolean);
 extern void status_finish(void);
+/**
+ * @brief Whether the experience percentage shown would differ from last time.
+ * @note Exists so the status line can be left alone when nothing visible changed. The underlying number changes almost every turn while the displayed percentage does not, and
+ *       redrawing on the former would make the status line flicker constantly.
+ */
+/**
+ * @brief 보여지는 경험치 백분율이 지난번과 다를지.
+ * @note 눈에 보이는 것이 바뀌지 않았을 때 상태줄을 건드리지 않기 위해 존재한다. 바탕 숫자는 거의 매 턴 바뀌지만 표시되는 백분율은 그렇지 않으며, 앞의 것에 따라 다시 그리면 상태줄이 끊임없이 깜박이게 된다.
+ */
 extern boolean exp_percent_changing(void);
+/**
+ * @name Which condition to show
+ * @brief Turn a state into the index of the word describing it.
+ * @note An index rather than the word, because the status line needs to compare what it is showing against what it showed -- and comparing indices is how it decides whether to redraw
+ *       without formatting the text first.
+ * @{
+ */
+/**
+ * @name 어떤 상태를 보일지
+ * @brief 어떤 상태를 그것을 기술하는 낱말의 색인으로 바꾼다.
+ * @note 낱말이 아니라 색인인 것은, 상태줄이 자신이 보이고 있는 것과 보였던 것을 비교해야 하기 때문이다. 색인을 비교하는 것이 글을 먼저 서식화하지 않고 다시 그릴지 정하는 방식이다.
+ * @{
+ */
 extern int stat_cap_indx(void);
 extern int stat_hunger_indx(void);
+/** @} */
+/**
+ * @brief The name of a status field, for showing to the player.
+ * @note Keyed by the field's index, so the same numbering serves the display, the player's highlight rules and the option that enables a field.
+ */
+/**
+ * @brief 상태 필드의 이름. 플레이어에게 보이기 위한 것.
+ * @note 그 필드의 색인으로 접근된다. 그래서 같은 번호 체계가 표시부, 플레이어의 강조 규칙, 그리고 필드를 켜는 선택지를 함께 맡는다.
+ */
 extern const char *bl_idx_to_fldname(int);
+/**
+ * @brief Fill the unused part of a status field with dashes.
+ * @note So a field that has shrunk does not leave the previous, longer value's tail behind it. A terminal display does not clear what it does not write over, which is why the padding
+ *       has to be written rather than the field simply being shorter.
+ */
+/**
+ * @brief 상태 필드의 쓰이지 않는 부분을 붙임표로 채운다.
+ * @note 그래서 줄어든 필드가 이전의 더 긴 값의 꼬리를 뒤에 남기지 않는다. 터미널 표시부는 자신이 덮어 쓰지 않은 것을 지우지 않으며, 그래서 필드가 그냥 짧아지는 대신 채움이 기록되어야 한다.
+ */
 extern void repad_with_dashes(char *);
 extern void condopt(int, boolean *, boolean);
 extern int parse_cond_option(boolean, char *);
@@ -711,10 +847,33 @@ extern long yyyymmdd(time_t);
 extern long hhmmss(time_t);
 extern char *yyyymmddhhmmss(time_t) NONNULL;
 extern time_t time_from_yyyymmddhhmmss(char *);
+/**
+ * @name What day and hour it is in the real world
+ * @brief The outside world's calendar, which the game consults for a few of its rules.
+ *
+ * A full moon changes the hero's luck and how some monsters behave; an unlucky date changes it the other way; night and midnight matter to a few effects. So these are game rules that
+ * happen to be decided by the player's own clock.
+ *
+ * @note The phase is recorded at the start of a game rather than asked each turn, so a session spanning midnight does not change the hero's luck underneath them. These are what that
+ *       recording reads.
+ * @warning Reading the real clock during play would be a different thing from what the game does. That the values exist here does not mean they are consulted continuously.
+ * @{
+ */
+/**
+ * @name 실제 세계에서 어느 날 몇 시인지
+ * @brief 바깥 세계의 달력. 게임이 몇몇 규칙에 대해 그것을 참조한다.
+ *
+ * 보름달은 영웅의 운과 몇몇 몬스터의 행동을 바꾸고, 불운한 날짜는 그것을 반대로 바꾸며, 밤과 자정이 몇 가지 효과에 중요하다. 그래서 이들은 마침 플레이어 자신의 시계로 결정되는 게임 규칙이다.
+ *
+ * @note 달의 위상은 매 턴 물어지는 것이 아니라 게임 시작에 기록된다. 그래서 자정을 넘기는 세션이 영웅 아래에서 그의 운을 바꾸지 않는다. 이들은 그 기록이 읽는 것이다.
+ * @warning 플레이 중에 실제 시계를 읽는 것은 게임이 하는 것과 다른 일이다. 이 값들이 여기 존재한다는 것이 그것들이 끊임없이 참조된다는 뜻은 아니다.
+ * @{
+ */
 extern int phase_of_the_moon(void);
 extern boolean friday_13th(void);
 extern int night(void);
 extern int midnight(void);
+/** @} */
 
 /* ### cfgfiles.c ### */
 
