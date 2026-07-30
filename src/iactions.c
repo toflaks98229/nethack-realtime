@@ -74,6 +74,36 @@ enum item_action_actions {
     IA_WHATIS_OBJ, /* '/' specify inventory object */
 };
 
+/**
+ * @brief Work out how to word the two naming entries, and whether either applies.
+ *
+ * Naming is two different actions that read alike, and the wording has to keep them apart: naming this particular object, and naming every object that looks like it. A player who confuses the two names one dagger and wonders
+ * why the others did not change.
+ *
+ * So both entries are worded to say which they are -- "this specific dagger" against "the type for daggers" -- and the plural is chosen to match, which is why the object's quantity and uniqueness both enter into it.
+ *
+ * @param obj the object
+ * @param onamebuf receives the wording for naming this object, or nothing
+ * @param ocallbuf receives the wording for naming its kind, or nothing
+ * @return whether either action applies
+ * @note An object already named says "rename" rather than "name", so the menu tells the player that something is there to be replaced. The kind-naming entry does the same with a coined word, and the accompanying comment
+ *       concedes the alternatives read worse.
+ * @note A unique object takes "the" instead of a plural, since there is only one and speaking of its type in the plural would be wrong.
+ */
+/**
+ * @brief 두 이름 짓기 항목을 어떻게 표현할지, 그리고 어느 쪽이 적용되는지 알아낸다.
+ *
+ * 이름 짓기는 비슷하게 읽히는 서로 다른 두 행동이며, 그 표현이 그것들을 갈라 놓아야 한다. 이 특정한 객체에 이름 붙이기, 그리고 그것처럼 보이는 모든 객체에 이름 붙이기. 그 둘을 혼동하는 플레이어는 단검 하나에 이름을 붙이고 나머지가 왜 바뀌지 않았는지 의아해한다.
+ *
+ * 그래서 두 항목이 자신이 어느 쪽인지 말하도록 표현된다. "이 특정한 단검"과 "단검이라는 종류". 그리고 복수형이 그에 맞게 골라지며, 그것이 객체의 수량과 유일성이 둘 다 여기에 들어오는 이유다.
+ *
+ * @param obj 그 객체
+ * @param onamebuf 이 객체에 이름 붙이기의 표현을 받는다. 또는 아무것도
+ * @param ocallbuf 그 종류에 이름 붙이기의 표현을 받는다. 또는 아무것도
+ * @return 어느 쪽이든 적용되는지
+ * @note 이미 이름이 붙은 객체는 "이름 붙이기"가 아니라 "이름 바꾸기"라고 말한다. 그래서 메뉴가 플레이어에게 대체될 무언가가 있다고 알려 준다. 종류 이름 짓기 항목도 만들어 낸 낱말로 같은 일을 하며, 딸린 주석이 그 대안들이 더 나쁘게 읽힌다고 인정하고 있다.
+ * @note 유일한 객체는 복수형 대신 "the"를 받는다. 하나뿐이고 그 종류를 복수로 말하는 것이 틀리기 때문이다.
+ */
 /* construct text for the menu entries for IA_NAME_OBJ and IA_NAME_OTYP */
 staticfn boolean
 item_naming_classification(
@@ -114,6 +144,30 @@ item_naming_classification(
     return (*onamebuf || *ocallbuf) ? TRUE : FALSE;
 }
 
+/**
+ * @brief Whether an object can be read, and what reading it should be called.
+ *
+ * "Read" covers several unrelated things, and the wording is what keeps a player from expecting the wrong one. Reading a scroll invokes magic; reading a shirt does not; studying a spellbook is a commitment of several turns;
+ * examining the one tome that must not be studied casually is deliberately named differently.
+ *
+ * @param obj the object
+ * @param outbuf receives the wording
+ * @return the reading action, or none if the object cannot be read
+ * @note The scroll wording mentions activating magic only when the hero knows enough for that to be true. An unidentified scroll is offered plainly, so the menu does not tell the player something the hero has not learned.
+ * @note Blank paper and the book of the dead are worded specially only once identified, for the same reason -- before that they are just a scroll and a spellbook.
+ */
+/**
+ * @brief 객체를 읽을 수 있는지, 그리고 그것을 읽는 일을 무엇이라 불러야 하는지.
+ *
+ * "읽기"는 서로 무관한 여러 가지를 덮으며, 그 표현이 플레이어가 잘못된 것을 기대하지 않게 하는 것이다. 두루마리를 읽는 것은 마법을 발동한다. 셔츠를 읽는 것은 그렇지 않다. 주문서를 공부하는 것은 여러 턴의 약속이다. 함부로 공부해서는 안 되는 그 한 권을 살펴보는 일은 일부러 다르게
+ * 이름 붙어 있다.
+ *
+ * @param obj 그 객체
+ * @param outbuf 그 표현을 받는다
+ * @return 그 읽기 행동. 객체를 읽을 수 없으면 없음
+ * @note 두루마리 표현은 영웅이 그것이 참임을 알 만큼 알 때만 마법 발동을 언급한다. 미확인 두루마리는 담담하게 제시되므로, 메뉴가 영웅이 배우지 않은 것을 플레이어에게 알려 주지 않는다.
+ * @note 백지와 사자의 서도 감별된 뒤에만 특별하게 표현되며, 같은 이유다. 그전까지 그것들은 그저 두루마리와 주문서다.
+ */
 /* construct text for the menu entries for IA_READ_OBJ */
 staticfn int
 item_reading_classification(struct obj *obj, char *outbuf)
@@ -156,6 +210,23 @@ item_reading_classification(struct obj *obj, char *outbuf)
     return res;
 }
 
+/**
+ * @brief Add one action to the menu.
+ * @param win the menu
+ * @param act which action this entry stands for
+ * @param let the key that selects it
+ * @param txt the wording
+ * @note The action travels as the entry's own value rather than being worked out from the key, so the key a player presses and the action it performs are decided in one place -- which is what lets the keys be the ones a player
+ *       would already know for those commands.
+ */
+/**
+ * @brief 메뉴에 행동 하나를 더한다.
+ * @param win 그 메뉴
+ * @param act 이 항목이 나타내는 행동
+ * @param let 그것을 고르는 키
+ * @param txt 그 표현
+ * @note 행동이 키에서 계산되는 대신 그 항목 자신의 값으로 다닌다. 그래서 플레이어가 누르는 키와 그것이 수행하는 행동이 한곳에서 정해지며, 그것이 그 키들을 플레이어가 그 명령에 대해 이미 알고 있을 것으로 만드는 것이다.
+ */
 staticfn void
 ia_addmenu(winid win, int act, char let, const char *txt)
 {
@@ -168,6 +239,31 @@ ia_addmenu(winid win, int act, char let, const char *txt)
              ATR_NONE, clr, txt, MENU_ITEMFLAGS_NONE);
 }
 
+/**
+ * @brief Carry out a chosen action by feeding the game the keystrokes for it.
+ *
+ * Nothing here performs an action. It queues the command and the item's letter as though the player had typed them, and the ordinary command machinery then does the work.
+ *
+ * That indirection is deliberate and is what makes this whole file cheap to maintain: an action offered here is the same action as the command it corresponds to, with the same prompts, the same checks and the same cost in time.
+ * Calling the commands directly would mean this file reimplementing each one's preliminaries and drifting from them.
+ *
+ * @param otmp the object the action is for
+ * @param act which action was chosen
+ * @warning An unrecognised action is reported as an internal error rather than ignored, because every menu entry was added by this file and one arriving here unhandled means the menu and this switch have diverged.
+ * @note Unwielding is the awkward case: which command performs it depends on which hand the object is in, and the object may be in none of them -- the final branch is unreachable and says so.
+ */
+/**
+ * @brief 골라진 행동을, 그것에 해당하는 키 입력을 게임에 먹여서 수행한다.
+ *
+ * 여기의 어느 것도 행동을 수행하지 않는다. 플레이어가 입력한 것처럼 그 명령과 물건의 글자를 대기열에 넣고, 그다음 평범한 명령 기제가 그 일을 한다.
+ *
+ * 그 간접이 의도적이며, 이 파일 전체를 유지하기 값싸게 만드는 것이다. 여기서 제시되는 행동은 그것에 대응하는 명령과 같은 행동이며, 같은 프롬프트, 같은 검사, 같은 시간 비용을 가진다. 명령을 직접 호출하는 것은 이 파일이 각각의 사전 작업을 다시 구현하고 그것들과 어긋나게 된다는 뜻이다.
+ *
+ * @param otmp 그 행동의 대상 객체
+ * @param act 어느 행동이 골라졌는지
+ * @warning 알 수 없는 행동은 무시되는 대신 내부 오류로 알려진다. 모든 메뉴 항목이 이 파일이 더한 것이며, 처리되지 않은 채로 여기 도착한 것은 그 메뉴와 이 분기가 갈라졌다는 뜻이기 때문이다.
+ * @note 무기를 놓는 것이 어색한 경우다. 어느 명령이 그것을 수행하는지가 그 객체가 어느 손에 있는지에 달려 있고, 그 객체가 어느 손에도 없을 수 있다. 마지막 가지는 닿을 수 없으며 그렇다고 적혀 있다.
+ */
 /* set up a command to execute on a specific item next */
 staticfn void
 itemactions_pushkeys(struct obj *otmp, int act)
@@ -306,6 +402,32 @@ itemactions_pushkeys(struct obj *otmp, int act)
     }
 }
 
+/**
+ * @brief Offer the player everything they could do with one item, and do what they choose.
+ *
+ * The file's one public routine. It asks, for each action the game has, whether that action makes sense for this object in the hero's present circumstances, builds a menu of the ones that do, and queues the chosen one.
+ *
+ * What makes the menu worth having is what it leaves out. An action is offered only if it would actually work, so the menu is a statement about the situation as well as the object: a wand with no charges left does not offer to be
+ * zapped, and a hero with no free hands is not offered a weapon to wield. A player can therefore read the menu to learn why something is not possible.
+ *
+ * @param otmp the object
+ * @return the command result -- whether time passed, which depends on the action chosen rather than on this
+ * @note Nothing here consumes a turn. The chosen action is queued and performed afterwards by the ordinary command machinery, so its cost in time is that command's and not this menu's.
+ * @note The classification helpers above supply the wording as well as the answer, because for several actions the right words depend on facts they have already established.
+ */
+/**
+ * @brief 어떤 물건으로 플레이어가 할 수 있는 모든 것을 제시하고, 그가 고른 것을 한다.
+ *
+ * 이 파일의 유일한 공개 루틴이다. 게임이 가진 각 행동에 대해 그 행동이 영웅의 현재 정황에서 이 객체에 대해 말이 되는지 묻고, 말이 되는 것들의 메뉴를 만들고, 골라진 것을 대기열에 넣는다.
+ *
+ * 그 메뉴를 가질 가치가 있게 만드는 것은 그것이 빼놓는 것이다. 행동은 실제로 통할 때만 제시되므로, 그 메뉴는 객체에 대한 것만이 아니라 상황에 대한 선언이다. 충전이 다한 지팡이는 쏘겠느냐고 묻지 않고, 손이 빈 데가 없는 영웅에게 들 무기가 제시되지 않는다. 그래서 플레이어가 그 메뉴를
+ * 읽어 무언가가 왜 불가능한지 알 수 있다.
+ *
+ * @param otmp 그 객체
+ * @return 명령 결과. 시간이 지났는지이며, 이것이 아니라 골라진 행동에 달려 있다
+ * @note 여기의 어느 것도 턴을 소비하지 않는다. 골라진 행동은 대기열에 들어가 나중에 평범한 명령 기제가 수행하므로, 그 시간 비용은 이 메뉴의 것이 아니라 그 명령의 것이다.
+ * @note 위의 분류 보조 함수들은 답뿐 아니라 표현도 제공한다. 여러 행동에 대해 알맞은 낱말이 그것들이 이미 확정한 사실에 달려 있기 때문이다.
+ */
 /* Show menu of possible actions hero could do with item otmp */
 int
 itemactions(struct obj *otmp)
